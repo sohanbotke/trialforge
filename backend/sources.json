@@ -1,0 +1,26 @@
+[
+  {
+    "id": "product-hunt",
+    "type": "rss",
+    "label": "Product Hunt",
+    "url": "https://www.producthunt.com/feed",
+    "categories": ["productivity", "devtools", "design"],
+    "enabled": true
+  },
+  {
+    "id": "appsumo",
+    "type": "html",
+    "label": "AppSumo",
+    "url": "https://appsumo.com/software/",
+    "categories": ["productivity", "devtools", "design", "finance"],
+    "enabled": false
+  },
+  {
+    "id": "reddit-freebies",
+    "type": "html",
+    "label": "Reddit free trials",
+    "url": "https://www.reddit.com/r/freebies/search/?q=trial&restrict_sr=1",
+    "categories": ["family", "learning", "productivity"],
+    "enabled": false
+  }
+]

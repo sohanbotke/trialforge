@@ -3,452 +3,1857 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrialForge - Find Premium Trials Matching Your Interests</title>
+  <title>TrialForge - Private Trial Planner</title>
   <style>
-    /* Clean, mobile-friendly CSS - feels familiar from your portfolio */
-    :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --muted: #64748b; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-    .container { max-width: 600px; margin: 0 auto; padding: 1rem; }
-    header { text-align: center; padding: 2rem 0; }
-    h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: var(--primary); }
-    .subtitle { color: var(--muted); font-size: 1.1rem; }
-    .section { background: white; border-radius: 0.5rem; padding: 1.5rem; margin: 1.5rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    h2 { font-size: 1.3rem; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
-    .interests { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-    .interest-tag {
-      background: #eff6ff; border: 1px solid #bfdbfe; color: var(--primary);
-      padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.9rem; cursor: pointer;
-      transition: all 0.2s;
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel-soft: #f9fbfd;
+      --text: #172033;
+      --muted: #667085;
+      --line: #d9e0ea;
+      --brand: #176b87;
+      --brand-strong: #0f5169;
+      --accent: #d35f3f;
+      --green: #1f8a5b;
+      --amber: #b7791f;
+      --red: #c2413a;
+      --blue-soft: #e7f3f7;
+      --green-soft: #e9f7ef;
+      --amber-soft: #fff5dd;
+      --red-soft: #ffebe8;
+      --shadow: 0 16px 40px rgba(23, 32, 51, 0.08);
+      --radius: 8px;
     }
-    .interest-tag.active { background: var(--primary); color: white; }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 248, 251, 0.96)),
+        url("assets/trialforge-mark.svg") top 18px right 20px / 220px auto no-repeat,
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    a {
+      color: var(--brand);
+    }
+
+    .app {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: start;
+      padding: 12px 0 18px;
+    }
+
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: var(--brand);
+      box-shadow: var(--shadow);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .mark svg {
+      width: 28px;
+      height: 28px;
+      display: block;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      letter-spacing: 0;
+    }
+
+    .subhead {
+      margin: 2px 0 0;
+      color: var(--muted);
+      max-width: 700px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 8px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .btn.primary {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+
+    .btn.danger {
+      color: var(--red);
+      border-color: #efc2bd;
+      background: #fff8f7;
+    }
+
+    .btn:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(23, 107, 135, 0.22);
+      outline-offset: 2px;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: 0 0 auto;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .sidebar,
+    .main {
+      min-width: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel + .panel {
+      margin-top: 14px;
+    }
+
+    .panel-header {
+      padding: 14px 14px 0;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: 0.95rem;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      min-height: 84px;
+    }
+
+    .stat-value {
+      font-size: 1.45rem;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin: 2px 0 0;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      background: #edf2f7;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 5px;
+      margin-bottom: 14px;
+    }
+
+    .tab {
+      border: 0;
+      background: transparent;
+      border-radius: 6px;
+      min-height: 38px;
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .tab.active {
+      background: var(--panel);
+      color: var(--brand-strong);
+      box-shadow: 0 1px 4px rgba(23, 32, 51, 0.08);
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .interest-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .chip {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+      color: var(--text);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 650;
+      text-align: left;
+    }
+
+    .chip.active {
+      border-color: var(--brand);
+      background: var(--blue-soft);
+      color: var(--brand-strong);
+    }
+
+    .chip small {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 170px 150px;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 750;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--text);
+      padding: 9px 10px;
+      min-height: 38px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 76px;
+    }
+
     .trial-card {
-      border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem; margin: 1rem 0;
-      background: #fafafa;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
     }
-    .trial-card h3 { margin: 0 0 0.5rem 0; color: var(--text); }
-    .trial-card p { margin: 0.5rem 0; color: var(--muted); font-size: 0.9rem; }
-    .trial-link {
-      display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1rem;
-      background: var(--primary); color: white; text-decoration: none; border-radius: 0.375rem;
-      font-size: 0.9rem;
+
+    .trial-card.featured {
+      border-color: rgba(23, 107, 135, 0.36);
+      background: linear-gradient(180deg, #ffffff, #f7fcfd);
     }
-    .tracker-section { background: #f0f9ff; border-left: 3px solid var(--primary); }
-    .tracker-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
-    .tracker-form input, .tracker-form select {
-      padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.375rem;
-      font-family: inherit;
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
     }
-    .tracker-form button {
-      grid-column: 1 / -1; background: var(--primary); color: white;
-      border: none; padding: 0.75rem; border-radius: 0.375rem; cursor: pointer;
-      font-weight: 500;
+
+    .card-title {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0;
     }
-    .no-trials { text-align: center; color: var(--muted); padding: 2rem; }
-    footer { text-align: center; padding: 2rem 0; color: var(--muted); font-size: 0.9rem; }
-    @media (max-width: 480px) {
-      .tracker-form { grid-template-columns: 1fr; }
-      .interests { justify-content: center; }
+
+    .card-meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin: 3px 0 0;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      background: #eef2f6;
+      color: #435064;
+      font-size: 0.76rem;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .badge.green { background: var(--green-soft); color: var(--green); }
+    .badge.amber { background: var(--amber-soft); color: var(--amber); }
+    .badge.red { background: var(--red-soft); color: var(--red); }
+    .badge.blue { background: var(--blue-soft); color: var(--brand-strong); }
+
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .small {
+      font-size: 0.84rem;
+    }
+
+    .trial-form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .trial-form .wide {
+      grid-column: 1 / -1;
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: #e8edf4;
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      background: var(--brand);
+      border-radius: inherit;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .timeline-date {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 8px;
+    }
+
+    .check {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+    }
+
+    .check input {
+      min-height: 0;
+      width: 16px;
+      height: 16px;
+      margin-top: 3px;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .empty {
+      border: 1px dashed #bdc7d5;
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .privacy-row {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-soft);
+    }
+
+    .privacy-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: var(--blue-soft);
+      color: var(--brand);
+      font-weight: 900;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%) translateY(24px);
+      opacity: 0;
+      pointer-events: none;
+      background: #172033;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 7px;
+      box-shadow: var(--shadow);
+      transition: opacity 0.18s, transform 0.18s;
+      z-index: 20;
+      max-width: calc(100vw - 28px);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .onboarding {
+      width: min(920px, calc(100vw - 24px));
+      border: 0;
+      border-radius: 10px;
+      padding: 0;
+      color: var(--text);
+      box-shadow: 0 28px 80px rgba(23, 32, 51, 0.28);
+    }
+
+    .onboarding::backdrop {
+      background: rgba(23, 32, 51, 0.38);
+      backdrop-filter: blur(4px);
+    }
+
+    .onboarding-card {
+      padding: 18px;
+      background: var(--panel);
+      display: grid;
+      gap: 16px;
+    }
+
+    .onboarding-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .onboarding-head h2,
+    .onboarding-card h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    .onboarding-head p {
+      margin: 4px 0 0;
+    }
+
+    .onboarding-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .setup-option {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+      font-weight: 750;
+    }
+
+    .setup-option input {
+      width: 16px;
+      height: 16px;
+      min-height: 0;
+      margin-top: 3px;
+    }
+
+    @media (max-width: 920px) {
+      body {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 248, 251, 0.98)),
+          var(--bg);
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        padding: 12px;
+      }
+
+      .stats,
+      .grid,
+      .trial-form,
+      .decision-grid,
+      .filters,
+      .onboarding-grid,
+      .setup-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .card-top {
+        display: grid;
+      }
+
+      .toolbar .btn,
+      .card-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>TrialForge</h1>
-      <p class="subtitle">Find premium trials matching your interests • No email/bank access needed</p>
+  <div class="app">
+    <header class="topbar">
+      <div class="identity">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32">
+            <path d="M8 8h16v5c0 5.2-3.2 9.8-8 11.6C11.2 22.8 8 18.2 8 13V8z" stroke="#fff"></path>
+            <path d="M12 15l3 3 6-7" stroke="#fff"></path>
+          </svg>
+        </div>
+        <div>
+          <h1>TrialForge</h1>
+          <p class="subhead">A private trial planner for discovering useful tools, testing them intentionally, and deciding before they convert.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="shareBtn" type="button" title="Copy a summary of your trial plan">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>
+          Share
+        </button>
+        <button class="btn primary" id="setupBtn" type="button" title="Set interests, sources, and alerts">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+          Setup
+        </button>
+        <button class="btn" id="exportBtn" type="button" title="Download your local data as JSON">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>
+          Export
+        </button>
+      </div>
     </header>
 
-    <section class="section">
-      <h2>🎯 Your Interests</h2>
-      <div class="interests" id="interestsContainer">
-        <!-- Interest tags will be populated by JS -->
-      </div>
-    </section>
+    <main class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l2.7 6.7 7.3.5-5.6 4.7 1.8 7.1L12 17.2 5.8 21l1.8-7.1L2 9.2l7.3-.5L12 2z"></path></svg>
+              Interests
+            </h2>
+          </div>
+          <div class="panel-body">
+            <div class="interest-list" id="interestList"></div>
+          </div>
+        </section>
 
-    <section class="section">
-      <h2>🔍 Personalized Trial Feed</h2>
-      <div id="trialFeed" class="no-trials">
-        Select your interests above to see personalized trial offers
-      </div>
-    </section>
+        <section class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Privacy
+            </h2>
+          </div>
+          <div class="panel-body stack">
+            <div class="privacy-row">
+              <div class="privacy-icon">1</div>
+              <div>
+                <strong>Manual only</strong>
+                <div class="small muted">Everything stays in this browser.</div>
+              </div>
+              <span class="badge green">On</span>
+            </div>
+            <div class="privacy-row">
+              <div class="privacy-icon">2</div>
+              <div>
+                <strong>Email forwarding</strong>
+                <div class="small muted">Optional import path for later.</div>
+              </div>
+              <span class="badge">Later</span>
+            </div>
+            <div class="privacy-row">
+              <div class="privacy-icon">3</div>
+              <div>
+                <strong>Bank scan</strong>
+                <div class="small muted">Not part of this MVP.</div>
+              </div>
+              <span class="badge">Off</span>
+            </div>
+          </div>
+        </section>
+      </aside>
 
-    <section class="section tracker-section">
-      <h2>📊 Track Your Active Trials</h2>
-      <form id="trackerForm">
-        <div>
-          <label for="serviceName">Service Name</label>
-          <input type="text" id="serviceName" placeholder="e.g., Adobe Express" required>
-        </div>
-        <div>
-          <label for="endDate">Trial Ends On</label>
-          <input type="date" id="endDate" required>
-        </div>
-        <div>
-          <label for="notes">Notes (optional)</label>
-          <input type="text" id="notes" placeholder="e.g., Using for kids' educational videos">
-        </div>
-        <button type="submit">Add Trial</button>
-      </form>
-      <div id="trackedTrials"></div>
-    </section>
+      <section class="main">
+        <section class="stats" aria-label="Trial summary">
+          <div class="stat">
+            <p class="stat-value" id="activeCount">0</p>
+            <p class="stat-label">Active trials</p>
+          </div>
+          <div class="stat">
+            <p class="stat-value" id="urgentCount">0</p>
+            <p class="stat-label">Need decision soon</p>
+          </div>
+          <div class="stat">
+            <p class="stat-value" id="monthlyValue">$0</p>
+            <p class="stat-label">Monthly value under test</p>
+          </div>
+          <div class="stat">
+            <p class="stat-value" id="savedCount">0</p>
+            <p class="stat-label">Decisions made</p>
+          </div>
+        </section>
 
-    <section class="section">
-      <h2>💡 Optimization Suggestions</h2>
-      <div id="optimizationTip" class="no-trials">
-        Track trials above to see personalized savings suggestions
-      </div>
-    </section>
+        <nav class="tabs" aria-label="TrialForge views">
+          <button class="tab active" type="button" data-view="discover">Discover</button>
+          <button class="tab" type="button" data-view="active">Active Trials</button>
+          <button class="tab" type="button" data-view="review">Review</button>
+          <button class="tab" type="button" data-view="radar">Radar</button>
+          <button class="tab" type="button" data-view="insights">Insights</button>
+        </nav>
 
-    <footer>
-      <p>Built with ❤️ by parents, for parents • <a href="https://github.com/sohanbotke/trialforg" target="_blank">View on GitHub</a></p>
-      <p>No data leaves your device unless you choose to sync (via localStorage/Firebase)</p>
-    </footer>
+        <section class="view active" id="discoverView">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+                Trial Feed
+              </h2>
+            </div>
+            <div class="panel-body">
+              <div class="filters">
+                <div class="field">
+                  <label for="searchInput">Search</label>
+                  <input id="searchInput" type="search" placeholder="Search tools, categories, goals">
+                </div>
+                <div class="field">
+                  <label for="sourceFilter">Source</label>
+                  <select id="sourceFilter">
+                    <option value="all">All sources</option>
+                    <option value="official">Official only</option>
+                    <option value="community">Community verified</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="valueFilter">Minimum value</label>
+                  <select id="valueFilter">
+                    <option value="0">Any value</option>
+                    <option value="10">$10+/mo</option>
+                    <option value="20">$20+/mo</option>
+                    <option value="40">$40+/mo</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid" id="trialFeed"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="activeView">
+          <div class="grid">
+            <section class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M3 10h18"></path></svg>
+                  Add Trial
+                </h2>
+              </div>
+              <div class="panel-body">
+                <form class="trial-form" id="trialForm">
+                  <div class="field">
+                    <label for="serviceName">Service</label>
+                    <input id="serviceName" type="text" placeholder="Adobe Express" required>
+                  </div>
+                  <div class="field">
+                    <label for="monthlyCost">Monthly value</label>
+                    <input id="monthlyCost" type="number" min="0" step="0.01" placeholder="9.99">
+                  </div>
+                  <div class="field">
+                    <label for="startDate">Started</label>
+                    <input id="startDate" type="date" required>
+                  </div>
+                  <div class="field">
+                    <label for="endDate">Decision date</label>
+                    <input id="endDate" type="date" required>
+                  </div>
+                  <div class="field wide">
+                    <label for="trialGoal">Experiment goal</label>
+                    <input id="trialGoal" type="text" placeholder="Make three birthday invite designs">
+                  </div>
+                  <div class="field wide">
+                    <label for="keepCriteria">Keep if</label>
+                    <textarea id="keepCriteria" placeholder="I use it 3+ times and it replaces a paid tool."></textarea>
+                  </div>
+                  <button class="btn primary wide" type="submit">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                    <span id="trialSubmitLabel">Add Trial</span>
+                  </button>
+                  <button class="btn wide" id="cancelEditBtn" type="button" hidden>Cancel edit</button>
+                </form>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5V4a2 2 0 0 1 2-2h10l4 4v13.5A2.5 2.5 0 0 1 17.5 22h-11A2.5 2.5 0 0 1 4 19.5z"></path><path d="M14 2v6h6"></path></svg>
+                  Active Experiments
+                </h2>
+              </div>
+              <div class="panel-body">
+                <div class="stack" id="activeTrials"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="reviewView">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                Decision Queue
+              </h2>
+            </div>
+            <div class="panel-body stack" id="reviewQueue"></div>
+          </div>
+        </section>
+
+        <section class="view" id="radarView">
+          <div class="grid">
+            <section class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 11a9 9 0 0 1 18 0"></path><path d="M7 11a5 5 0 0 1 10 0"></path><path d="M12 11v10"></path></svg>
+                  Source Radar
+                </h2>
+              </div>
+              <div class="panel-body stack" id="sourceRadar"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+                  Alerts
+                </h2>
+              </div>
+              <div class="panel-body stack" id="alertPlan"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="insightsView">
+          <div class="grid">
+            <section class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 14l4-4 4 4 5-7"></path></svg>
+                  Optimization Plan
+                </h2>
+              </div>
+              <div class="panel-body stack" id="optimizationPlan"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+                  Decision History
+                </h2>
+              </div>
+              <div class="panel-body stack" id="decisionHistory"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
   </div>
 
+  <dialog class="onboarding" id="onboardingDialog">
+    <form method="dialog" class="onboarding-card" id="onboardingForm">
+      <div class="onboarding-head">
+        <div>
+          <h2>Set up your trial radar</h2>
+          <p class="muted">Choose interests, sources, and alert timing. Everything stays local until you connect a backend.</p>
+        </div>
+        <button class="btn" value="cancel" type="button" id="closeOnboardingBtn">Later</button>
+      </div>
+
+      <div class="onboarding-grid">
+        <section>
+          <h3>Interests</h3>
+          <div class="setup-grid" id="onboardingInterests"></div>
+        </section>
+        <section>
+          <h3>Sources</h3>
+          <div class="setup-grid" id="onboardingSources"></div>
+        </section>
+      </div>
+
+      <div class="trial-form">
+        <div class="field wide">
+          <label for="keywordInput">Keywords to watch</label>
+          <input id="keywordInput" type="text" placeholder="AI tools, kids activities, design, productivity">
+        </div>
+        <div class="field">
+          <label for="alertCadence">Alert cadence</label>
+          <select id="alertCadence">
+            <option value="daily">Daily digest</option>
+            <option value="weekly">Weekly digest</option>
+            <option value="instant">Instant high-value matches</option>
+            <option value="off">No alerts</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="minimumTrialValue">Minimum value</label>
+          <select id="minimumTrialValue">
+            <option value="0">Any value</option>
+            <option value="10">$10+/mo</option>
+            <option value="20">$20+/mo</option>
+            <option value="40">$40+/mo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button class="btn primary" type="submit">Save radar</button>
+        <button class="btn" type="button" id="seedParentBtn">Use parent-focused defaults</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <script type="module">
-    // Import Firebase config (optional)
     import { firebaseConfig } from './firebase-config.js';
 
-    // Initialize Firebase only when real config values are provided.
-    let db = null;
     async function initializeFirebaseIfConfigured() {
       const hasFirebaseConfig = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR_');
       if (!hasFirebaseConfig) {
-        console.info('Firebase not configured - using localStorage only');
         return;
       }
 
-      try {
-        const firebaseApp = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-        const firestore = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-        const app = firebaseApp.initializeApp(firebaseConfig);
-        db = firestore.getFirestore(app);
-      } catch (e) {
-        console.warn('Firebase failed to initialize - using localStorage only', e);
-      }
+      console.info('Firebase config detected. Sync backend is not enabled in this static MVP.');
     }
 
-    // ======================
-    // STATE MANAGEMENT
-    // ======================
-    const STATE_KEY = 'trialforg-state';
-    let state = {
-      interests: new Set(), // Selected interest categories
-      trials: [] // Tracked trials: {id, service, endDate, notes}
+    const STATE_KEY = 'trialforge-state-v2';
+    const todayISO = formatISODate(new Date());
+
+    const interests = [
+      { id: 'family', label: 'Family Life', short: 'Family' },
+      { id: 'design', label: 'Design & Content', short: 'Design' },
+      { id: 'productivity', label: 'Productivity', short: 'Focus' },
+      { id: 'devtools', label: 'Dev Tools', short: 'Code' },
+      { id: 'learning', label: 'Learning', short: 'Learn' },
+      { id: 'finance', label: 'Money & Ops', short: 'Money' },
+      { id: 'health', label: 'Health & Fitness', short: 'Health' },
+      { id: 'home', label: 'Home Projects', short: 'Home' }
+    ];
+
+    const sourceTypes = [
+      {
+        id: 'official',
+        label: 'Official pages',
+        description: 'Pricing, trial, and promo pages from product websites.',
+        status: 'Frontend catalog now; backend collector scaffolded'
+      },
+      {
+        id: 'deal-sites',
+        label: 'Deal sites',
+        description: 'Public SaaS/deal pages such as AppSumo-like sources.',
+        status: 'Backend collector scaffolded'
+      },
+      {
+        id: 'forums',
+        label: 'Forums',
+        description: 'Public communities where users share limited trial links.',
+        status: 'Requires rate limits and source allowlist'
+      },
+      {
+        id: 'newsletters',
+        label: 'Newsletters/RSS',
+        description: 'RSS feeds or forwarded newsletters converted into trial candidates.',
+        status: 'Backend collector scaffolded'
+      },
+      {
+        id: 'extension',
+        label: 'Chrome extension',
+        description: 'Save a trial candidate from the current page while browsing.',
+        status: 'Extension scaffolded'
+      }
+    ];
+
+    const trialCatalog = [
+      {
+        id: 'adobe-express',
+        name: 'Adobe Express Premium',
+        categories: ['design', 'family'],
+        description: 'Design, short video, quick social assets, cards, school flyers, and invitations.',
+        trialDays: 90,
+        monthlyValue: 9.99,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'New users and selected promos',
+        url: 'https://express.adobe.com/sp/premium',
+        goal: 'Create three useful family or social designs before the decision date.'
+      },
+      {
+        id: 'canva-pro',
+        name: 'Canva Pro',
+        categories: ['design', 'productivity'],
+        description: 'Templates, brand kit, background remover, content planner, and collaboration.',
+        trialDays: 30,
+        monthlyValue: 12.99,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'New users',
+        url: 'https://www.canva.com/pricing/pro/',
+        goal: 'Build a reusable template set and decide if it replaces an existing design workflow.'
+      },
+      {
+        id: 'figma-professional',
+        name: 'Figma Professional',
+        categories: ['design', 'devtools'],
+        description: 'Collaborative design files, shared libraries, and team workspaces.',
+        trialDays: 30,
+        monthlyValue: 15,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'New teams',
+        url: 'https://www.figma.com/pricing/',
+        goal: 'Prototype one real app screen and test whether collaboration features matter.'
+      },
+      {
+        id: 'notion-plus',
+        name: 'Notion Plus',
+        categories: ['productivity', 'family', 'learning'],
+        description: 'Personal wiki, project docs, database views, and shared planning spaces.',
+        trialDays: 30,
+        monthlyValue: 10,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'Workspace trials vary by account',
+        url: 'https://www.notion.so/pricing',
+        goal: 'Run one household or project dashboard for two weeks.'
+      },
+      {
+        id: 'github-copilot',
+        name: 'GitHub Copilot',
+        categories: ['devtools', 'productivity'],
+        description: 'AI coding assistance in common editors and GitHub workflows.',
+        trialDays: 30,
+        monthlyValue: 10,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'New eligible users',
+        url: 'https://github.com/features/copilot',
+        goal: 'Use it on one contained coding project and log whether it saves time.'
+      },
+      {
+        id: 'linear',
+        name: 'Linear',
+        categories: ['productivity', 'devtools'],
+        description: 'Issue tracking, cycles, project planning, and lightweight engineering workflows.',
+        trialDays: 14,
+        monthlyValue: 10,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'New workspaces',
+        url: 'https://linear.app/pricing',
+        goal: 'Track one side project with issues, cycles, and a weekly review.'
+      },
+      {
+        id: 'masterclass',
+        name: 'MasterClass',
+        categories: ['learning', 'family', 'home'],
+        description: 'Structured classes for cooking, writing, music, business, and lifestyle learning.',
+        trialDays: 30,
+        monthlyValue: 15,
+        source: 'community',
+        verified: '2026-08-22',
+        eligibility: 'Promos vary',
+        url: 'https://www.masterclass.com/',
+        goal: 'Complete one short class module and try one activity with family.'
+      },
+      {
+        id: 'skillshare',
+        name: 'Skillshare',
+        categories: ['learning', 'design', 'home'],
+        description: 'Creative, business, and maker classes with practical project formats.',
+        trialDays: 30,
+        monthlyValue: 14,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'New users',
+        url: 'https://www.skillshare.com/freetrial',
+        goal: 'Finish one project-based class and create a visible output.'
+      },
+      {
+        id: 'headspace',
+        name: 'Headspace',
+        categories: ['health', 'family'],
+        description: 'Guided meditation, sleep support, focus, and family-friendly mindfulness content.',
+        trialDays: 14,
+        monthlyValue: 12.99,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'New users',
+        url: 'https://www.headspace.com/',
+        goal: 'Use it five times and decide if it improves sleep or focus.'
+      },
+      {
+        id: 'ynab',
+        name: 'YNAB',
+        categories: ['finance', 'family'],
+        description: 'Budgeting workflow for planning dollars, reducing surprises, and shared finances.',
+        trialDays: 34,
+        monthlyValue: 14.99,
+        source: 'official',
+        verified: '2026-08-22',
+        eligibility: 'New users',
+        url: 'https://www.ynab.com/',
+        goal: 'Build one monthly budget and run a weekly money check-in.'
+      }
+    ];
+
+    const defaultState = {
+      onboardingComplete: false,
+      interests: [],
+      keywords: '',
+      alertCadence: 'weekly',
+      minimumTrialValue: 0,
+      sources: ['official', 'deal-sites', 'newsletters'],
+      trials: [],
+      decisions: []
     };
 
-    // Load state from localStorage (or Firebase later)
+    let state = loadState();
+    let editingTrialId = null;
+
     function loadState() {
-      const saved = localStorage.getItem(STATE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        state.interests = new Set(parsed.interests || []);
-        state.trials = parsed.trials || [];
+      const stored = localStorage.getItem(STATE_KEY);
+      if (!stored) return structuredClone(defaultState);
+      try {
+        const parsed = JSON.parse(stored);
+        return {
+          onboardingComplete: Boolean(parsed.onboardingComplete),
+          interests: Array.isArray(parsed.interests) ? parsed.interests : defaultState.interests,
+          keywords: typeof parsed.keywords === 'string' ? parsed.keywords : defaultState.keywords,
+          alertCadence: parsed.alertCadence || defaultState.alertCadence,
+          minimumTrialValue: Number(parsed.minimumTrialValue || defaultState.minimumTrialValue),
+          sources: Array.isArray(parsed.sources) ? parsed.sources : defaultState.sources,
+          trials: Array.isArray(parsed.trials) ? parsed.trials : [],
+          decisions: Array.isArray(parsed.decisions) ? parsed.decisions : []
+        };
+      } catch {
+        return structuredClone(defaultState);
       }
-      renderUI();
     }
 
     function saveState() {
-      localStorage.setItem(STATE_KEY, JSON.stringify({
-        interests: Array.from(state.interests),
-        trials: state.trials
-      }));
-      // TODO: Sync to Firebase if configured
+      localStorage.setItem(STATE_KEY, JSON.stringify(state));
     }
 
-    // ======================
-    // INTEREST SELECTOR
-    // ======================
-    const INTEREST_CATEGORIES = [
-      { id: 'family', label: '👨‍👩‍👧‍👦 Family Life' },
-      { id: 'design', label: '🎨 Design/Creativity' },
-      { id: 'productivity', label: '📈 Productivity' },
-      { id: 'finance', label: '💰 Finance' },
-      { id: 'learning', label: '📚 Learning' },
-      { id: 'devtools', label: '🛠️ Dev Tools' },
-      { id: 'health', label: '🏃‍♂️ Health/Fitness' },
-      { id: 'cooking', label: '🍳 Cooking/Meal Planning' }
-    ];
+    function render() {
+      renderInterests();
+      renderStats();
+      renderTrialFeed();
+      renderActiveTrials();
+      renderReviewQueue();
+      renderSourceRadar();
+      renderAlertPlan();
+      renderOptimizationPlan();
+      renderDecisionHistory();
+      renderOnboardingOptions();
+    }
 
     function renderInterests() {
-      const container = document.getElementById('interestsContainer');
-      container.innerHTML = INTEREST_CATEGORIES.map(cat =>
-        `<span class="interest-tag ${state.interests.has(cat.id) ? 'active' : ''}"
-           data-id="${cat.id}">${cat.label}</span>`
-      ).join('');
+      const selected = new Set(state.interests);
+      const counts = countTrialsByInterest();
+      document.getElementById('interestList').innerHTML = interests.map((interest) => `
+        <button class="chip ${selected.has(interest.id) ? 'active' : ''}" type="button" data-interest="${interest.id}">
+          <span>${escapeHTML(interest.label)}</span>
+          <small>${counts[interest.id] || 0}</small>
+        </button>
+      `).join('');
+    }
 
-      // Add click handlers
-      document.querySelectorAll('.interest-tag').forEach(tag => {
-        tag.addEventListener('click', () => {
-          const id = tag.dataset.id;
-          if (state.interests.has(id)) {
-            state.interests.delete(id);
-          } else {
-            state.interests.add(id);
-          }
-          saveState();
-          renderInterests();
-          renderTrialFeed(); // Update feed when interests change
+    function countTrialsByInterest() {
+      return trialCatalog.reduce((acc, trial) => {
+        trial.categories.forEach((category) => {
+          acc[category] = (acc[category] || 0) + 1;
         });
-      });
+        return acc;
+      }, {});
     }
 
-    // ======================
-    // TRIAL FEED (Mock data for now - replace with real fetcher later)
-    // ======================
-    function getMockTrials() {
-      // These represent real trial offers from public sources (Product Hunt, deal sites, etc.)
-      return [
-        {
-          title: 'Adobe Express Premium',
-          description: 'All-in-one design, video, and web tool for social content',
-          link: 'https://express.adobe.com/sp/premium',
-          ends: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // ~3 months
-          category: 'design',
-          value: 9.99 // Monthly value if paid
-        },
-        {
-          title: 'Canva Pro',
-          description: 'Premium templates, brand kit, and team collaboration',
-          link: 'https://www.canva.com/pricing/pro/',
-          ends: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // ~1.5 months
-          category: 'design',
-          value: 12.99
-        },
-        {
-          title: 'Notion Plus',
-          description: 'Unlimited blocks, file uploads, and version history',
-          link: 'https://www.notion.so/pricing',
-          ends: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 2 months
-          category: 'productivity',
-          value: 8
-        },
-        {
-          title: 'MasterClass Annual',
-          description: 'Learn from world-class experts (cooking, writing, music, etc.)',
-          link: 'https://www.masterclass.com/',
-          ends: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 1 month
-          category: ['family', 'learning', 'cooking'],
-          value: 15
-        },
-        {
-          title: 'Headspace Plus',
-          description: 'Guided meditation, sleep, and focus exercises',
-          link: 'https://www.headspace.com/',
-          ends: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks
-          category: 'health',
-          value: 12.99
-        },
-        {
-          title: 'GitHub Pro',
-          description: 'Advanced code review, insights, and CI/CD minutes',
-          link: 'https://github.com/pricing',
-          ends: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 2 months
-          category: 'devtools',
-          value: 4
-        }
-      ];
+    function renderStats() {
+      const activeTrials = state.trials.filter((trial) => trial.status === 'active');
+      const urgent = activeTrials.filter((trial) => daysUntil(trial.endDate) <= 5);
+      const value = activeTrials.reduce((sum, trial) => sum + Number(trial.monthlyValue || 0), 0);
+      document.getElementById('activeCount').textContent = activeTrials.length;
+      document.getElementById('urgentCount').textContent = urgent.length;
+      document.getElementById('monthlyValue').textContent = `$${value.toFixed(0)}`;
+      document.getElementById('savedCount').textContent = state.decisions.length;
     }
 
-    function inferCategoryFromTrial(trial) {
-      return Array.isArray(trial.category) ? trial.category : [trial.category];
+    function renderOnboardingOptions() {
+      document.getElementById('onboardingInterests').innerHTML = interests.map((interest) => `
+        <label class="setup-option">
+          <input type="checkbox" name="setup-interest" value="${interest.id}" ${state.interests.includes(interest.id) ? 'checked' : ''}>
+          <span>${escapeHTML(interest.label)}</span>
+        </label>
+      `).join('');
+
+      document.getElementById('onboardingSources').innerHTML = sourceTypes.map((source) => `
+        <label class="setup-option">
+          <input type="checkbox" name="setup-source" value="${source.id}" ${state.sources.includes(source.id) ? 'checked' : ''}>
+          <span>${escapeHTML(source.label)}</span>
+        </label>
+      `).join('');
+
+      document.getElementById('keywordInput').value = state.keywords;
+      document.getElementById('alertCadence').value = state.alertCadence;
+      document.getElementById('minimumTrialValue').value = String(state.minimumTrialValue);
+    }
+
+    function renderSourceRadar() {
+      const selected = new Set(state.sources);
+      document.getElementById('sourceRadar').innerHTML = sourceTypes.map((source) => `
+        <article class="trial-card ${selected.has(source.id) ? 'featured' : ''}">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">${escapeHTML(source.label)}</h3>
+              <p class="card-meta">${selected.has(source.id) ? 'Enabled in radar profile' : 'Disabled'}</p>
+            </div>
+            <span class="badge ${selected.has(source.id) ? 'green' : ''}">${selected.has(source.id) ? 'On' : 'Off'}</span>
+          </div>
+          <p class="small muted">${escapeHTML(source.description)}</p>
+          <p class="small"><strong>Status:</strong> ${escapeHTML(source.status)}</p>
+        </article>
+      `).join('');
+    }
+
+    function renderAlertPlan() {
+      const keywords = state.keywords || 'No keywords configured';
+      const enabledSources = sourceTypes
+        .filter((source) => state.sources.includes(source.id))
+        .map((source) => source.label)
+        .join(', ') || 'No sources enabled';
+      document.getElementById('alertPlan').innerHTML = `
+        <article class="trial-card featured">
+          <h3 class="card-title">${state.alertCadence === 'off' ? 'Alerts are off' : `${capitalize(state.alertCadence)} trial digest`}</h3>
+          <p class="small muted">The static app records this preference locally. The backend scaffold uses the same shape for scheduled collectors.</p>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-date">Watch</div>
+              <div>${escapeHTML(keywords)}</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">Sources</div>
+              <div>${escapeHTML(enabledSources)}</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">Filter</div>
+              <div>$${Number(state.minimumTrialValue || 0).toFixed(0)}+/mo trial value</div>
+            </div>
+          </div>
+        </article>
+      `;
     }
 
     function renderTrialFeed() {
-      const feed = document.getElementById('trialFeed');
-      if (state.interests.size === 0) {
-        feed.innerHTML = '<p class="no-trials">Select your interests above to see personalized trial offers</p>';
-        return;
-      }
+      const selected = new Set(state.interests);
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const source = document.getElementById('sourceFilter').value;
+      const minValue = Number(document.getElementById('valueFilter').value);
+      const trackedIds = new Set(state.trials.map((trial) => trial.catalogId));
 
-      const trials = getMockTrials();
-      const filtered = trials.filter(trial =>
-        inferCategoryFromTrial(trial).some(cat => state.interests.has(cat))
-      );
-
-      if (filtered.length === 0) {
-        feed.innerHTML = '<p class="no-trials">No trials match your current interests. Try selecting more categories.</p>';
-        return;
-      }
-
-      feed.innerHTML = filtered.map(trial => {
-        const endsSoon = new Date(trial.ends) < Date.now() + 7 * 24 * 60 * 60 * 1000; // Within a week
-        return `
-          <div class="trial-card">
-            <h3>${trial.title}</h3>
-            <p>${trial.description}</p>
-            <p><strong>Value:</strong> $${trial.value.toFixed(2)}/mo • <strong>Ends:</strong> ${new Date(trial.ends).toLocaleDateString()}</p>
-            ${endsSoon ? '<p style="color: #dc2626; font-weight: 500;">⚠️ Ends soon!</p>' : ''}
-            <a href="${trial.link}" target="_blank" rel="noopener" class="trial-link">Get Trial</a>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // ======================
-    // TRIAL TRACKER
-    // ======================
-    function addTrial(service, endDate, notes) {
-      const newTrial = {
-        id: Date.now() + Math.random(),
-        service: service.trim(),
-        endDate: new Date(endDate).toISOString().split('T')[0], // YYYY-MM-DD
-        notes: notes.trim(),
-        addedAt: new Date().toISOString()
-      };
-      state.trials.push(newTrial);
-      saveState();
-      renderTrackedTrials();
-      renderOptimizationTip();
-    }
-
-    function renderTrackedTrials() {
-      const container = document.getElementById('trackedTrials');
-      if (state.trials.length === 0) {
-        container.innerHTML = '<p class="no-trials">No trials tracked yet. Add one above!</p>';
-        return;
-      }
-
-      // Sort by end date (soonest first)
-      const sorted = [...state.trials].sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-
-      container.innerHTML = sorted.map(trial => {
-        const end = new Date(trial.endDate);
-        const daysLeft = Math.ceil((end - Date.now()) / (24 * 60 * 60 * 1000));
-        const isExpired = daysLeft < 0;
-        const isEndingSoon = daysLeft >= 0 && daysLeft <= 3;
-
-        return `
-          <div class="trial-card ${isExpired ? 'expired' : ''} ${isEndingSoon ? 'ending-soon' : ''}">
-            <h3>${trial.service}</h3>
-            <p>${trial.notes || '(no notes)'}</p>
-            <p><strong>Ends:</strong> ${end.toLocaleDateString()}
-               ${isExpired ? '(Expired)' : daysLeft === 0 ? '(Ends today!)' :
-                 isEndingSoon ? `(Ends in ${daysLeft} days)` : `(In ${daysLeft} days)`}</p>
-            <div style="margin-top: 0.75rem; font-size: 0.9rem;">
-              ${!isExpired ?
-                `<button onclick="removeTrial(${trial.id})" style="background: #dc2626; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 0.25rem; cursor: pointer;">Remove</button>`
-                : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Add removeTrial to window scope for onclick handlers
-      window.removeTrial = function(id) {
-        state.trials = state.trials.filter(t => t.id !== id);
-        saveState();
-        renderTrackedTrials();
-        renderOptimizationTip();
-      };
-    }
-
-    // ======================
-    // OPTIMIZATION SUGGESTIONS
-    // ======================
-    function renderOptimizationTip() {
-      const tipContainer = document.getElementById('optimizationTip');
-      if (state.trials.length === 0) {
-        tipContainer.innerHTML = '<p class="no-trials">Track trials above to see personalized savings suggestions</p>';
-        return;
-      }
-
-      // Simple optimization rules - expand based on your interests
-      const suggestions = [];
-
-      state.trials.forEach(trial => {
-        const serviceLower = trial.service.toLowerCase();
-
-        // Design-related optimizations
-        if (serviceLower.includes('canva') && state.interests.has('design')) {
-          suggestions.push({
-            current: trial.service,
-            alternative: 'Adobe Express Premium',
-            savings: 12.99 - 0, // Assuming trial is free
-            reason: 'Get identical design tools + video editing during trial period',
-            link: 'https://express.adobe.com/sp/premium'
-          });
-        }
-
-        // Learning/productivity
-        if (serviceLower.includes('masterclass') && (state.interests.has('learning') || state.interests.has('cooking'))) {
-          suggestions.push({
-            current: trial.service,
-            alternative: 'Skillshare Free Trial',
-            savings: 15 - 0,
-            reason: 'Access thousands of classes for creative/skill-building during trial',
-            link: 'https://www.skillshare.com/freetrial'
-          });
-        }
-
-        // Fitness/health
-        if (serviceLower.includes('headspace') && state.interests.has('health')) {
-          suggestions.push({
-            current: trial.service,
-            alternative: 'Calm Free Trial',
-            savings: 12.99 - 0,
-            reason: 'Try alternative meditation/sleep apps to compare features',
-            link: 'https://www.calm.com/'
-          });
-        }
+      const matching = trialCatalog.filter((trial) => {
+        const interestMatch = selected.size === 0 || trial.categories.some((category) => selected.has(category));
+        const queryMatch = !query || [
+          trial.name,
+          trial.description,
+          trial.eligibility,
+          ...trial.categories
+        ].join(' ').toLowerCase().includes(query);
+        const sourceMatch = source === 'all' || trial.source === source;
+        const valueMatch = trial.monthlyValue >= minValue;
+        return interestMatch && queryMatch && sourceMatch && valueMatch;
       });
 
-      if (suggestions.length === 0) {
-        tipContainer.innerHTML = '<p class="no-trials">No optimization suggestions yet. Track more trials or adjust interests.</p>';
+      const feed = document.getElementById('trialFeed');
+      if (matching.length === 0) {
+        feed.innerHTML = `<div class="empty">No matching trials. Try another interest or clear the filters.</div>`;
         return;
       }
 
-      // Show top suggestion
-      const top = suggestions[0];
-      const monthlySavings = top.savings;
-      const annualSavings = monthlySavings * 12;
+      feed.innerHTML = matching.map((trial) => trialCard(trial, trackedIds.has(trial.id))).join('');
+    }
 
-      tipContainer.innerHTML = `
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 0.5rem; padding: 1rem;">
-          <h3>💡 Optimization Opportunity</h3>
-          <p><strong>You're paying for:</strong> ${top.current}</p>
-          <p><strong>Try instead:</strong> <a href="${top.link}" target="_blank" rel="noopener" style="color: #2563eb; text-decoration: underline;">${top.alternative}</a> (free trial)</p>
-          <p><strong>Save:</strong> $${monthlySavings.toFixed(2)}/mo ($${annualSavings.toFixed(0)}/yr)</p>
-          <p><em>${top.reason}</em></p>
-          <div style="margin-top: 0.75rem; text-align: right;">
-            <button onclick="document.querySelector('a[href=\"${top.link}\"]').click()"
-                    style="background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer;">
-              Get Trial
+    function trialCard(trial, alreadyTracked) {
+      const selected = state.interests.some((interest) => trial.categories.includes(interest));
+      return `
+        <article class="trial-card ${selected ? 'featured' : ''}">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">${escapeHTML(trial.name)}</h3>
+              <p class="card-meta">${trial.trialDays} day trial • $${trial.monthlyValue.toFixed(2)}/mo value</p>
+            </div>
+            <span class="badge ${trial.source === 'official' ? 'green' : 'blue'}">${escapeHTML(trial.source)}</span>
+          </div>
+          <p class="small muted">${escapeHTML(trial.description)}</p>
+          <div class="badge-row">
+            ${trial.categories.map((category) => `<span class="badge">${interestLabel(category)}</span>`).join('')}
+            <span class="badge amber">Verified ${escapeHTML(trial.verified)}</span>
+          </div>
+          <p class="small"><strong>Eligibility:</strong> ${escapeHTML(trial.eligibility)}</p>
+          <div class="card-actions">
+            <button class="btn primary" type="button" data-add-catalog="${trial.id}" ${alreadyTracked ? 'disabled' : ''}>
+              ${alreadyTracked ? 'Tracked' : 'Plan Trial'}
             </button>
+            <a class="btn" href="${trial.url}" target="_blank" rel="noopener">Open</a>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderActiveTrials() {
+      const active = state.trials
+        .filter((trial) => trial.status === 'active')
+        .sort((a, b) => parseISODate(a.endDate) - parseISODate(b.endDate));
+      const container = document.getElementById('activeTrials');
+      if (active.length === 0) {
+        container.innerHTML = `<div class="empty">No active trials yet. Add one from the feed or the form.</div>`;
+        return;
+      }
+
+      container.innerHTML = active.map((trial) => {
+        const days = daysUntil(trial.endDate);
+        const total = Math.max(1, daysBetween(trial.startDate, trial.endDate));
+        const elapsed = Math.max(0, daysBetween(trial.startDate, todayISO));
+        const progress = Math.min(100, Math.round((elapsed / total) * 100));
+        const tone = days < 0 ? 'red' : days <= 3 ? 'red' : days <= 7 ? 'amber' : 'green';
+        return `
+          <article class="trial-card">
+            <div class="card-top">
+              <div>
+                <h3 class="card-title">${escapeHTML(trial.service)}</h3>
+                <p class="card-meta">${daysLabel(days)} • decision ${formatDate(trial.endDate)}</p>
+              </div>
+              <span class="badge ${tone}">$${Number(trial.monthlyValue || 0).toFixed(2)}/mo</span>
+            </div>
+            <div class="progress" aria-label="Trial progress"><span style="width: ${progress}%"></span></div>
+            <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'No goal set')}</p>
+            <p class="small muted"><strong>Keep if:</strong> ${escapeHTML(trial.keepCriteria || 'No criteria set')}</p>
+            <div class="card-actions">
+              <button class="btn" type="button" data-edit-trial="${trial.id}">Load into form</button>
+              <button class="btn primary" type="button" data-review-trial="${trial.id}">Review</button>
+              <button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderReviewQueue() {
+      const active = state.trials
+        .filter((trial) => trial.status === 'active')
+        .sort((a, b) => daysUntil(a.endDate) - daysUntil(b.endDate));
+      const container = document.getElementById('reviewQueue');
+      if (active.length === 0) {
+        container.innerHTML = `<div class="empty">Your review queue is empty. Active trials will appear here.</div>`;
+        return;
+      }
+
+      container.innerHTML = active.map((trial) => {
+        const days = daysUntil(trial.endDate);
+        return `
+          <article class="trial-card">
+            <div class="card-top">
+              <div>
+                <h3 class="card-title">${escapeHTML(trial.service)}</h3>
+                <p class="card-meta">${daysLabel(days)} • $${Number(trial.monthlyValue || 0).toFixed(2)}/mo at stake</p>
+              </div>
+              <span class="badge ${days <= 3 ? 'red' : days <= 7 ? 'amber' : 'green'}">${decisionPressure(days)}</span>
+            </div>
+            <div class="checklist">
+              ${reviewChecklist(trial).map((item, index) => `
+                <label class="check">
+                  <input type="checkbox" data-check-trial="${trial.id}" data-check-index="${index}" ${item.done ? 'checked' : ''}>
+                  <span>${escapeHTML(item.text)}</span>
+                </label>
+              `).join('')}
+            </div>
+            <div class="decision-grid">
+              <button class="btn primary" type="button" data-decide="keep" data-trial="${trial.id}">Keep</button>
+              <button class="btn" type="button" data-decide="extend" data-trial="${trial.id}">Extend test</button>
+              <button class="btn danger" type="button" data-decide="cancel" data-trial="${trial.id}">Cancel</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function reviewChecklist(trial) {
+      const checks = trial.checks || {};
+      return [
+        { text: `Original goal reviewed: ${trial.goal || 'set a goal'}`, done: Boolean(checks[0]) },
+        { text: `Keep criteria reviewed: ${trial.keepCriteria || 'define criteria'}`, done: Boolean(checks[1]) },
+        { text: 'I used the product enough to make a real decision.', done: Boolean(checks[2]) },
+        { text: 'I know what happens if I do nothing.', done: Boolean(checks[3]) }
+      ];
+    }
+
+    function renderOptimizationPlan() {
+      const active = state.trials.filter((trial) => trial.status === 'active');
+      const container = document.getElementById('optimizationPlan');
+      if (active.length === 0) {
+        container.innerHTML = `<div class="empty">Add trials to generate a practical plan.</div>`;
+        return;
+      }
+
+      const sorted = [...active].sort((a, b) => daysUntil(a.endDate) - daysUntil(b.endDate));
+      const monthly = sorted.reduce((sum, trial) => sum + Number(trial.monthlyValue || 0), 0);
+      const soonest = sorted[0];
+      const recommendations = [
+        `Review ${soonest.service} first. ${daysLabel(daysUntil(soonest.endDate))}.`,
+        `Total post-trial exposure is $${monthly.toFixed(2)}/mo if every active trial converts.`,
+        'Cancel anything without a goal, clear usage, or a replacement benefit.',
+        'Keep only trials that replace an existing paid tool or create repeated weekly value.'
+      ];
+
+      container.innerHTML = `
+        <div class="trial-card featured">
+          <h3 class="card-title">Current optimization plan</h3>
+          <p class="small muted">Generated locally from your active trials and decisions.</p>
+          <div class="timeline">
+            ${recommendations.map((item, index) => `
+              <div class="timeline-item">
+                <div class="timeline-date">Step ${index + 1}</div>
+                <div>${escapeHTML(item)}</div>
+              </div>
+            `).join('')}
           </div>
         </div>
       `;
     }
 
-    // ======================
-    // EVENT LISTENERS & INIT
-    // ======================
-    document.getElementById('trackerForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const service = document.getElementById('serviceName').value;
-      const endDate = document.getElementById('endDate').value;
-      const notes = document.getElementById('notes').value;
+    function renderDecisionHistory() {
+      const container = document.getElementById('decisionHistory');
+      if (state.decisions.length === 0) {
+        container.innerHTML = `<div class="empty">No decisions yet. Reviews will show up here.</div>`;
+        return;
+      }
 
-      if (!service || !endDate) return;
+      container.innerHTML = [...state.decisions].reverse().map((decision) => `
+        <article class="trial-card">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">${escapeHTML(decision.service)}</h3>
+              <p class="card-meta">${formatDate(decision.decidedAt)} • ${escapeHTML(decision.choice)}</p>
+            </div>
+            <span class="badge ${decision.choice === 'cancel' ? 'red' : decision.choice === 'keep' ? 'green' : 'amber'}">
+              ${escapeHTML(decision.choice)}
+            </span>
+          </div>
+          <p class="small muted">${escapeHTML(decision.reason)}</p>
+        </article>
+      `).join('');
+    }
 
-      addTrial(service, endDate, notes);
-      e.target.reset();
+    function addCatalogTrial(id) {
+      const catalog = trialCatalog.find((trial) => trial.id === id);
+      if (!catalog) return;
+      const start = todayISO;
+      const end = addDays(start, catalog.trialDays);
+      state.trials.push({
+        id: crypto.randomUUID(),
+        catalogId: catalog.id,
+        service: catalog.name,
+        monthlyValue: catalog.monthlyValue,
+        startDate: start,
+        endDate: end,
+        goal: catalog.goal,
+        keepCriteria: 'Keep only if it creates repeated value before the decision date.',
+        status: 'active',
+        checks: {},
+        createdAt: new Date().toISOString()
+      });
+      saveState();
+      render();
+      showToast(`${catalog.name} added to your trial plan`);
+    }
 
-      // Show success feedback
-      const submitBtn = e.target.querySelector('button');
-      const originalText = submitBtn.textContent;
-      submitBtn.textContent = 'Added!';
-      setTimeout(() => { submitBtn.textContent = originalText; }, 1500);
+    function addManualTrial(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const existing = state.trials.find((item) => item.id === editingTrialId);
+      const nextValues = {
+        service: value('serviceName'),
+        monthlyValue: Number(value('monthlyCost') || 0),
+        startDate: value('startDate'),
+        endDate: value('endDate'),
+        goal: value('trialGoal'),
+        keepCriteria: value('keepCriteria')
+      };
+
+      if (existing) {
+        Object.assign(existing, nextValues, { updatedAt: new Date().toISOString() });
+      } else {
+        state.trials.push({
+          id: crypto.randomUUID(),
+          catalogId: null,
+          ...nextValues,
+          status: 'active',
+          checks: {},
+          createdAt: new Date().toISOString()
+        });
+      }
+      saveState();
+      form.reset();
+      clearEditMode();
+      setDefaultDates();
+      render();
+      showToast(existing ? `${nextValues.service} updated` : `${nextValues.service} added`);
+    }
+
+    function loadTrialIntoForm(id) {
+      const trial = state.trials.find((item) => item.id === id);
+      if (!trial) return;
+      document.getElementById('serviceName').value = trial.service;
+      document.getElementById('monthlyCost').value = trial.monthlyValue;
+      document.getElementById('startDate').value = trial.startDate;
+      document.getElementById('endDate').value = trial.endDate;
+      document.getElementById('trialGoal').value = trial.goal || '';
+      document.getElementById('keepCriteria').value = trial.keepCriteria || '';
+      editingTrialId = trial.id;
+      document.getElementById('trialSubmitLabel').textContent = 'Save Trial';
+      document.getElementById('cancelEditBtn').hidden = false;
+      switchView('active');
+      showToast('Trial loaded into form');
+    }
+
+    function clearEditMode() {
+      editingTrialId = null;
+      document.getElementById('trialSubmitLabel').textContent = 'Add Trial';
+      document.getElementById('cancelEditBtn').hidden = true;
+    }
+
+    function removeTrial(id) {
+      const trial = state.trials.find((item) => item.id === id);
+      state.trials = state.trials.filter((item) => item.id !== id);
+      saveState();
+      render();
+      showToast(`${trial?.service || 'Trial'} removed`);
+    }
+
+    function updateCheck(id, index, checked) {
+      const trial = state.trials.find((item) => item.id === id);
+      if (!trial) return;
+      trial.checks = { ...(trial.checks || {}), [index]: checked };
+      saveState();
+      renderStats();
+    }
+
+    function decideTrial(id, choice) {
+      const trial = state.trials.find((item) => item.id === id);
+      if (!trial) return;
+      const reason = choice === 'keep'
+        ? 'Kept because it passed the review checklist.'
+        : choice === 'cancel'
+          ? 'Canceled or marked for cancellation before conversion.'
+          : 'Extended because more evidence is needed.';
+
+      if (choice === 'extend') {
+        trial.endDate = addDays(trial.endDate, 7);
+        trial.checks = {};
+      } else {
+        trial.status = choice;
+        state.decisions.push({
+          id: crypto.randomUUID(),
+          service: trial.service,
+          choice,
+          reason,
+          monthlyValue: trial.monthlyValue,
+          decidedAt: new Date().toISOString()
+        });
+      }
+      saveState();
+      render();
+      showToast(`${trial.service}: ${choice}`);
+    }
+
+    function switchView(view) {
+      document.querySelectorAll('.tab').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.view === view);
+      });
+      document.querySelectorAll('.view').forEach((panel) => {
+        panel.classList.toggle('active', panel.id === `${view}View`);
+      });
+    }
+
+    function openOnboarding() {
+      renderOnboardingOptions();
+      const dialog = document.getElementById('onboardingDialog');
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      }
+    }
+
+    function closeOnboarding() {
+      document.getElementById('onboardingDialog').close();
+    }
+
+    function saveOnboarding(event) {
+      event.preventDefault();
+      state.interests = checkedValues('setup-interest');
+      state.sources = checkedValues('setup-source');
+      state.keywords = value('keywordInput');
+      state.alertCadence = value('alertCadence');
+      state.minimumTrialValue = Number(value('minimumTrialValue') || 0);
+      state.onboardingComplete = true;
+      saveState();
+      closeOnboarding();
+      render();
+      showToast('Trial radar saved');
+    }
+
+    function applyParentDefaults() {
+      state.interests = ['family', 'design', 'productivity', 'learning', 'home'];
+      state.sources = ['official', 'deal-sites', 'newsletters', 'forums'];
+      state.keywords = 'kids activities, design tools, learning, family productivity, meal planning';
+      state.alertCadence = 'weekly';
+      state.minimumTrialValue = 10;
+      renderOnboardingOptions();
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `trialforge-${todayISO}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast('Export downloaded');
+    }
+
+    async function sharePlan() {
+      const active = state.trials.filter((trial) => trial.status === 'active');
+      const lines = [
+        'My TrialForge plan:',
+        ...active.map((trial) => `- ${trial.service}: ${daysLabel(daysUntil(trial.endDate))}; goal: ${trial.goal || 'not set'}`)
+      ];
+      const text = lines.join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Trial plan copied');
+      } catch {
+        showToast(text);
+      }
+    }
+
+    function setDefaultDates() {
+      document.getElementById('startDate').value = todayISO;
+      document.getElementById('endDate').value = addDays(todayISO, 30);
+    }
+
+    function value(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function checkedValues(name) {
+      return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map((item) => item.value);
+    }
+
+    function interestLabel(id) {
+      return interests.find((interest) => interest.id === id)?.short || id;
+    }
+
+    function daysUntil(date) {
+      return Math.round((parseISODate(date) - startOfDay(new Date())) / 86400000);
+    }
+
+    function daysBetween(start, end) {
+      return Math.round((parseISODate(end) - parseISODate(start)) / 86400000);
+    }
+
+    function startOfDay(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function addDays(date, days) {
+      const base = parseISODate(date);
+      base.setDate(base.getDate() + days);
+      return formatISODate(base);
+    }
+
+    function parseISODate(date) {
+      if (String(date).includes('T')) {
+        return new Date(date);
+      }
+      const [year, month, day] = String(date).split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatISODate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function daysLabel(days) {
+      if (days < 0) return `${Math.abs(days)} days overdue`;
+      if (days === 0) return 'Decision due today';
+      if (days === 1) return '1 day left';
+      return `${days} days left`;
+    }
+
+    function decisionPressure(days) {
+      if (days < 0) return 'Overdue';
+      if (days <= 3) return 'High pressure';
+      if (days <= 7) return 'Soon';
+      return 'Scheduled';
+    }
+
+    function formatDate(date) {
+      return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(parseISODate(date));
+    }
+
+    function capitalize(text) {
+      return text ? text[0].toUpperCase() + text.slice(1) : '';
+    }
+
+    function escapeHTML(valueToEscape) {
+      return String(valueToEscape)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    let toastTimer = null;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    document.addEventListener('click', (event) => {
+      const target = event.target.closest('button');
+      if (!target) return;
+
+      if (target.dataset.view) switchView(target.dataset.view);
+      if (target.dataset.interest) {
+        const interest = target.dataset.interest;
+        state.interests = state.interests.includes(interest)
+          ? state.interests.filter((item) => item !== interest)
+          : [...state.interests, interest];
+        saveState();
+        render();
+      }
+      if (target.dataset.addCatalog) addCatalogTrial(target.dataset.addCatalog);
+      if (target.dataset.removeTrial) removeTrial(target.dataset.removeTrial);
+      if (target.dataset.editTrial) loadTrialIntoForm(target.dataset.editTrial);
+      if (target.dataset.reviewTrial) switchView('review');
+      if (target.dataset.decide) decideTrial(target.dataset.trial, target.dataset.decide);
     });
 
-    // Initialize
-    loadState();
-    renderInterests();
-    renderTrialFeed();
-    renderTrackedTrials();
-    renderOptimizationTip();
+    document.addEventListener('change', (event) => {
+      if (event.target.matches('[data-check-trial]')) {
+        updateCheck(
+          event.target.dataset.checkTrial,
+          event.target.dataset.checkIndex,
+          event.target.checked
+        );
+      }
+      if (event.target.matches('#sourceFilter, #valueFilter')) renderTrialFeed();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', renderTrialFeed);
+    document.getElementById('trialForm').addEventListener('submit', addManualTrial);
+    document.getElementById('cancelEditBtn').addEventListener('click', () => {
+      document.getElementById('trialForm').reset();
+      clearEditMode();
+      setDefaultDates();
+      showToast('Edit canceled');
+    });
+    document.getElementById('setupBtn').addEventListener('click', openOnboarding);
+    document.getElementById('closeOnboardingBtn').addEventListener('click', closeOnboarding);
+    document.getElementById('onboardingForm').addEventListener('submit', saveOnboarding);
+    document.getElementById('seedParentBtn').addEventListener('click', applyParentDefaults);
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('shareBtn').addEventListener('click', sharePlan);
+
+    setDefaultDates();
+    render();
     initializeFirebaseIfConfigured();
+    if (!state.onboardingComplete) {
+      openOnboarding();
+    }
+
+    window.__trialForgeSmoke = {
+      getState: () => state,
+      addCatalogTrial,
+      switchView,
+      openOnboarding
+    };
   </script>
 </body>
 </html>

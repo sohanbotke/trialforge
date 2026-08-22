@@ -1,42 +1,105 @@
 # TrialForge
 
-Find premium trials matching your interests - **no email, bank, or password access needed**.
+TrialForge is a private trial planner for discovering useful premium trials, testing
+them intentionally, and making a keep/cancel decision before they convert.
 
-## 🎯 What It Does
-1. **Select your interests** (e.g., "Family Life", "Design/Creativity", "Productivity")  
-2. **See personalized trial offers** from public sources (Product Hunt, deal sites, etc.)  
-3. **Track trials you start** → get countdown timers and conversion readiness scores  
-4. **Receive optimization suggestions** like:  
-   > *"You're paying for Canva Pro ($12.99/mo). Try Adobe Express free trial (3mo) → saves $38.97/mo + gains video editing."*
+The product is deliberately manual-first. It does not need email, bank, password,
+or browser-extension access to be useful.
 
-## 🔒 Privacy First
-- **Zero sensitive permissions** - only uses browser storage (localStorage) by default  
-- **No email, bank, or password access** - ever  
-- **Optional Firebase sync** - only if you choose to configure it (for cross-device access)  
-- **All trial data comes from public sources** - no scraping or private APIs  
+## What It Does
 
-## 🚀 Live Demo
-[https://trialforg-<yourname>.web.app](https://trialforg-<yourname>.web.app)  
-*(Replace `<yourname>` with your Firebase project ID after deployment)*
+- Select interest areas such as family life, design, productivity, dev tools, learning, health, finance, and home projects.
+- Complete first-run onboarding for interests, keywords, source comfort, alert cadence, and minimum trial value.
+- Browse a curated local trial catalog with source, eligibility, trial length, value, and verification date.
+- Add a trial as an experiment with a goal, decision date, monthly value, and keep criteria.
+- Review active trials before they convert using a practical checklist.
+- Inspect the source radar and alert plan that a backend collector can use later.
+- Generate a local optimization plan based on active trials and decisions.
+- Export or copy your trial plan without creating an account.
 
-## 💻 Built With
-- Vanilla JS/HTML/CSS (no build step - easy to modify)  
-- Firebase (optional, for syncing across devices)  
-- Designed for busy parents/professionals - build and iterate in nap-time-sized chunks  
+## Privacy Model
 
-## 🛠️ Want to Build Your Own?
-1. Fork this repo  
-2. Replace `firebase-config.js` with your own Firebase config (optional)  
-3. Deploy to Firebase Hosting: `firebase deploy`  
-4. Share your link: *"Built a tool that found me a free 3-month Adobe Express trial - saved $40! Try it: [link]"*  
+TrialForge currently stores data in browser `localStorage`.
 
-## 🌱 Future Ideas (When You Have Time)
-- Add real trial fetcher (Product Hunt RSS + deal sites)  
-- Plaid Lite integration (for users who want bank-scan option)  
-- Family sharing mode  
-- "Trial history" to see lifetime savings  
-- Interest-based community sharing (e.g., "Parents using TrialForge saved $X this month")  
+```text
+Manual only       On by default
+Email forwarding  Future optional import path
+Bank scan         Not part of the MVP
+```
 
----
-Built with ❤️ by parents, for parents.  
-If this saves you time/money, please share it with someone who needs it!
+Firebase config is included only as a future sync option. If `firebase-config.js`
+still contains placeholder values, the app stays local-only.
+
+## Backend And Extension Path
+
+The repo includes scaffolds for the next product layer:
+
+```text
+backend/
+  collector.py        Public-source trial candidate collector
+  sources.json        Allowlisted source definitions
+  README.md           Backend policy and run notes
+
+extension/
+  manifest.json       Chrome extension manifest
+  popup.html          Trial candidate clipper UI
+  popup.js            Saves current page candidates to Chrome local storage
+```
+
+The backend is not a private-data scraper. It is designed for public pages, RSS,
+forums, newsletters, and deal sources that can be checked in batch with source
+allowlists and rate limits. The Chrome extension is a future capture surface for
+saving a trial page while browsing.
+
+## Run Locally
+
+No build step is required.
+
+```bash
+python3 -m http.server 4177
+```
+
+Then open:
+
+```text
+http://127.0.0.1:4177
+```
+
+Opening `index.html` directly may not work in every browser because the app uses
+JavaScript modules.
+
+## Files
+
+```text
+index.html                  App UI, styles, and behavior
+firebase-config.js          Optional Firebase placeholder config
+assets/trialforge-mark.svg  Local visual asset
+backend/                    Public-source collector scaffold
+extension/                  Chrome extension clipper scaffold
+```
+
+## Product Direction
+
+The strongest version of TrialForge is not a broad subscription scanner. It is a
+trial experiment system:
+
+```text
+Discover relevant trials
+Track decision dates
+Define why each trial is being tested
+Review evidence before conversion
+Keep only what creates repeated value
+```
+
+Future work should improve the curated catalog and review workflow before adding
+high-trust integrations like email forwarding or financial account scanning.
+
+## Backend Run
+
+```bash
+cd backend
+python3 collector.py
+```
+
+Generated files are written under `backend/data/` and are intentionally ignored by
+Git.

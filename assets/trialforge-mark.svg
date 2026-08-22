@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-labelledby="title desc">
+  <title id="title">TrialForge mark</title>
+  <desc id="desc">A shield and checklist over layered product cards.</desc>
+  <rect width="240" height="180" rx="18" fill="#e7f3f7"/>
+  <rect x="26" y="36" width="120" height="86" rx="10" fill="#ffffff" stroke="#b8d6df" stroke-width="3"/>
+  <rect x="44" y="56" width="70" height="8" rx="4" fill="#176b87"/>
+  <rect x="44" y="76" width="82" height="7" rx="3.5" fill="#9ab7c2"/>
+  <rect x="44" y="94" width="54" height="7" rx="3.5" fill="#d35f3f"/>
+  <rect x="90" y="58" width="118" height="86" rx="10" fill="#ffffff" stroke="#b8d6df" stroke-width="3"/>
+  <rect x="108" y="78" width="74" height="8" rx="4" fill="#176b87"/>
+  <rect x="108" y="98" width="62" height="7" rx="3.5" fill="#9ab7c2"/>
+  <path d="M154 38l45 16v34c0 30-18 55-45 66-27-11-45-36-45-66V54l45-16z" fill="#176b87"/>
+  <path d="M132 91l15 15 33-42" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
