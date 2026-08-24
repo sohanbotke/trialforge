@@ -149,6 +149,15 @@
       background: #fff8f7;
     }
 
+    .btn.icon-only {
+      width: 34px;
+      height: 34px;
+      min-height: 34px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 999px;
+    }
+
     .btn:focus-visible,
     input:focus-visible,
     select:focus-visible,
@@ -1587,6 +1596,7 @@
       onboardingComplete: false,
       interests: [],
       requirements: [],
+      dismissedRequirementIds: [],
       keywords: '',
       alertCadence: 'weekly',
       minimumTrialValue: 0,
@@ -1608,6 +1618,7 @@
           onboardingComplete: Boolean(parsed.onboardingComplete),
           interests: Array.isArray(parsed.interests) ? parsed.interests : defaultState.interests,
           requirements: Array.isArray(parsed.requirements) ? parsed.requirements : defaultState.requirements,
+          dismissedRequirementIds: Array.isArray(parsed.dismissedRequirementIds) ? parsed.dismissedRequirementIds : defaultState.dismissedRequirementIds,
           keywords: typeof parsed.keywords === 'string' ? parsed.keywords : defaultState.keywords,
           alertCadence: parsed.alertCadence || defaultState.alertCadence,
           minimumTrialValue: Number(parsed.minimumTrialValue || defaultState.minimumTrialValue),
@@ -1685,6 +1696,10 @@
         `;
         return;
       }
+      if (state.dismissedRequirementIds.includes(latest.id)) {
+        container.innerHTML = '';
+        return;
+      }
 
       const matches = rankCatalogForRequirement(latest).slice(0, 4);
       container.innerHTML = `
@@ -1694,7 +1709,12 @@
               <h3 class="card-title">Try plan for: ${escapeHTML(latest.text)}</h3>
               <p class="card-meta">${escapeHTML(latest.preference)} • budget ${latest.budget ? `$${latest.budget}/mo` : 'not set'}</p>
             </div>
-            <span class="badge blue">${latest.categories.map(interestLabel).join(', ') || 'General'}</span>
+            <div class="card-actions">
+              <span class="badge blue">${latest.categories.map(interestLabel).join(', ') || 'General'}</span>
+              <button class="btn icon-only" type="button" data-dismiss-requirement title="Hide this try plan summary" aria-label="Hide this try plan summary">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+              </button>
+            </div>
           </div>
           <p class="small muted">Ranked by category fit, regular price exposure, cancellation friction, source confidence, and your stated preference.</p>
           ${matches.length ? `
@@ -1742,6 +1762,7 @@
         createdAt: new Date().toISOString()
       });
       state.interests = categories;
+      state.dismissedRequirementIds = state.dismissedRequirementIds.filter((id) => id !== state.requirements.at(-1).id);
       state.keywords = [...new Set([state.keywords, ...keywords].filter(Boolean))].join(', ');
       state.onboardingComplete = true;
       saveState();
@@ -2456,6 +2477,7 @@
       }
       if (target.dataset.addCatalog) addCatalogTrial(target.dataset.addCatalog);
       if (target.dataset.quickRequirement) applyQuickRequirement(target.dataset.quickRequirement);
+      if (target.dataset.dismissRequirement !== undefined) dismissRequirementPlan();
       if (target.dataset.removeTrial) removeTrial(target.dataset.removeTrial);
       if (target.dataset.editTrial) loadTrialIntoForm(target.dataset.editTrial);
       if (target.dataset.reviewTrial) focusReviewTrial(target.dataset.reviewTrial);
@@ -2468,6 +2490,15 @@
       document.getElementById('requirementBudget').value = requirement.toLowerCase().includes('live sports') ? '80' : '30';
       document.getElementById('requirementRisk').value = 'lowest-cost';
       document.getElementById('requirementForm').requestSubmit();
+    }
+
+    function dismissRequirementPlan() {
+      const latest = state.requirements.at(-1);
+      if (!latest) return;
+      state.dismissedRequirementIds = [...new Set([...state.dismissedRequirementIds, latest.id])];
+      saveState();
+      renderRequirementPlan();
+      showToast('Try plan summary hidden');
     }
 
     function setPlannerCollapsed(collapsed) {
