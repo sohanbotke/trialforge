@@ -1,25 +1,27 @@
-# TrialForge
+# TryWise
 
-TrialForge is a private trial planner for discovering useful premium trials, testing
-them intentionally, and making a keep/cancel decision before they convert.
+TryWise helps people find the cheapest, lowest-risk way to try what they need:
+software, streaming, meals, delivery, local services, activities, subscriptions,
+and other trial-friendly options.
 
 The product is deliberately manual-first. It does not need email, bank, password,
 or browser-extension access to be useful.
 
 ## What It Does
 
-- Select interest areas such as family life, design, productivity, dev tools, learning, health, finance, and home projects.
+- Select interest areas such as family life, meals, shows, design, productivity, dev tools, learning, health, finance, and home projects.
 - Complete first-run onboarding for interests, keywords, source comfort, alert cadence, and minimum trial value.
-- Browse a curated local trial catalog with source, eligibility, trial length, value, and verification date.
+- Browse a curated local offer catalog with source, eligibility, trial length, value, and verification date.
+- Build a requirement-first try plan, such as "cheapest way to watch live sports" or "meal kits for busy weekdays."
 - Add a trial as an experiment with a goal, decision date, monthly value, and keep criteria.
 - Review active trials before they convert using a practical checklist.
 - Inspect the source radar and alert plan that a backend collector can use later.
 - Generate a local optimization plan based on active trials and decisions.
-- Export or copy your trial plan without creating an account.
+- Export or copy your try plan without creating an account.
 
 ## Privacy Model
 
-TrialForge currently stores data in browser `localStorage`.
+TryWise currently stores data in browser `localStorage`.
 
 ```text
 Manual only       On by default
@@ -48,8 +50,21 @@ extension/
 
 The backend is not a private-data scraper. It is designed for public pages, RSS,
 forums, newsletters, and deal sources that can be checked in batch with source
-allowlists and rate limits. The Chrome extension is a future capture surface for
-saving a trial page while browsing.
+allowlists and rate limits. It also supports user-submitted findings, podcast
+promo-code links, and community ranking signals through a submission file shape.
+The Chrome extension is a future capture surface for saving a trial page while
+browsing.
+
+The intended catalog pipeline is:
+
+```text
+Seed catalog
+Scheduled public-source collector
+Generated candidate queue
+User submissions and podcast promo links
+Score by source quality, price exposure, usefulness, saves, and reports
+Promote verified offers into the ranked catalog
+```
 
 ## Run Locally
 
@@ -73,26 +88,27 @@ JavaScript modules.
 ```text
 index.html                  App UI, styles, and behavior
 firebase-config.js          Optional Firebase placeholder config
-assets/trialforge-mark.svg  Local visual asset
+assets/trywise-mark.svg  Local visual asset
 backend/                    Public-source collector scaffold
 extension/                  Chrome extension clipper scaffold
 ```
 
 ## Product Direction
 
-The strongest version of TrialForge is not a broad subscription scanner. It is a
-trial experiment system:
+The strongest version of TryWise is not just a subscription scanner. It is an
+intent-to-option system:
 
 ```text
-Discover relevant trials
-Track decision dates
-Define why each trial is being tested
-Review evidence before conversion
-Keep only what creates repeated value
+User states a requirement
+Find trials, promos, intro offers, bundles, free tiers, and cheaper alternatives
+Rank by total cost, risk, value, and cancellation burden
+Track decision dates and reminders
+Help the user keep only what creates repeated value
 ```
 
-Future work should improve the curated catalog and review workflow before adding
-high-trust integrations like email forwarding or financial account scanning.
+Future work should improve requirement capture, source coverage, ranking, and
+alerts before adding high-trust integrations like email forwarding or financial
+account scanning.
 
 ## Backend Run
 
@@ -103,3 +119,25 @@ python3 collector.py
 
 Generated files are written under `backend/data/` and are intentionally ignored by
 Git.
+
+## Test
+
+Backend safety tests:
+
+```bash
+cd backend
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest test_collector.py
+```
+
+Optional browser journeys require Playwright and a local server:
+
+```bash
+npm install
+python3 -m http.server 4177
+npm run test:smoke
+npm run test:journeys
+```
+
+The current catalog links were checked for reachability and trial/pricing/offer
+signals. MasterClass blocks scripted checks, so the app marks that link as
+browser-check-required instead of fully verified.

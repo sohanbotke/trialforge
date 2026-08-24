@@ -1,26 +1,88 @@
 [
   {
+    "id": "adobe-express-official",
+    "type": "official",
+    "label": "Adobe Express official trial page",
+    "url": "https://express.adobe.com/sp/premium",
+    "categories": ["design", "family"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "hulu-official",
+    "type": "official",
+    "label": "Hulu official offers",
+    "url": "https://www.hulu.com/welcome",
+    "categories": ["shows", "family"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "hellofresh-official",
+    "type": "official",
+    "label": "HelloFresh official offers",
+    "url": "https://www.hellofresh.com/",
+    "categories": ["meals", "delivery", "family"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "audible-official",
+    "type": "official",
+    "label": "Audible official trial page",
+    "url": "https://www.audible.com/ep/free-trial?language=en_US",
+    "categories": ["learning", "shows"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "kindle-unlimited-official",
+    "type": "official",
+    "label": "Kindle Unlimited official trial page",
+    "url": "https://www.amazon.com/kindle-dbs/hz/subscribe/ku/",
+    "categories": ["learning", "family"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
     "id": "product-hunt",
     "type": "rss",
     "label": "Product Hunt",
     "url": "https://www.producthunt.com/feed",
     "categories": ["productivity", "devtools", "design"],
+    "verify_links": false,
     "enabled": true
   },
   {
     "id": "appsumo",
-    "type": "html",
+    "type": "deal-site",
     "label": "AppSumo",
     "url": "https://appsumo.com/software/",
     "categories": ["productivity", "devtools", "design", "finance"],
+    "verify_links": false,
     "enabled": false
   },
   {
     "id": "reddit-freebies",
-    "type": "html",
+    "type": "forum",
     "label": "Reddit free trials",
     "url": "https://www.reddit.com/r/freebies/search/?q=trial&restrict_sr=1",
     "categories": ["family", "learning", "productivity"],
+    "verify_links": false,
+    "enabled": false
+  },
+  {
+    "id": "podcast-promo-pages",
+    "type": "podcast",
+    "label": "Podcast promo landing pages",
+    "url": "https://podnews.net/",
+    "categories": ["meals", "delivery", "finance", "health", "learning"],
+    "verify_links": false,
     "enabled": false
   }
 ]

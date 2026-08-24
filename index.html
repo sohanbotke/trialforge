@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrialForge - Private Trial Planner</title>
+  <title>TryWise - Private Trial Planner</title>
   <style>
     :root {
       --bg: #f6f8fb;
@@ -33,7 +33,7 @@
       min-height: 100vh;
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 248, 251, 0.96)),
-        url("assets/trialforge-mark.svg") top 18px right 20px / 220px auto no-repeat,
+        url("assets/trywise-mark.svg") top 18px right 20px / 220px auto no-repeat,
         var(--bg);
       color: var(--text);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -343,6 +343,11 @@
     .trial-card.featured {
       border-color: rgba(23, 107, 135, 0.36);
       background: linear-gradient(180deg, #ffffff, #f7fcfd);
+    }
+
+    .trial-card.focused {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(211, 95, 63, 0.16), var(--shadow);
     }
 
     .card-top {
@@ -664,12 +669,12 @@
           </svg>
         </div>
         <div>
-          <h1>TrialForge</h1>
-          <p class="subhead">A private trial planner for discovering useful tools, testing them intentionally, and deciding before they convert.</p>
+          <h1>TryWise</h1>
+          <p class="subhead">A private try planner for finding useful offers, testing them intentionally, and deciding before they convert.</p>
         </div>
       </div>
       <div class="toolbar">
-        <button class="btn" id="shareBtn" type="button" title="Copy a summary of your trial plan">
+        <button class="btn" id="shareBtn" type="button" title="Copy a summary of your try plan">
           <svg class="icon" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>
           Share
         </button>
@@ -738,7 +743,7 @@
         <section class="stats" aria-label="Trial summary">
           <div class="stat">
             <p class="stat-value" id="activeCount">0</p>
-            <p class="stat-label">Active trials</p>
+            <p class="stat-label">Options in plan</p>
           </div>
           <div class="stat">
             <p class="stat-value" id="urgentCount">0</p>
@@ -746,7 +751,7 @@
           </div>
           <div class="stat">
             <p class="stat-value" id="monthlyValue">$0</p>
-            <p class="stat-label">Monthly value under test</p>
+            <p class="stat-label">Monthly exposure</p>
           </div>
           <div class="stat">
             <p class="stat-value" id="savedCount">0</p>
@@ -754,20 +759,54 @@
           </div>
         </section>
 
-        <nav class="tabs" aria-label="TrialForge views">
-          <button class="tab active" type="button" data-view="discover">Discover</button>
-          <button class="tab" type="button" data-view="active">Active Trials</button>
-          <button class="tab" type="button" data-view="review">Review</button>
-          <button class="tab" type="button" data-view="radar">Radar</button>
-          <button class="tab" type="button" data-view="insights">Insights</button>
+        <nav class="tabs" aria-label="TryWise views">
+          <button class="tab active" type="button" data-view="discover">Find Options</button>
+          <button class="tab" type="button" data-view="active">My Try Plan</button>
+          <button class="tab" type="button" data-view="review">Decisions</button>
+          <button class="tab" type="button" data-view="radar">Sources</button>
+          <button class="tab" type="button" data-view="insights">Compare</button>
         </nav>
 
         <section class="view active" id="discoverView">
           <div class="panel">
             <div class="panel-header">
               <h2 class="panel-title">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
+                Requirement Planner
+              </h2>
+            </div>
+            <div class="panel-body stack">
+              <form class="trial-form" id="requirementForm">
+                <div class="field wide">
+                  <label for="requirementText">What do you want to try or save on?</label>
+                  <input id="requirementText" type="text" placeholder="Meal kits for busy weekdays, cheapest way to watch live sports, AI coding tools">
+                </div>
+                <div class="field">
+                  <label for="requirementBudget">Monthly budget</label>
+                  <input id="requirementBudget" type="number" min="0" step="1" placeholder="25">
+                </div>
+                <div class="field">
+                  <label for="requirementRisk">Preference</label>
+                  <select id="requirementRisk">
+                    <option value="lowest-cost">Lowest cost first</option>
+                    <option value="lowest-friction">Lowest cancellation friction</option>
+                    <option value="highest-value">Highest value first</option>
+                  </select>
+                </div>
+                <button class="btn primary wide" type="submit">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M13 5l7 7-7 7"></path></svg>
+                  Build Try Plan
+                </button>
+              </form>
+              <div id="requirementPlan"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">
                 <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
-                Trial Feed
+                Ranked Options
               </h2>
             </div>
             <div class="panel-body">
@@ -785,9 +824,9 @@
                   </select>
                 </div>
                 <div class="field">
-                  <label for="valueFilter">Minimum value</label>
+                  <label for="valueFilter">Minimum regular value</label>
                   <select id="valueFilter">
-                    <option value="0">Any value</option>
+                    <option value="0">Any regular value</option>
                     <option value="10">$10+/mo</option>
                     <option value="20">$20+/mo</option>
                     <option value="40">$40+/mo</option>
@@ -805,17 +844,17 @@
               <div class="panel-header">
                 <h2 class="panel-title">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M3 10h18"></path></svg>
-                  Add Trial
+                  Add Option
                 </h2>
               </div>
               <div class="panel-body">
                 <form class="trial-form" id="trialForm">
                   <div class="field">
-                    <label for="serviceName">Service</label>
+                    <label for="serviceName">Option</label>
                     <input id="serviceName" type="text" placeholder="Adobe Express" required>
                   </div>
                   <div class="field">
-                    <label for="monthlyCost">Monthly value</label>
+                    <label for="monthlyCost">Monthly exposure</label>
                     <input id="monthlyCost" type="number" min="0" step="0.01" placeholder="9.99">
                   </div>
                   <div class="field">
@@ -827,7 +866,7 @@
                     <input id="endDate" type="date" required>
                   </div>
                   <div class="field wide">
-                    <label for="trialGoal">Experiment goal</label>
+                    <label for="trialGoal">Try goal</label>
                     <input id="trialGoal" type="text" placeholder="Make three birthday invite designs">
                   </div>
                   <div class="field wide">
@@ -836,7 +875,7 @@
                   </div>
                   <button class="btn primary wide" type="submit">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-                    <span id="trialSubmitLabel">Add Trial</span>
+                    <span id="trialSubmitLabel">Add Option</span>
                   </button>
                   <button class="btn wide" id="cancelEditBtn" type="button" hidden>Cancel edit</button>
                 </form>
@@ -847,7 +886,7 @@
               <div class="panel-header">
                 <h2 class="panel-title">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5V4a2 2 0 0 1 2-2h10l4 4v13.5A2.5 2.5 0 0 1 17.5 22h-11A2.5 2.5 0 0 1 4 19.5z"></path><path d="M14 2v6h6"></path></svg>
-                  Active Experiments
+                  My Try Plan
                 </h2>
               </div>
               <div class="panel-body">
@@ -862,7 +901,7 @@
             <div class="panel-header">
               <h2 class="panel-title">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                Decision Queue
+                Decisions
               </h2>
             </div>
             <div class="panel-body stack" id="reviewQueue"></div>
@@ -875,7 +914,7 @@
               <div class="panel-header">
                 <h2 class="panel-title">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M3 11a9 9 0 0 1 18 0"></path><path d="M7 11a5 5 0 0 1 10 0"></path><path d="M12 11v10"></path></svg>
-                  Source Radar
+                  Sources
                 </h2>
               </div>
               <div class="panel-body stack" id="sourceRadar"></div>
@@ -899,7 +938,7 @@
               <div class="panel-header">
                 <h2 class="panel-title">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 14l4-4 4 4 5-7"></path></svg>
-                  Optimization Plan
+                  Compare Options
                 </h2>
               </div>
               <div class="panel-body stack" id="optimizationPlan"></div>
@@ -925,7 +964,7 @@
       <div class="onboarding-head">
         <div>
           <h2>Set up your trial radar</h2>
-          <p class="muted">Choose interests, sources, and alert timing. Everything stays local until you connect a backend.</p>
+          <p class="muted">Start with a need, then choose interests, sources, and alert timing. Everything stays local until you connect a backend.</p>
         </div>
         <button class="btn" value="cancel" type="button" id="closeOnboardingBtn">Later</button>
       </div>
@@ -944,7 +983,7 @@
       <div class="trial-form">
         <div class="field wide">
           <label for="keywordInput">Keywords to watch</label>
-          <input id="keywordInput" type="text" placeholder="AI tools, kids activities, design, productivity">
+          <input id="keywordInput" type="text" placeholder="Meal kits, live sports, AI tools, kids activities">
         </div>
         <div class="field">
           <label for="alertCadence">Alert cadence</label>
@@ -956,7 +995,7 @@
           </select>
         </div>
         <div class="field">
-          <label for="minimumTrialValue">Minimum value</label>
+          <label for="minimumTrialValue">Minimum regular value</label>
           <select id="minimumTrialValue">
             <option value="0">Any value</option>
             <option value="10">$10+/mo</option>
@@ -987,13 +1026,43 @@
       console.info('Firebase config detected. Sync backend is not enabled in this static MVP.');
     }
 
-    const STATE_KEY = 'trialforge-state-v2';
+    const STATE_KEY = 'trywise-state-v2';
+    const LEGACY_STATE_KEYS = ['trialforge-state-v2'];
     const todayISO = formatISODate(new Date());
+    const requirementCategoryHints = [
+      { category: 'meals', terms: ['meal', 'food', 'grocery', 'groceries', 'dinner', 'lunch', 'recipe', 'cook'] },
+      { category: 'shows', terms: ['show', 'shows', 'stream', 'streaming', 'sports', 'movie', 'movies', 'tv', 'live'] },
+      { category: 'delivery', terms: ['delivery', 'deliver', 'ship', 'local', 'restaurant', 'takeout'] },
+      { category: 'services', terms: ['repair', 'cleaning', 'quote', 'contractor', 'plumber', 'electrician', 'handyman'] },
+      { category: 'design', terms: ['design', 'content', 'poster', 'invite', 'video', 'social', 'creative'] },
+      { category: 'productivity', terms: ['productivity', 'planning', 'project', 'organize', 'workflow', 'focus'] },
+      { category: 'devtools', terms: ['code', 'coding', 'developer', 'dev', 'github', 'ai coding', 'programming'] },
+      { category: 'learning', terms: ['learn', 'learning', 'class', 'course', 'study', 'skill', 'book', 'books', 'reading', 'audiobook', 'audiobooks', 'kindle'] },
+      { category: 'finance', terms: ['money', 'budget', 'finance', 'saving', 'savings', 'subscription'] },
+      { category: 'health', terms: ['health', 'fitness', 'sleep', 'meditation', 'wellness'] },
+      { category: 'home', terms: ['home', 'house', 'diy', 'yard', 'maintenance'] },
+      { category: 'family', terms: ['family', 'kid', 'kids', 'parent', 'household'] }
+    ];
+    const requirementFacetHints = [
+      { facet: 'live sports', terms: ['live sports', 'sports package', 'watch sports', 'football', 'basketball', 'soccer'] },
+      { facet: 'streaming shows', terms: ['shows', 'movies', 'streaming', 'watch tv'] },
+      { facet: 'audiobooks', terms: ['audiobook', 'audiobooks', 'listen to books'] },
+      { facet: 'ebooks', terms: ['ebook', 'ebooks', 'kindle', 'read books', 'books'] },
+      { facet: 'meal kit', terms: ['meal kit', 'meal kits', 'cook', 'recipe', 'dinner'] },
+      { facet: 'grocery delivery', terms: ['grocery delivery', 'groceries', 'grocery'] },
+      { facet: 'restaurant delivery', terms: ['restaurant delivery', 'takeout', 'food delivery'] },
+      { facet: 'local quotes', terms: ['repair', 'cleaning', 'quote', 'contractor', 'plumber', 'handyman'] },
+      { facet: 'software trial', terms: ['software', 'app', 'tool', 'ai tool', 'coding tool'] }
+    ];
 
     const interests = [
       { id: 'family', label: 'Family Life', short: 'Family' },
       { id: 'design', label: 'Design & Content', short: 'Design' },
+      { id: 'meals', label: 'Meals & Groceries', short: 'Meals' },
+      { id: 'shows', label: 'Shows & Streaming', short: 'Shows' },
+      { id: 'delivery', label: 'Delivery & Local', short: 'Delivery' },
       { id: 'productivity', label: 'Productivity', short: 'Focus' },
+      { id: 'services', label: 'Services', short: 'Service' },
       { id: 'devtools', label: 'Dev Tools', short: 'Code' },
       { id: 'learning', label: 'Learning', short: 'Learn' },
       { id: 'finance', label: 'Money & Ops', short: 'Money' },
@@ -1039,6 +1108,7 @@
         id: 'adobe-express',
         name: 'Adobe Express Premium',
         categories: ['design', 'family'],
+        facets: ['software trial', 'design'],
         description: 'Design, short video, quick social assets, cards, school flyers, and invitations.',
         trialDays: 90,
         monthlyValue: 9.99,
@@ -1052,19 +1122,21 @@
         id: 'canva-pro',
         name: 'Canva Pro',
         categories: ['design', 'productivity'],
+        facets: ['software trial', 'design'],
         description: 'Templates, brand kit, background remover, content planner, and collaboration.',
         trialDays: 30,
         monthlyValue: 12.99,
         source: 'official',
         verified: '2026-08-22',
         eligibility: 'New users',
-        url: 'https://www.canva.com/pricing/pro/',
+        url: 'https://www.canva.com/pro/',
         goal: 'Build a reusable template set and decide if it replaces an existing design workflow.'
       },
       {
         id: 'figma-professional',
         name: 'Figma Professional',
         categories: ['design', 'devtools'],
+        facets: ['software trial', 'design'],
         description: 'Collaborative design files, shared libraries, and team workspaces.',
         trialDays: 30,
         monthlyValue: 15,
@@ -1078,19 +1150,21 @@
         id: 'notion-plus',
         name: 'Notion Plus',
         categories: ['productivity', 'family', 'learning'],
+        facets: ['software trial', 'planning'],
         description: 'Personal wiki, project docs, database views, and shared planning spaces.',
         trialDays: 30,
         monthlyValue: 10,
         source: 'official',
         verified: '2026-08-22',
         eligibility: 'Workspace trials vary by account',
-        url: 'https://www.notion.so/pricing',
+        url: 'https://www.notion.com/pricing',
         goal: 'Run one household or project dashboard for two weeks.'
       },
       {
         id: 'github-copilot',
         name: 'GitHub Copilot',
         categories: ['devtools', 'productivity'],
+        facets: ['software trial', 'coding tool'],
         description: 'AI coding assistance in common editors and GitHub workflows.',
         trialDays: 30,
         monthlyValue: 10,
@@ -1104,6 +1178,7 @@
         id: 'linear',
         name: 'Linear',
         categories: ['productivity', 'devtools'],
+        facets: ['software trial', 'planning'],
         description: 'Issue tracking, cycles, project planning, and lightweight engineering workflows.',
         trialDays: 14,
         monthlyValue: 10,
@@ -1115,61 +1190,184 @@
       },
       {
         id: 'masterclass',
-        name: 'MasterClass',
+        name: 'MasterClass Membership',
         categories: ['learning', 'family', 'home'],
+        facets: ['streaming shows', 'learning'],
         description: 'Structured classes for cooking, writing, music, business, and lifestyle learning.',
         trialDays: 30,
         monthlyValue: 15,
         source: 'community',
         verified: '2026-08-22',
-        eligibility: 'Promos vary',
-        url: 'https://www.masterclass.com/',
-        goal: 'Complete one short class module and try one activity with family.'
+        eligibility: 'Annual membership plans; promos, guest passes, and satisfaction guarantee terms vary',
+        url: 'https://www.masterclass.com/checkout',
+        goal: 'Complete one short class module and verify plan terms before the guarantee window ends.'
       },
       {
         id: 'skillshare',
         name: 'Skillshare',
         categories: ['learning', 'design', 'home'],
+        facets: ['learning', 'software trial'],
         description: 'Creative, business, and maker classes with practical project formats.',
         trialDays: 30,
         monthlyValue: 14,
         source: 'official',
         verified: '2026-08-22',
         eligibility: 'New users',
-        url: 'https://www.skillshare.com/freetrial',
+        url: 'https://www.skillshare.com/en/membership',
         goal: 'Finish one project-based class and create a visible output.'
+      },
+      {
+        id: 'audible-standard',
+        name: 'Audible Standard',
+        categories: ['learning', 'shows'],
+        facets: ['audiobooks', 'podcasts'],
+        description: 'Audiobook and podcast membership candidate for testing commute, walk, and bedtime listening.',
+        trialDays: 30,
+        monthlyValue: 8.99,
+        source: 'official',
+        verified: '2026-08-23',
+        eligibility: 'New eligible members; auto-renews after trial',
+        url: 'https://www.audible.com/ep/free-trial?language=en_US',
+        goal: 'Finish one audiobook or replace one paid podcast/audiobook purchase before renewal.'
+      },
+      {
+        id: 'kindle-unlimited',
+        name: 'Kindle Unlimited',
+        categories: ['learning', 'family'],
+        facets: ['ebooks', 'books', 'reading'],
+        description: 'Digital reading membership candidate for ebooks, magazines, comics, and some audiobooks.',
+        trialDays: 30,
+        monthlyValue: 11.99,
+        source: 'official',
+        verified: '2026-08-23',
+        eligibility: 'Eligibility varies by Amazon account and country',
+        url: 'https://www.amazon.com/kindle-dbs/hz/subscribe/ku/',
+        goal: 'Read enough from the included catalog to decide if it replaces individual book purchases.'
       },
       {
         id: 'headspace',
         name: 'Headspace',
         categories: ['health', 'family'],
+        facets: ['wellness', 'meditation'],
         description: 'Guided meditation, sleep support, focus, and family-friendly mindfulness content.',
         trialDays: 14,
         monthlyValue: 12.99,
         source: 'official',
         verified: '2026-08-22',
         eligibility: 'New users',
-        url: 'https://www.headspace.com/',
+        url: 'https://www.headspace.com/subscriptions',
         goal: 'Use it five times and decide if it improves sleep or focus.'
       },
       {
         id: 'ynab',
         name: 'YNAB',
         categories: ['finance', 'family'],
+        facets: ['software trial', 'budgeting'],
         description: 'Budgeting workflow for planning dollars, reducing surprises, and shared finances.',
         trialDays: 34,
         monthlyValue: 14.99,
         source: 'official',
         verified: '2026-08-22',
         eligibility: 'New users',
-        url: 'https://www.ynab.com/',
+        url: 'https://www.ynab.com/pricing',
         goal: 'Build one monthly budget and run a weekly money check-in.'
+      },
+      {
+        id: 'hulu',
+        name: 'Hulu',
+        categories: ['shows', 'family'],
+        facets: ['streaming shows', 'movies'],
+        description: 'Streaming plan candidate for testing TV, movies, and family entertainment needs.',
+        trialDays: 30,
+        monthlyValue: 9.99,
+        source: 'official',
+        verified: '2026-08-23',
+        eligibility: 'Trials and intro offers vary; verify on official site',
+        url: 'https://www.hulu.com/welcome',
+        goal: 'Watch the shows you actually wanted and decide if the catalog is worth keeping.'
+      },
+      {
+        id: 'youtube-tv',
+        name: 'YouTube TV',
+        categories: ['shows', 'family'],
+        facets: ['live sports', 'live tv', 'streaming shows'],
+        description: 'Live TV streaming candidate for sports, news, and cable replacement testing.',
+        trialDays: 14,
+        monthlyValue: 72.99,
+        source: 'official',
+        verified: '2026-08-23',
+        eligibility: 'Trial length and intro pricing vary by account',
+        url: 'https://tv.youtube.com/',
+        goal: 'Test whether it can replace cable or a sports package before conversion.'
+      },
+      {
+        id: 'hellofresh',
+        name: 'HelloFresh',
+        categories: ['meals', 'delivery', 'family'],
+        facets: ['meal kit', 'dinner'],
+        description: 'Meal-kit candidate for comparing dinner cost, prep time, and household fit.',
+        trialDays: 21,
+        monthlyValue: 59.99,
+        source: 'official',
+        verified: '2026-08-23',
+        eligibility: 'Intro discounts vary by location and account',
+        url: 'https://www.hellofresh.com/',
+        goal: 'Try two weeks of meals and compare cost, waste, and time saved.'
+      },
+      {
+        id: 'instacart-plus',
+        name: 'Instacart+',
+        categories: ['delivery', 'meals', 'family'],
+        facets: ['grocery delivery'],
+        description: 'Grocery delivery membership candidate for testing saved trips and fees.',
+        trialDays: 14,
+        monthlyValue: 9.99,
+        source: 'official',
+        verified: '2026-08-23',
+        eligibility: 'Trial availability varies by market and account',
+        url: 'https://www.instacart.com/instacart-plus',
+        goal: 'Place two real grocery orders and compare fees, substitutions, and time saved.'
+      },
+      {
+        id: 'doordash-dashpass',
+        name: 'DashPass',
+        categories: ['delivery', 'meals'],
+        facets: ['restaurant delivery', 'takeout'],
+        description: 'Delivery membership candidate for testing whether order frequency justifies fees.',
+        trialDays: 30,
+        monthlyValue: 9.99,
+        source: 'official',
+        verified: '2026-08-23',
+        eligibility: 'Trial and card-linked offers vary',
+        url: 'https://www.doordash.com/dashpass/',
+        goal: 'Track two to four orders and calculate whether fee savings beat the monthly cost.'
+      },
+      {
+        id: 'thumbtack',
+        name: 'Thumbtack',
+        categories: ['services', 'home'],
+        facets: ['local quotes'],
+        description: 'Local service marketplace candidate for comparing quotes before hiring.',
+        trialDays: 7,
+        monthlyValue: 0,
+        source: 'official',
+        verified: '2026-08-23',
+        eligibility: 'Marketplace availability varies by service and location',
+        url: 'https://www.thumbtack.com/',
+        goal: 'Collect three quotes and compare price, availability, and confidence.'
       }
     ];
+
+    const checkedLinkStatus = new Map([
+      ['https://www.masterclass.com/checkout', { status: 'bot-blocked', match: 'plans-page' }],
+      ['https://www.doordash.com/dashpass/', { status: 'ok', match: 'membership-page' }],
+      ['https://www.thumbtack.com/', { status: 'ok', match: 'marketplace-page' }]
+    ]);
 
     const defaultState = {
       onboardingComplete: false,
       interests: [],
+      requirements: [],
       keywords: '',
       alertCadence: 'weekly',
       minimumTrialValue: 0,
@@ -1180,15 +1378,17 @@
 
     let state = loadState();
     let editingTrialId = null;
+    let focusedReviewTrialId = null;
 
     function loadState() {
-      const stored = localStorage.getItem(STATE_KEY);
+      const stored = localStorage.getItem(STATE_KEY) || loadLegacyState();
       if (!stored) return structuredClone(defaultState);
       try {
         const parsed = JSON.parse(stored);
         return {
           onboardingComplete: Boolean(parsed.onboardingComplete),
           interests: Array.isArray(parsed.interests) ? parsed.interests : defaultState.interests,
+          requirements: Array.isArray(parsed.requirements) ? parsed.requirements : defaultState.requirements,
           keywords: typeof parsed.keywords === 'string' ? parsed.keywords : defaultState.keywords,
           alertCadence: parsed.alertCadence || defaultState.alertCadence,
           minimumTrialValue: Number(parsed.minimumTrialValue || defaultState.minimumTrialValue),
@@ -1201,6 +1401,14 @@
       }
     }
 
+    function loadLegacyState() {
+      for (const key of LEGACY_STATE_KEYS) {
+        const stored = localStorage.getItem(key);
+        if (stored) return stored;
+      }
+      return null;
+    }
+
     function saveState() {
       localStorage.setItem(STATE_KEY, JSON.stringify(state));
     }
@@ -1208,6 +1416,7 @@
     function render() {
       renderInterests();
       renderStats();
+      renderRequirementPlan();
       renderTrialFeed();
       renderActiveTrials();
       renderReviewQueue();
@@ -1246,6 +1455,137 @@
       document.getElementById('urgentCount').textContent = urgent.length;
       document.getElementById('monthlyValue').textContent = `$${value.toFixed(0)}`;
       document.getElementById('savedCount').textContent = state.decisions.length;
+    }
+
+    function renderRequirementPlan() {
+      const container = document.getElementById('requirementPlan');
+      const latest = state.requirements.at(-1);
+      if (!latest) {
+        container.innerHTML = `
+          <div class="empty">Tell TryWise what you need. It will map the request to trial categories and rank low-risk options from the current catalog.</div>
+        `;
+        return;
+      }
+
+      const matches = rankCatalogForRequirement(latest).slice(0, 4);
+      container.innerHTML = `
+        <article class="trial-card featured">
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">Try plan for: ${escapeHTML(latest.text)}</h3>
+              <p class="card-meta">${escapeHTML(latest.preference)} • budget ${latest.budget ? `$${latest.budget}/mo` : 'not set'}</p>
+            </div>
+            <span class="badge blue">${latest.categories.map(interestLabel).join(', ') || 'General'}</span>
+          </div>
+          <p class="small muted">Ranked by category fit, regular price exposure, cancellation friction, source confidence, and your stated preference.</p>
+          ${matches.length ? `
+            <div class="timeline">
+              ${matches.map((trial, index) => `
+                <div class="timeline-item">
+                  <div class="timeline-date">Option ${index + 1}</div>
+                  <div>
+                    <strong>${escapeHTML(trial.name)}</strong><br>
+                    <span class="small muted">${optionSummary(trial)} • ${escapeHTML(trial.eligibility)}</span><br>
+                    <span class="small">${escapeHTML(trial.rankReason)}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : '<p class="small muted">No catalog matches yet. Radar will use your keywords to watch sources.</p>'}
+        </article>
+      `;
+    }
+
+    function submitRequirement(event) {
+      event.preventDefault();
+      const text = value('requirementText');
+      if (!text) {
+        showToast('Describe what you want to try first');
+        return;
+      }
+
+      const categories = inferRequirementCategories(text);
+      const facets = inferRequirementFacets(text);
+      const budget = Number(value('requirementBudget') || 0);
+      const preference = value('requirementRisk');
+      const keywords = text
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      state.requirements.push({
+        id: crypto.randomUUID(),
+        text,
+        budget,
+        preference,
+        categories,
+        facets,
+        createdAt: new Date().toISOString()
+      });
+      state.interests = categories;
+      state.keywords = [...new Set([state.keywords, ...keywords].filter(Boolean))].join(', ');
+      state.onboardingComplete = true;
+      saveState();
+      render();
+      showToast('Try plan built');
+    }
+
+    function inferRequirementCategories(text) {
+      const lowered = text.toLowerCase();
+      const categories = requirementCategoryHints
+        .filter((hint) => hint.terms.some((term) => termMatchesText(term, lowered)))
+        .map((hint) => hint.category);
+      return [...new Set(categories)].slice(0, 4);
+    }
+
+    function inferRequirementFacets(text) {
+      const lowered = text.toLowerCase();
+      const facets = requirementFacetHints
+        .filter((hint) => hint.terms.some((term) => termMatchesText(term, lowered)))
+        .map((hint) => hint.facet);
+      return [...new Set(facets)].slice(0, 4);
+    }
+
+    function termMatchesText(term, text) {
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`(^|\\W)${escaped}(\\W|$)`, 'i').test(text);
+    }
+
+    function rankCatalogForRequirement(requirement) {
+      const categories = new Set(requirement.categories || []);
+      const facets = new Set(requirement.facets || []);
+      const text = requirement.text.toLowerCase();
+      const budget = Number(requirement.budget || 0);
+      const preference = requirement.preference || 'lowest-cost';
+
+      return trialCatalog
+        .map((trial) => {
+          const categoryMatches = trial.categories.filter((category) => categories.has(category)).length;
+          const facetMatches = (trial.facets || []).filter((facet) => facets.has(facet)).length;
+          const textMatch = [trial.name, trial.description, trial.eligibility, trial.goal, ...trial.categories]
+            .join(' ')
+            .toLowerCase()
+            .split(/\W+/)
+            .filter((word) => word.length > 3 && text.includes(word)).length;
+          const scorecard = optionScorecard(trial);
+          const withinBudget = !budget || scorecard.exposure <= budget;
+          const budgetPenalty = budget && scorecard.exposure > budget ? Math.min(25, scorecard.exposure - budget) : 0;
+          const sourceBonus = trial.source === 'official' ? 8 : 3;
+          const preferenceBonus = preference === 'lowest-friction'
+            ? scorecard.frictionScore
+            : preference === 'highest-value'
+              ? Math.min(24, scorecard.exposure)
+              : Math.max(0, 24 - scorecard.exposure / 2);
+          const score = facetMatches * 55 + categoryMatches * 24 + textMatch * 6 + sourceBonus + preferenceBonus + (withinBudget ? 8 : 0) - budgetPenalty;
+          const rankReason = facetMatches
+            ? `Matches ${[...(trial.facets || [])].filter((facet) => facets.has(facet)).join(', ')} and has ${scorecard.riskLabel.toLowerCase()} exposure.`
+            : categoryMatches
+              ? `Matches ${trial.categories.filter((category) => categories.has(category)).map(interestLabel).join(', ')} and has ${scorecard.riskLabel.toLowerCase()} exposure.`
+            : `Adjacent option from ${trial.source} sources; verify fit before adding.`;
+          return { ...trial, score, rankReason };
+        })
+        .filter((trial) => trial.score > 0 || categories.size === 0)
+        .sort((a, b) => b.score - a.score || a.monthlyValue - b.monthlyValue);
     }
 
     function renderOnboardingOptions() {
@@ -1314,13 +1654,15 @@
     }
 
     function renderTrialFeed() {
-      const selected = new Set(state.interests);
+      const latestRequirement = state.requirements.at(-1);
+      const selected = new Set(latestRequirement?.categories?.length ? latestRequirement.categories : state.interests);
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
       const source = document.getElementById('sourceFilter').value;
       const minValue = Number(document.getElementById('valueFilter').value);
       const trackedIds = new Set(state.trials.map((trial) => trial.catalogId));
 
-      const matching = trialCatalog.filter((trial) => {
+      const ranked = latestRequirement ? rankCatalogForRequirement(latestRequirement) : trialCatalog;
+      const matching = ranked.filter((trial) => {
         const interestMatch = selected.size === 0 || trial.categories.some((category) => selected.has(category));
         const queryMatch = !query || [
           trial.name,
@@ -1343,30 +1685,83 @@
     }
 
     function trialCard(trial, alreadyTracked) {
-      const selected = state.interests.some((interest) => trial.categories.includes(interest));
+      const latestRequirement = state.requirements.at(-1);
+      const selectedInterests = latestRequirement?.categories?.length ? latestRequirement.categories : state.interests;
+      const selected = selectedInterests.some((interest) => trial.categories.includes(interest));
+      const scorecard = optionScorecard(trial);
       return `
         <article class="trial-card ${selected ? 'featured' : ''}">
           <div class="card-top">
             <div>
               <h3 class="card-title">${escapeHTML(trial.name)}</h3>
-              <p class="card-meta">${trial.trialDays} day trial • $${trial.monthlyValue.toFixed(2)}/mo value</p>
+              <p class="card-meta">${optionSummary(trial)}</p>
             </div>
             <span class="badge ${trial.source === 'official' ? 'green' : 'blue'}">${escapeHTML(trial.source)}</span>
           </div>
           <p class="small muted">${escapeHTML(trial.description)}</p>
           <div class="badge-row">
             ${trial.categories.map((category) => `<span class="badge">${interestLabel(category)}</span>`).join('')}
-            <span class="badge amber">Verified ${escapeHTML(trial.verified)}</span>
+            <span class="badge amber">${escapeHTML(linkConfidence(trial).label)}</span>
+            <span class="badge ${scorecard.riskTone}">Risk: ${scorecard.riskLabel}</span>
+            <span class="badge">Cancel: ${escapeHTML(scorecard.cancelBurden)}</span>
+            <span class="badge">${escapeHTML(destinationDomain(trial.url))}</span>
           </div>
           <p class="small"><strong>Eligibility:</strong> ${escapeHTML(trial.eligibility)}</p>
+          <p class="small muted"><strong>Link:</strong> ${escapeHTML(linkConfidence(trial).detail)}</p>
+          ${trial.rankReason ? `<p class="small"><strong>Why ranked:</strong> ${escapeHTML(trial.rankReason)}</p>` : ''}
           <div class="card-actions">
             <button class="btn primary" type="button" data-add-catalog="${trial.id}" ${alreadyTracked ? 'disabled' : ''}>
-              ${alreadyTracked ? 'Tracked' : 'Plan Trial'}
+              ${alreadyTracked ? 'In plan' : 'Add to Try Plan'}
             </button>
             <a class="btn" href="${trial.url}" target="_blank" rel="noopener">Open</a>
           </div>
         </article>
       `;
+    }
+
+    function optionSummary(trial) {
+      const scorecard = optionScorecard(trial);
+      return `$${scorecard.tryCost.toFixed(0)} try cost • $${scorecard.exposure.toFixed(2)}/mo exposure • ${trial.trialDays} day window`;
+    }
+
+    function optionScorecard(trial) {
+      const exposure = Number(trial.postTrialExposure ?? trial.monthlyValue ?? 0);
+      const tryCost = Number(trial.upfrontCost ?? 0);
+      const isMarketplace = trial.categories.includes('services') || exposure === 0;
+      const riskLabel = exposure >= 40 ? 'High' : exposure >= 15 ? 'Medium' : 'Low';
+      const riskTone = riskLabel === 'High' ? 'red' : riskLabel === 'Medium' ? 'amber' : 'green';
+      const cancelBurden = trial.cancelBurden || (isMarketplace ? 'Quote-based' : exposure >= 40 ? 'Review closely' : 'Low');
+      const frictionScore = cancelBurden === 'Low' ? 24 : cancelBurden === 'Review closely' ? 12 : 8;
+      return { exposure, tryCost, riskLabel, riskTone, cancelBurden, frictionScore };
+    }
+
+    function linkConfidence(trial) {
+      const checked = checkedLinkStatus.get(trial.url) || inferCheckedLinkStatus(trial.url);
+      if (checked.status === 'bot-blocked') {
+        return {
+          label: 'Browser check needed',
+          detail: `${checked.match}; scripted checker was blocked. Open and verify terms before relying on this offer.`
+        };
+      }
+      return {
+        label: checked.match === 'trial-page' ? 'Trial page checked' : 'Offer page checked',
+        detail: `${checked.match}; last manual/scripted check ${trial.verified}. Verify current terms before purchase.`
+      };
+    }
+
+    function inferCheckedLinkStatus(url) {
+      if (/free-trial|membership|subscribe|instacart-plus|welcome|premium|pro|pricing|dashpass/i.test(url)) {
+        return { status: 'ok', match: /free-trial|trial|instacart-plus/i.test(url) ? 'trial-page' : 'plans-page' };
+      }
+      return { status: 'not-checked', match: 'offer-page' };
+    }
+
+    function destinationDomain(url) {
+      try {
+        return new URL(url).hostname.replace(/^www\./, '');
+      } catch {
+        return 'unknown domain';
+      }
     }
 
     function renderActiveTrials() {
@@ -1375,7 +1770,7 @@
         .sort((a, b) => parseISODate(a.endDate) - parseISODate(b.endDate));
       const container = document.getElementById('activeTrials');
       if (active.length === 0) {
-        container.innerHTML = `<div class="empty">No active trials yet. Add one from the feed or the form.</div>`;
+        container.innerHTML = `<div class="empty">No options in your try plan yet. Add one from ranked options or the form.</div>`;
         return;
       }
 
@@ -1394,7 +1789,7 @@
               </div>
               <span class="badge ${tone}">$${Number(trial.monthlyValue || 0).toFixed(2)}/mo</span>
             </div>
-            <div class="progress" aria-label="Trial progress"><span style="width: ${progress}%"></span></div>
+            <div class="progress" aria-label="Try plan progress"><span style="width: ${progress}%"></span></div>
             <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'No goal set')}</p>
             <p class="small muted"><strong>Keep if:</strong> ${escapeHTML(trial.keepCriteria || 'No criteria set')}</p>
             <div class="card-actions">
@@ -1413,14 +1808,14 @@
         .sort((a, b) => daysUntil(a.endDate) - daysUntil(b.endDate));
       const container = document.getElementById('reviewQueue');
       if (active.length === 0) {
-        container.innerHTML = `<div class="empty">Your review queue is empty. Active trials will appear here.</div>`;
+        container.innerHTML = `<div class="empty">Your decision queue is empty. Options from your try plan will appear here.</div>`;
         return;
       }
 
       container.innerHTML = active.map((trial) => {
         const days = daysUntil(trial.endDate);
         return `
-          <article class="trial-card">
+          <article class="trial-card ${focusedReviewTrialId === trial.id ? 'focused' : ''}" id="review-${trial.id}">
             <div class="card-top">
               <div>
                 <h3 class="card-title">${escapeHTML(trial.service)}</h3>
@@ -1439,7 +1834,7 @@
             <div class="decision-grid">
               <button class="btn primary" type="button" data-decide="keep" data-trial="${trial.id}">Keep</button>
               <button class="btn" type="button" data-decide="extend" data-trial="${trial.id}">Extend test</button>
-              <button class="btn danger" type="button" data-decide="cancel" data-trial="${trial.id}">Cancel</button>
+              <button class="btn danger" type="button" data-decide="cancel" data-trial="${trial.id}">Mark cancel planned</button>
             </div>
           </article>
         `;
@@ -1460,7 +1855,7 @@
       const active = state.trials.filter((trial) => trial.status === 'active');
       const container = document.getElementById('optimizationPlan');
       if (active.length === 0) {
-        container.innerHTML = `<div class="empty">Add trials to generate a practical plan.</div>`;
+        container.innerHTML = `<div class="empty">Add options to generate a practical comparison.</div>`;
         return;
       }
 
@@ -1470,14 +1865,14 @@
       const recommendations = [
         `Review ${soonest.service} first. ${daysLabel(daysUntil(soonest.endDate))}.`,
         `Total post-trial exposure is $${monthly.toFixed(2)}/mo if every active trial converts.`,
-        'Cancel anything without a goal, clear usage, or a replacement benefit.',
-        'Keep only trials that replace an existing paid tool or create repeated weekly value.'
+        'Mark cancel planned for anything without a goal, clear usage, or a replacement benefit.',
+        'Keep only options that replace an existing paid tool or create repeated weekly value.'
       ];
 
       container.innerHTML = `
         <div class="trial-card featured">
-          <h3 class="card-title">Current optimization plan</h3>
-          <p class="small muted">Generated locally from your active trials and decisions.</p>
+          <h3 class="card-title">Current comparison plan</h3>
+          <p class="small muted">Generated locally from your try plan and decisions.</p>
           <div class="timeline">
             ${recommendations.map((item, index) => `
               <div class="timeline-item">
@@ -1493,7 +1888,7 @@
     function renderDecisionHistory() {
       const container = document.getElementById('decisionHistory');
       if (state.decisions.length === 0) {
-        container.innerHTML = `<div class="empty">No decisions yet. Reviews will show up here.</div>`;
+        container.innerHTML = `<div class="empty">No decisions yet. Keep, extend, and cancel-plan decisions will show up here.</div>`;
         return;
       }
 
@@ -1505,7 +1900,7 @@
               <p class="card-meta">${formatDate(decision.decidedAt)} • ${escapeHTML(decision.choice)}</p>
             </div>
             <span class="badge ${decision.choice === 'cancel' ? 'red' : decision.choice === 'keep' ? 'green' : 'amber'}">
-              ${escapeHTML(decision.choice)}
+              ${escapeHTML(decision.choice === 'cancel' ? 'cancel planned' : decision.choice)}
             </span>
           </div>
           <p class="small muted">${escapeHTML(decision.reason)}</p>
@@ -1518,6 +1913,7 @@
       if (!catalog) return;
       const start = todayISO;
       const end = addDays(start, catalog.trialDays);
+      const scorecard = optionScorecard(catalog);
       state.trials.push({
         id: crypto.randomUUID(),
         catalogId: catalog.id,
@@ -1526,14 +1922,14 @@
         startDate: start,
         endDate: end,
         goal: catalog.goal,
-        keepCriteria: 'Keep only if it creates repeated value before the decision date.',
+        keepCriteria: `Keep only if it creates repeated value before the decision date, eligibility is confirmed, and $${scorecard.exposure.toFixed(2)}/mo exposure is acceptable.`,
         status: 'active',
         checks: {},
         createdAt: new Date().toISOString()
       });
       saveState();
       render();
-      showToast(`${catalog.name} added to your trial plan`);
+      showToast(`${catalog.name} added to your try plan`);
     }
 
     function addManualTrial(event) {
@@ -1579,15 +1975,15 @@
       document.getElementById('trialGoal').value = trial.goal || '';
       document.getElementById('keepCriteria').value = trial.keepCriteria || '';
       editingTrialId = trial.id;
-      document.getElementById('trialSubmitLabel').textContent = 'Save Trial';
+      document.getElementById('trialSubmitLabel').textContent = 'Save Option';
       document.getElementById('cancelEditBtn').hidden = false;
       switchView('active');
-      showToast('Trial loaded into form');
+      showToast('Option loaded into form');
     }
 
     function clearEditMode() {
       editingTrialId = null;
-      document.getElementById('trialSubmitLabel').textContent = 'Add Trial';
+      document.getElementById('trialSubmitLabel').textContent = 'Add Option';
       document.getElementById('cancelEditBtn').hidden = true;
     }
 
@@ -1596,7 +1992,7 @@
       state.trials = state.trials.filter((item) => item.id !== id);
       saveState();
       render();
-      showToast(`${trial?.service || 'Trial'} removed`);
+      showToast(`${trial?.service || 'Option'} removed`);
     }
 
     function updateCheck(id, index, checked) {
@@ -1613,7 +2009,7 @@
       const reason = choice === 'keep'
         ? 'Kept because it passed the review checklist.'
         : choice === 'cancel'
-          ? 'Canceled or marked for cancellation before conversion.'
+          ? 'Marked as cancellation planned; user still needs external confirmation.'
           : 'Extended because more evidence is needed.';
 
       if (choice === 'extend') {
@@ -1632,7 +2028,16 @@
       }
       saveState();
       render();
-      showToast(`${trial.service}: ${choice}`);
+      showToast(`${trial.service}: ${choice === 'cancel' ? 'cancel planned' : choice}`);
+    }
+
+    function focusReviewTrial(id) {
+      focusedReviewTrialId = id;
+      switchView('review');
+      renderReviewQueue();
+      requestAnimationFrame(() => {
+        document.getElementById(`review-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     }
 
     function switchView(view) {
@@ -1667,7 +2072,7 @@
       saveState();
       closeOnboarding();
       render();
-      showToast('Trial radar saved');
+      showToast('Try radar saved');
     }
 
     function applyParentDefaults() {
@@ -1684,7 +2089,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `trialforge-${todayISO}.json`;
+      link.download = `trywise-${todayISO}.json`;
       link.click();
       URL.revokeObjectURL(url);
       showToast('Export downloaded');
@@ -1693,7 +2098,7 @@
     async function sharePlan() {
       const active = state.trials.filter((trial) => trial.status === 'active');
       const lines = [
-        'My TrialForge plan:',
+        'My TryWise plan:',
         ...active.map((trial) => `- ${trial.service}: ${daysLabel(daysUntil(trial.endDate))}; goal: ${trial.goal || 'not set'}`)
       ];
       const text = lines.join('\n');
@@ -1811,7 +2216,7 @@
       if (target.dataset.addCatalog) addCatalogTrial(target.dataset.addCatalog);
       if (target.dataset.removeTrial) removeTrial(target.dataset.removeTrial);
       if (target.dataset.editTrial) loadTrialIntoForm(target.dataset.editTrial);
-      if (target.dataset.reviewTrial) switchView('review');
+      if (target.dataset.reviewTrial) focusReviewTrial(target.dataset.reviewTrial);
       if (target.dataset.decide) decideTrial(target.dataset.trial, target.dataset.decide);
     });
 
@@ -1827,6 +2232,7 @@
     });
 
     document.getElementById('searchInput').addEventListener('input', renderTrialFeed);
+    document.getElementById('requirementForm').addEventListener('submit', submitRequirement);
     document.getElementById('trialForm').addEventListener('submit', addManualTrial);
     document.getElementById('cancelEditBtn').addEventListener('click', () => {
       document.getElementById('trialForm').reset();
@@ -1844,11 +2250,8 @@
     setDefaultDates();
     render();
     initializeFirebaseIfConfigured();
-    if (!state.onboardingComplete) {
-      openOnboarding();
-    }
 
-    window.__trialForgeSmoke = {
+    window.__tryWiseSmoke = {
       getState: () => state,
       addCatalogTrial,
       switchView,

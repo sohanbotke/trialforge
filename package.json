@@ -1,0 +1,12 @@
+{
+  "name": "trywise",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test:smoke": "node tests/smoke.js",
+    "test:journeys": "node tests/journeys.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

@@ -8,6 +8,7 @@ import sys
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from html import unescape
+from html.parser import HTMLParser
 from ipaddress import ip_address
 from pathlib import Path
 from urllib.error import URLError
@@ -16,7 +17,21 @@ from urllib.parse import urljoin, urlparse
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 SOURCE_FILE = ROOT / "sources.json"
-TRIAL_KEYWORDS = ("free trial", "trial", "free for", "promo", "limited time")
+SUBMISSION_FILE = ROOT / "submissions.json"
+TRIAL_KEYWORDS = (
+    "free trial",
+    "trial",
+    "intro offer",
+    "intro pricing",
+    "free for",
+    "promo",
+    "promotion",
+    "coupon",
+    "limited time",
+    "first month",
+    "first year",
+    "podcast",
+)
 MAX_REDIRECTS = 5
 MAX_RESPONSE_BYTES = 500_000
 
@@ -25,11 +40,29 @@ MAX_RESPONSE_BYTES = 500_000
 class TrialCandidate:
     source_id: str
     source_label: str
+    source_type: str
+    title: str
+    url: str
+    source_url: str
+    categories: list[str]
+    confidence: str
+    score: int
+    signals: list[str]
+    link_status: str
+    landing_match: str
+    discovered_at: str
+
+
+@dataclass(frozen=True)
+class UserSubmission:
     title: str
     url: str
     categories: list[str]
-    confidence: str
-    discovered_at: str
+    submitted_by: str
+    upvotes: int = 0
+    saves: int = 0
+    reports: int = 0
+    verified: bool = False
 
 
 def main() -> int:
@@ -48,6 +81,8 @@ def main() -> int:
             continue
         candidates.extend(extract_candidates(source, text))
 
+    candidates.extend(load_user_submissions(errors))
+    candidates.sort(key=lambda item: item.score, reverse=True)
     write_json(DATA_DIR / "trials.generated.json", [asdict(item) for item in candidates])
     write_alerts(DATA_DIR / "alerts.generated.md", candidates, errors)
     print(f"wrote {len(candidates)} candidates")
@@ -86,7 +121,7 @@ def fetch_once(parsed, resolved_ip) -> tuple[int, dict[str, str], bytes]:
         request = (
             f"GET {path} HTTP/1.1\r\n"
             f"Host: {parsed.hostname}\r\n"
-            "User-Agent: TrialForgeBot/0.1 (+https://github.com/sohanbotke/trialforge)\r\n"
+            "User-Agent: TryWiseBot/0.1 (+mailto:sohan.botke@gmail.com)\r\n"
             "Accept: text/html, application/rss+xml, application/xml;q=0.9, */*;q=0.8\r\n"
             "Connection: close\r\n"
             "\r\n"
@@ -155,33 +190,209 @@ def is_public_ip(ip) -> bool:
 
 
 def extract_candidates(source: dict, text: str) -> list[TrialCandidate]:
-    stripped = strip_tags(text)
     discovered_at = datetime.now(UTC).isoformat()
     candidates: list[TrialCandidate] = []
     seen: set[str] = set()
+    snippets = [*extract_links(source["url"], text), (strip_tags(text), source["url"])]
 
-    for sentence in split_sentences(stripped):
-        lowered = sentence.lower()
-        if not any(keyword in lowered for keyword in TRIAL_KEYWORDS):
+    for text_block, candidate_url in snippets:
+        for sentence in split_sentences(text_block):
+            signals = matched_signals(sentence)
+            if not signals:
+                continue
+            title = sentence[:140].strip(" -:|")
+            key = f"{title}:{candidate_url}"
+            if len(title) < 12 or key in seen:
+                continue
+            try:
+                validate_public_url(candidate_url)
+            except URLError:
+                continue
+            seen.add(key)
+            link_status, landing_match = link_status_for_candidate(
+                candidate_url,
+                source.get("verify_links", False),
+            )
+            candidates.append(
+                TrialCandidate(
+                    source_id=source["id"],
+                    source_label=source["label"],
+                    source_type=source.get("type", "html"),
+                    title=title,
+                    url=candidate_url,
+                    source_url=source["url"],
+                    categories=list(source.get("categories", [])),
+                    confidence=source_confidence(source, candidate_url),
+                    score=score_candidate(source, candidate_url, signals),
+                    signals=signals,
+                    link_status=link_status,
+                    landing_match=landing_match,
+                    discovered_at=discovered_at,
+                )
+            )
+            if len(candidates) >= int(source.get("max_candidates", 20)):
+                return sorted(candidates, key=lambda item: item.score, reverse=True)
+    return sorted(candidates, key=lambda item: item.score, reverse=True)
+
+
+class LinkExtractor(HTMLParser):
+    def __init__(self, base_url: str) -> None:
+        super().__init__()
+        self.base_url = base_url
+        self.links: list[tuple[str, str]] = []
+        self._href: str | None = None
+        self._text: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "a":
+            return
+        href = dict(attrs).get("href")
+        if href:
+            self._href = urljoin(self.base_url, href)
+            self._text = []
+
+    def handle_data(self, data: str) -> None:
+        if self._href:
+            self._text.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag != "a" or not self._href:
+            return
+        label = re.sub(r"\s+", " ", " ".join(self._text)).strip()
+        if label:
+            self.links.append((label, self._href))
+        self._href = None
+        self._text = []
+
+
+def extract_links(base_url: str, text: str) -> list[tuple[str, str]]:
+    parser = LinkExtractor(base_url)
+    parser.feed(text)
+    return parser.links
+
+
+def matched_signals(text: str) -> list[str]:
+    lowered = text.lower()
+    return [keyword for keyword in TRIAL_KEYWORDS if keyword in lowered]
+
+
+def source_confidence(source: dict, url: str) -> str:
+    parsed_source = urlparse(source["url"])
+    parsed_candidate = urlparse(url)
+    allowed_domains = set(source.get("allowed_domains", []))
+    same_domain = parsed_source.netloc == parsed_candidate.netloc
+    explicitly_allowed = parsed_candidate.netloc in allowed_domains
+    if source.get("type") == "official" and (same_domain or explicitly_allowed):
+        return "high"
+    if same_domain:
+        return "high"
+    if source.get("type") in {"rss", "newsletter", "deal-site"}:
+        return "medium"
+    return "candidate"
+
+
+def score_candidate(source: dict, url: str, signals: list[str]) -> int:
+    score = 20 + len(signals) * 8
+    if source.get("type") == "official":
+        score += 30
+    elif source.get("type") in {"rss", "newsletter", "deal-site"}:
+        score += 18
+    elif source.get("type") in {"forum", "podcast"}:
+        score += 10
+    if urlparse(source["url"]).netloc == urlparse(url).netloc:
+        score += 12
+    if any(signal in {"free trial", "intro offer", "first month"} for signal in signals):
+        score += 12
+    return score
+
+
+def link_status_for_candidate(url: str, should_verify: bool) -> tuple[str, str]:
+    try:
+        validate_public_url(url)
+    except URLError:
+        return "blocked", "unsafe-url"
+    if not should_verify:
+        return "not_checked", "not_checked"
+    try:
+        text = fetch(url)
+    except URLError:
+        return "broken", "unreachable"
+    return "ok", classify_landing_page(text)
+
+
+def classify_landing_page(text: str) -> str:
+    signals = matched_signals(strip_tags(text))
+    if any(signal in {"free trial", "trial", "intro offer", "intro pricing"} for signal in signals):
+        return "trial-page"
+    if signals:
+        return "promo-page"
+    return "reachable-no-trial-signals"
+
+
+def load_user_submissions(errors: list[str]) -> list[TrialCandidate]:
+    if not SUBMISSION_FILE.exists():
+        return []
+    try:
+        submitted_items = json.loads(SUBMISSION_FILE.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        errors.append(f"user-submission: invalid JSON: {exc}")
+        return []
+    discovered_at = datetime.now(UTC).isoformat()
+    candidates: list[TrialCandidate] = []
+    for item in submitted_items:
+        try:
+            submission = UserSubmission(
+                title=item["title"],
+                url=item["url"],
+                categories=list(item.get("categories", [])),
+                submitted_by=item.get("submitted_by", "anonymous"),
+                upvotes=int(item.get("upvotes", 0)),
+                saves=int(item.get("saves", 0)),
+                reports=int(item.get("reports", 0)),
+                verified=parse_bool(item.get("verified", False)),
+            )
+            validate_public_url(submission.url)
+        except (KeyError, TypeError, ValueError, URLError) as exc:
+            errors.append(f"user-submission: {exc}")
             continue
-        title = sentence[:120].strip(" -:|")
-        if len(title) < 16 or title in seen:
-            continue
-        seen.add(title)
+        score = 25 + min(submission.upvotes, 10) * 3 + min(submission.saves, 10) * 4 - submission.reports * 18
+        if submission.verified:
+            score += 25
+        link_status, landing_match = link_status_for_candidate(submission.url, submission.verified)
+        if link_status == "broken":
+            score -= 30
+        if landing_match == "trial-page":
+            score += 15
         candidates.append(
             TrialCandidate(
-                source_id=source["id"],
-                source_label=source["label"],
-                title=title,
-                url=source["url"],
-                categories=list(source.get("categories", [])),
-                confidence="candidate",
+                source_id="user-submissions",
+                source_label="User submissions",
+                source_type="submission",
+                title=submission.title,
+                url=submission.url,
+                source_url=submission.url,
+                categories=submission.categories,
+                confidence="community-verified" if submission.verified else "candidate",
+                score=cap_submission_score(max(0, score), submission.verified),
+                signals=["user submitted"],
+                link_status=link_status,
+                landing_match=landing_match,
                 discovered_at=discovered_at,
             )
         )
-        if len(candidates) >= 10:
-            break
-    return candidates
+    return sorted(candidates, key=lambda item: item.score, reverse=True)
+
+
+def parse_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes"}
+    return False
+
+
+def cap_submission_score(score: int, verified: bool) -> int:
+    return min(score, 90 if verified else 55)
 
 
 def strip_tags(text: str) -> str:
@@ -200,7 +411,7 @@ def write_json(path: Path, payload: object) -> None:
 
 
 def write_alerts(path: Path, candidates: list[TrialCandidate], errors: list[str]) -> None:
-    lines = ["# TrialForge Alert Digest", ""]
+    lines = ["# TryWise Alert Digest", ""]
     if not candidates:
         lines.append("No trial candidates found.")
     for item in candidates:
