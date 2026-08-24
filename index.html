@@ -6,23 +6,28 @@
   <title>TryWise - Private Trial Planner</title>
   <style>
     :root {
-      --bg: #f6f8fb;
+      --bg: #fff8f0;
       --panel: #ffffff;
-      --panel-soft: #f9fbfd;
-      --text: #172033;
-      --muted: #667085;
-      --line: #d9e0ea;
-      --brand: #176b87;
-      --brand-strong: #0f5169;
-      --accent: #d35f3f;
-      --green: #1f8a5b;
-      --amber: #b7791f;
-      --red: #c2413a;
-      --blue-soft: #e7f3f7;
-      --green-soft: #e9f7ef;
-      --amber-soft: #fff5dd;
-      --red-soft: #ffebe8;
-      --shadow: 0 16px 40px rgba(23, 32, 51, 0.08);
+      --panel-soft: #fffaf2;
+      --text: #211827;
+      --muted: #756b80;
+      --line: #eadfd0;
+      --brand: #007c89;
+      --brand-strong: #005c66;
+      --accent: #ff5a3d;
+      --green: #138a50;
+      --amber: #c77900;
+      --red: #d13f32;
+      --magenta: #c026d3;
+      --sun: #ffbf3d;
+      --blue-soft: #dff8fb;
+      --green-soft: #e3f8e8;
+      --amber-soft: #fff0c7;
+      --red-soft: #ffe2dc;
+      --ink-soft: #f6f0ff;
+      --violet-soft: #f2e8ff;
+      --shadow: 0 22px 60px rgba(61, 39, 18, 0.14);
+      --shadow-soft: 0 12px 30px rgba(61, 39, 18, 0.1);
       --radius: 8px;
     }
 
@@ -32,7 +37,9 @@
       margin: 0;
       min-height: 100vh;
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 248, 251, 0.96)),
+        linear-gradient(115deg, rgba(255, 191, 61, 0.24) 0 18%, transparent 18% 100%),
+        linear-gradient(155deg, transparent 0 55%, rgba(0, 124, 137, 0.16) 55% 72%, transparent 72% 100%),
+        linear-gradient(135deg, rgba(255, 90, 61, 0.11), rgba(255, 248, 240, 0.96) 34%, rgba(227, 248, 232, 0.9) 72%),
         url("assets/trywise-mark.svg") top 18px right 20px / 220px auto no-repeat,
         var(--bg);
       color: var(--text);
@@ -77,7 +84,7 @@
       width: 44px;
       height: 44px;
       border-radius: 8px;
-      background: var(--brand);
+      background: linear-gradient(135deg, var(--brand), var(--accent) 55%, var(--sun));
       box-shadow: var(--shadow);
       display: grid;
       place-items: center;
@@ -121,10 +128,17 @@
       gap: 7px;
       font-weight: 650;
       white-space: nowrap;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-soft);
+      border-color: rgba(23, 107, 135, 0.32);
     }
 
     .btn.primary {
-      background: var(--brand);
+      background: linear-gradient(135deg, var(--brand), var(--green) 52%, #1aa870);
       border-color: var(--brand);
       color: #fff;
     }
@@ -173,6 +187,57 @@
       box-shadow: var(--shadow);
     }
 
+    .panel.hero-panel {
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 250, 242, 0.94)),
+        linear-gradient(120deg, rgba(255, 191, 61, 0.25), rgba(0, 124, 137, 0.2), rgba(255, 90, 61, 0.16));
+      border-color: rgba(255, 90, 61, 0.25);
+      position: relative;
+    }
+
+    .panel.hero-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--sun), var(--brand), var(--green));
+      background-size: 200% 100%;
+      animation: sweep 8s ease-in-out infinite;
+    }
+
+    .planner-shell {
+      display: grid;
+      gap: 12px;
+    }
+
+    .hero-panel.collapsed #plannerBody {
+      display: none;
+    }
+
+    @keyframes sweep {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .hero-copy h2 {
+      margin: 0;
+      font-size: 1.28rem;
+      letter-spacing: 0;
+    }
+
+    .hero-copy p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 780px;
+    }
+
     .panel + .panel {
       margin-top: 14px;
     }
@@ -202,11 +267,23 @@
     }
 
     .stat {
-      background: var(--panel);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 251, 253, 0.98));
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 12px;
       min-height: 84px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .stat::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--sun), var(--brand), var(--green));
     }
 
     .stat-value {
@@ -225,11 +302,15 @@
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 6px;
-      background: #edf2f7;
+      background: rgba(255, 248, 240, 0.82);
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 5px;
       margin-bottom: 14px;
+      position: sticky;
+      top: 8px;
+      z-index: 10;
+      backdrop-filter: blur(10px);
     }
 
     .tab {
@@ -245,6 +326,49 @@
       background: var(--panel);
       color: var(--brand-strong);
       box-shadow: 0 1px 4px rgba(23, 32, 51, 0.08);
+    }
+
+    .quick-starts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .quick-start {
+      border: 1px solid rgba(255, 90, 61, 0.2);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 240, 199, 0.72));
+      color: var(--brand-strong);
+      border-radius: 999px;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-weight: 750;
+      box-shadow: 0 4px 14px rgba(23, 32, 51, 0.05);
+    }
+
+    .quick-start:hover {
+      background: linear-gradient(135deg, var(--blue-soft), var(--amber-soft));
+      transform: translateY(-1px);
+    }
+
+    .explore-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .explore-tile {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 250, 242, 0.9));
+      min-height: 74px;
+      display: grid;
+      gap: 3px;
+    }
+
+    .explore-tile strong {
+      font-size: 0.9rem;
     }
 
     .view {
@@ -285,11 +409,17 @@
       gap: 8px;
       font-weight: 650;
       text-align: left;
+      transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+    }
+
+    .chip:hover {
+      transform: translateX(2px);
+      border-color: rgba(23, 107, 135, 0.3);
     }
 
     .chip.active {
-      border-color: var(--brand);
-      background: var(--blue-soft);
+      border-color: rgba(0, 124, 137, 0.5);
+      background: linear-gradient(135deg, var(--blue-soft), rgba(255, 240, 199, 0.7));
       color: var(--brand-strong);
     }
 
@@ -324,6 +454,11 @@
       color: var(--text);
       padding: 9px 10px;
       min-height: 38px;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    input:hover, select:hover, textarea:hover {
+      border-color: rgba(23, 107, 135, 0.3);
     }
 
     textarea {
@@ -338,11 +473,18 @@
       padding: 14px;
       display: grid;
       gap: 10px;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+
+    .trial-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-soft);
+      border-color: rgba(23, 107, 135, 0.28);
     }
 
     .trial-card.featured {
-      border-color: rgba(23, 107, 135, 0.36);
-      background: linear-gradient(180deg, #ffffff, #f7fcfd);
+      border-color: rgba(0, 124, 137, 0.36);
+      background: linear-gradient(180deg, #ffffff, #f2fffb);
     }
 
     .trial-card.focused {
@@ -393,6 +535,45 @@
     .badge.amber { background: var(--amber-soft); color: var(--amber); }
     .badge.red { background: var(--red-soft); color: var(--red); }
     .badge.blue { background: var(--blue-soft); color: var(--brand-strong); }
+
+    .rank-pill {
+      align-self: start;
+      min-width: 42px;
+      justify-content: center;
+      background: linear-gradient(135deg, #211827, var(--magenta));
+      color: #fff;
+    }
+
+    .confidence-line {
+      border-left: 3px solid var(--brand);
+      padding-left: 9px;
+      color: var(--muted);
+    }
+
+    .deal-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .deal-metric {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px;
+      background: rgba(249, 251, 253, 0.9);
+      min-height: 54px;
+    }
+
+    .deal-metric strong {
+      display: block;
+      font-size: 0.92rem;
+    }
+
+    .deal-metric span {
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
 
     .card-actions {
       display: flex;
@@ -634,6 +815,8 @@
 
       .stats,
       .grid,
+      .explore-strip,
+      .deal-metrics,
       .trial-form,
       .decision-grid,
       .filters,
@@ -768,36 +951,72 @@
         </nav>
 
         <section class="view active" id="discoverView">
-          <div class="panel">
+          <div class="panel hero-panel">
             <div class="panel-header">
-              <h2 class="panel-title">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
-                Requirement Planner
-              </h2>
+              <div class="card-top">
+                <h2 class="panel-title">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
+                  Requirement Planner
+                </h2>
+                <button class="btn" id="plannerToggle" type="button" aria-expanded="true">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                  New Try Plan
+                </button>
+              </div>
             </div>
             <div class="panel-body stack">
-              <form class="trial-form" id="requirementForm">
-                <div class="field wide">
-                  <label for="requirementText">What do you want to try or save on?</label>
-                  <input id="requirementText" type="text" placeholder="Meal kits for busy weekdays, cheapest way to watch live sports, AI coding tools">
+              <div class="planner-shell" id="plannerBody">
+                <div class="hero-copy">
+                  <h2>Tell TryWise what you want to try cheaply.</h2>
+                  <p>It turns a rough need into ranked offers, trial windows, cancellation risk, and a practical plan before anything converts.</p>
                 </div>
-                <div class="field">
-                  <label for="requirementBudget">Monthly budget</label>
-                  <input id="requirementBudget" type="number" min="0" step="1" placeholder="25">
+                <form class="trial-form" id="requirementForm">
+                  <div class="field wide">
+                    <label for="requirementText">What do you want to try or save on?</label>
+                    <input id="requirementText" type="text" placeholder="Meal kits for busy weekdays, cheapest way to watch live sports, AI coding tools">
+                  </div>
+                  <div class="field">
+                    <label for="requirementBudget">Monthly budget</label>
+                    <input id="requirementBudget" type="number" min="0" step="1" placeholder="25">
+                  </div>
+                  <div class="field">
+                    <label for="requirementRisk">Preference</label>
+                    <select id="requirementRisk">
+                      <option value="lowest-cost">Lowest cost first</option>
+                      <option value="lowest-friction">Lowest cancellation friction</option>
+                      <option value="highest-value">Highest value first</option>
+                    </select>
+                  </div>
+                  <button class="btn primary wide" type="submit">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M13 5l7 7-7 7"></path></svg>
+                    Build Try Plan
+                  </button>
+                </form>
+                <div class="quick-starts" aria-label="Quick requirement examples">
+                  <button class="quick-start" type="button" data-quick-requirement="Cheapest way to watch live sports and shows">Live sports</button>
+                  <button class="quick-start" type="button" data-quick-requirement="Audiobooks and books I can try before paying">Books and audiobooks</button>
+                  <button class="quick-start" type="button" data-quick-requirement="Meal delivery services for busy weekdays">Meal delivery</button>
+                  <button class="quick-start" type="button" data-quick-requirement="AI coding tools with useful free trials">AI coding tools</button>
                 </div>
-                <div class="field">
-                  <label for="requirementRisk">Preference</label>
-                  <select id="requirementRisk">
-                    <option value="lowest-cost">Lowest cost first</option>
-                    <option value="lowest-friction">Lowest cancellation friction</option>
-                    <option value="highest-value">Highest value first</option>
-                  </select>
+                <div class="explore-strip" aria-label="How TryWise explores options">
+                  <div class="explore-tile">
+                    <strong>Find</strong>
+                    <span class="small muted">Map your need to categories and facets.</span>
+                  </div>
+                  <div class="explore-tile">
+                    <strong>Compare</strong>
+                    <span class="small muted">See exposure, fit, source, and caveats.</span>
+                  </div>
+                  <div class="explore-tile">
+                    <strong>Try</strong>
+                    <span class="small muted">Add the best option to a decision plan.</span>
+                  </div>
+                  <div class="explore-tile">
+                    <strong>Decide</strong>
+                    <span class="small muted">Keep, extend, or mark cancel planned.</span>
+                  </div>
                 </div>
-                <button class="btn primary wide" type="submit">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M13 5l7 7-7 7"></path></svg>
-                  Build Try Plan
-                </button>
-              </form>
+              </div>
               <div id="requirementPlan"></div>
             </div>
           </div>
@@ -1527,6 +1746,7 @@
       state.onboardingComplete = true;
       saveState();
       render();
+      setPlannerCollapsed(true);
       showToast('Try plan built');
     }
 
@@ -1582,9 +1802,14 @@
             : categoryMatches
               ? `Matches ${trial.categories.filter((category) => categories.has(category)).map(interestLabel).join(', ')} and has ${scorecard.riskLabel.toLowerCase()} exposure.`
             : `Adjacent option from ${trial.source} sources; verify fit before adding.`;
-          return { ...trial, score, rankReason };
+          return { ...trial, score, rankReason, categoryMatches, facetMatches };
         })
-        .filter((trial) => trial.score > 0 || categories.size === 0)
+        .filter((trial) => {
+          if (categories.size || facets.size) {
+            return trial.categoryMatches > 0 || trial.facetMatches > 0;
+          }
+          return trial.score > 0;
+        })
         .sort((a, b) => b.score - a.score || a.monthlyValue - b.monthlyValue);
     }
 
@@ -1681,14 +1906,15 @@
         return;
       }
 
-      feed.innerHTML = matching.map((trial) => trialCard(trial, trackedIds.has(trial.id))).join('');
+      feed.innerHTML = matching.map((trial, index) => trialCard(trial, trackedIds.has(trial.id), index)).join('');
     }
 
-    function trialCard(trial, alreadyTracked) {
+    function trialCard(trial, alreadyTracked, index = null) {
       const latestRequirement = state.requirements.at(-1);
       const selectedInterests = latestRequirement?.categories?.length ? latestRequirement.categories : state.interests;
       const selected = selectedInterests.some((interest) => trial.categories.includes(interest));
       const scorecard = optionScorecard(trial);
+      const confidence = linkConfidence(trial);
       return `
         <article class="trial-card ${selected ? 'featured' : ''}">
           <div class="card-top">
@@ -1696,18 +1922,33 @@
               <h3 class="card-title">${escapeHTML(trial.name)}</h3>
               <p class="card-meta">${optionSummary(trial)}</p>
             </div>
-            <span class="badge ${trial.source === 'official' ? 'green' : 'blue'}">${escapeHTML(trial.source)}</span>
+            ${index === null ? `<span class="badge ${trial.source === 'official' ? 'green' : 'blue'}">${escapeHTML(trial.source)}</span>` : `<span class="badge rank-pill">#${index + 1}</span>`}
+          </div>
+          <div class="deal-metrics">
+            <div class="deal-metric">
+              <strong>$${scorecard.tryCost.toFixed(0)}</strong>
+              <span>estimated try cost</span>
+            </div>
+            <div class="deal-metric">
+              <strong>$${scorecard.exposure.toFixed(0)}/mo</strong>
+              <span>post-trial exposure</span>
+            </div>
+            <div class="deal-metric">
+              <strong>${escapeHTML(scorecard.riskLabel)}</strong>
+              <span>conversion risk</span>
+            </div>
           </div>
           <p class="small muted">${escapeHTML(trial.description)}</p>
           <div class="badge-row">
             ${trial.categories.map((category) => `<span class="badge">${interestLabel(category)}</span>`).join('')}
-            <span class="badge amber">${escapeHTML(linkConfidence(trial).label)}</span>
+            <span class="badge ${confidence.label.includes('needed') ? 'amber' : 'green'}">${escapeHTML(confidence.label)}</span>
+            <span class="badge ${trial.source === 'official' ? 'green' : 'blue'}">${escapeHTML(trial.source)}</span>
             <span class="badge ${scorecard.riskTone}">Risk: ${scorecard.riskLabel}</span>
             <span class="badge">Cancel: ${escapeHTML(scorecard.cancelBurden)}</span>
             <span class="badge">${escapeHTML(destinationDomain(trial.url))}</span>
           </div>
           <p class="small"><strong>Eligibility:</strong> ${escapeHTML(trial.eligibility)}</p>
-          <p class="small muted"><strong>Link:</strong> ${escapeHTML(linkConfidence(trial).detail)}</p>
+          <p class="small confidence-line"><strong>Link:</strong> ${escapeHTML(confidence.detail)}</p>
           ${trial.rankReason ? `<p class="small"><strong>Why ranked:</strong> ${escapeHTML(trial.rankReason)}</p>` : ''}
           <div class="card-actions">
             <button class="btn primary" type="button" data-add-catalog="${trial.id}" ${alreadyTracked ? 'disabled' : ''}>
@@ -2214,11 +2455,30 @@
         render();
       }
       if (target.dataset.addCatalog) addCatalogTrial(target.dataset.addCatalog);
+      if (target.dataset.quickRequirement) applyQuickRequirement(target.dataset.quickRequirement);
       if (target.dataset.removeTrial) removeTrial(target.dataset.removeTrial);
       if (target.dataset.editTrial) loadTrialIntoForm(target.dataset.editTrial);
       if (target.dataset.reviewTrial) focusReviewTrial(target.dataset.reviewTrial);
       if (target.dataset.decide) decideTrial(target.dataset.trial, target.dataset.decide);
     });
+
+    function applyQuickRequirement(requirement) {
+      setPlannerCollapsed(false);
+      document.getElementById('requirementText').value = requirement;
+      document.getElementById('requirementBudget').value = requirement.toLowerCase().includes('live sports') ? '80' : '30';
+      document.getElementById('requirementRisk').value = 'lowest-cost';
+      document.getElementById('requirementForm').requestSubmit();
+    }
+
+    function setPlannerCollapsed(collapsed) {
+      const panel = document.querySelector('.hero-panel');
+      const toggle = document.getElementById('plannerToggle');
+      panel.classList.toggle('collapsed', collapsed);
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+      toggle.innerHTML = collapsed
+        ? '<svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg> New Try Plan'
+        : '<svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg> Hide Planner';
+    }
 
     document.addEventListener('change', (event) => {
       if (event.target.matches('[data-check-trial]')) {
@@ -2233,6 +2493,10 @@
 
     document.getElementById('searchInput').addEventListener('input', renderTrialFeed);
     document.getElementById('requirementForm').addEventListener('submit', submitRequirement);
+    document.getElementById('plannerToggle').addEventListener('click', () => {
+      const panel = document.querySelector('.hero-panel');
+      setPlannerCollapsed(!panel.classList.contains('collapsed'));
+    });
     document.getElementById('trialForm').addEventListener('submit', addManualTrial);
     document.getElementById('cancelEditBtn').addEventListener('click', () => {
       document.getElementById('trialForm').reset();

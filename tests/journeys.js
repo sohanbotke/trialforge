@@ -29,7 +29,10 @@ async function run() {
   await page.reload({ waitUntil: 'networkidle' });
 
   const results = [];
-  for (const journey of journeys) {
+  for (const [index, journey] of journeys.entries()) {
+    if (index > 0) {
+      await page.locator('#plannerToggle').click();
+    }
     await page.locator('#requirementText').fill(journey.query);
     await page.locator('#requirementBudget').fill('30');
     await page.locator('#requirementRisk').selectOption('lowest-cost');
