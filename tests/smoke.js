@@ -1,5 +1,7 @@
 const { chromium } = require('playwright');
 
+const baseUrl = (process.env.TRYWISE_BASE_URL || 'http://127.0.0.1:4177').replace(/\/$/, '');
+
 async function run() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -9,7 +11,7 @@ async function run() {
   });
   page.on('pageerror', (error) => errors.push(error.message));
 
-  await page.goto('http://127.0.0.1:4177/index.html', { waitUntil: 'networkidle' });
+  await page.goto(`${baseUrl}/index.html`, { waitUntil: 'networkidle' });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: 'networkidle' });
   await page.locator('h1').filter({ hasText: 'TryWise' }).waitFor();
