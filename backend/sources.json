@@ -59,6 +59,66 @@
     "enabled": true
   },
   {
+    "id": "cloudflare-workers-official",
+    "type": "official",
+    "label": "Cloudflare Workers official page",
+    "url": "https://www.cloudflare.com/products/workers/",
+    "categories": ["cloudinfra", "devtools"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "vercel-pricing",
+    "type": "official",
+    "label": "Vercel pricing",
+    "url": "https://vercel.com/pricing",
+    "categories": ["cloudinfra", "devtools"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "google-gemini-api-limits",
+    "type": "official",
+    "label": "Gemini API rate limits",
+    "url": "https://ai.google.dev/gemini-api/docs/rate-limits",
+    "categories": ["aiapis", "devtools"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "openrouter-free-models",
+    "type": "official",
+    "label": "OpenRouter free models",
+    "url": "https://openrouter.ai/models?max_price=0",
+    "categories": ["aiapis", "harnesses", "devtools"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "aider-official",
+    "type": "official",
+    "label": "Aider official page",
+    "url": "https://aider.chat/",
+    "categories": ["harnesses", "devtools"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
+    "id": "opencode-official",
+    "type": "official",
+    "label": "OpenCode official page",
+    "url": "https://opencode.ai/",
+    "categories": ["harnesses", "devtools"],
+    "max_candidates": 8,
+    "verify_links": true,
+    "enabled": false
+  },
+  {
     "id": "appsumo",
     "type": "deal-site",
     "label": "AppSumo",

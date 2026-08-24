@@ -12,6 +12,18 @@ const journeys = [
   {
     query: 'Meal delivery services for busy weekdays',
     expected: ['HelloFresh', 'Instacart+', 'DashPass']
+  },
+  {
+    query: 'Free cloud infrastructure to host my apps',
+    expected: ['Cloudflare Workers', 'Vercel Hobby', 'Netlify Free']
+  },
+  {
+    query: 'Free AI APIs with daily access to models',
+    expected: ['Google Gemini API', 'Groq API', 'OpenRouter Free Models']
+  },
+  {
+    query: 'Free AI agent harnesses I can run locally',
+    expected: ['Aider', 'OpenCode', 'Continue']
   }
 ];
 
