@@ -26,3 +26,9 @@ The supplied GitHub main branch predates the local Firebase/account/admin/collec
 Uploading the branch does not deploy Firebase Hosting, publish catalog entries, or alter user plans. Provider verification and catalogue expansion remain separate work.
 
 First uploaded checkpoint: `559e73b` on `consumer-improvements`. Follow-up includes visible focus after clearing collapsed filters, deployment-asset coverage, and updated user-facing documentation.
+
+## Firebase Hosting release
+
+Deployed the tested `d8652a1` application revision to https://trywise-9f8e1.web.app/ after explicit user approval. Hosting-only deployment published the 16 allowlisted runtime files; database rules, authentication settings, catalog approvals, and user plans were not changed.
+
+Post-deployment checks passed: runtime assets and security headers, private development files returning 404, public catalog validation, guest save/reload persistence, Google sign-in reaching its entry page without entering credentials, mobile layout, and unauthorized admin access remaining gated. The live HTML, consumer model, and plan-state module were also hash-matched against the tested build. Reload older open tabs to pick up the new saved-option state handling.
