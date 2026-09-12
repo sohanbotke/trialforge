@@ -1,0 +1,30 @@
+[
+  {
+    "id": "github-copilot-plans",
+    "label": "GitHub Copilot plans",
+    "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/get-started/plans-for-github-copilot",
+    "offer_url": "https://docs.github.com/en/copilot/get-started/plans-for-github-copilot",
+    "format": "markdown",
+    "allowed_hosts": ["docs.github.com"],
+    "categories": ["devtools", "productivity"],
+    "policy_reviewed": "2026-09-08",
+    "policy_url": "https://docs.github.com/en/get-started/using-github-docs/github-docs-api",
+    "license": "CC-BY-4.0",
+    "attribution": "GitHub Docs contributors; extracted excerpts, not a verified offer",
+    "enabled": true
+  },
+  {
+    "id": "cloudflare-workers-pricing",
+    "label": "Cloudflare Workers pricing",
+    "url": "https://developers.cloudflare.com/workers/platform/pricing/index.md",
+    "offer_url": "https://developers.cloudflare.com/workers/platform/pricing/",
+    "format": "markdown",
+    "allowed_hosts": ["developers.cloudflare.com"],
+    "categories": ["cloudinfra", "devtools"],
+    "policy_reviewed": "2026-09-08",
+    "policy_url": "https://github.com/cloudflare/cloudflare-docs/blob/production/LICENSE",
+    "license": "CC-BY-4.0",
+    "attribution": "Cloudflare documentation contributors; extracted excerpts, not a verified offer",
+    "enabled": true
+  }
+]

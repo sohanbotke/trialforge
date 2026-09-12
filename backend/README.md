@@ -1,5 +1,10 @@
 # TryWise Backend Scaffold
 
+The Mac nightly collector is now implemented separately in `nightly.py` and
+`upload-nightly.mjs`. See [NIGHTLY.md](NIGHTLY.md) for the installed schedule,
+private Firestore review queue, source policy, credentials, and run commands.
+The scaffold below remains available but is **not** the scheduled job.
+
 This backend is intentionally small. It gives TryWise a path from curated static
 data to scheduled public-source discovery for trials, promos, intro offers,
 bundles, and cheaper ways to try a user requirement without requiring email,

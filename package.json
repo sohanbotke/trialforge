@@ -3,10 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "build": "node scripts/build-site.mjs",
+    "deploy": "npx -y firebase-tools@latest deploy --only hosting --project trywise-9f8e1",
     "test:smoke": "node tests/smoke.js",
-    "test:journeys": "node tests/journeys.js"
+    "test:journeys": "node tests/journeys.js",
+    "test:ux": "node tests/ux.js",
+    "test:consumer": "node --test tests/consumer-model.test.mjs && node tests/consumer-browser.mjs",
+    "test:storage": "node --test tests/plan-store.test.mjs",
+    "test:rules": "node tests/firestore-rules.test.mjs",
+    "test:accounts": "node tests/accounts.js",
+    "test:hosted": "node tests/hosted.js",
+    "collect": "python3 backend/nightly.py",
+    "collect:status": "python3 backend/nightly.py --status",
+    "test:collector": "python3 -m unittest discover -s backend -p 'test_*.py'",
+    "test:collector-upload": "node --test tests/nightly-upload.test.mjs",
+    "test:publishing": "node --test tests/publishing.test.mjs",
+    "test:identity": "node --test tests/offer-identity.test.mjs",
+    "test:admin": "node tests/admin-browser.mjs",
+    "test:admin-regressions": "node tests/admin-regressions.mjs",
+    "test:drafts": "python3 -m unittest discover -s backend -p 'test_draft_fields.py' && node --test tests/draft-fields.test.mjs",
+    "emulators": "npx -y firebase-tools@latest emulators:start --only auth,firestore --project demo-trywise"
   },
   "devDependencies": {
-    "playwright": "^1.55.0"
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.18.0",
+    "playwright": "1.61.1"
   }
 }

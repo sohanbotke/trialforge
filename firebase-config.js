@@ -1,18 +1,9 @@
-// 🔥 REPLACE THESE VALUES WITH YOUR OWN FROM FIREBASE CONSOLE
-// Get these at: https://console.firebase.google.com/project/_/settings/general/
+// Public web-app identifiers. Access is enforced by Authentication and Firestore rules.
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCkSMzIX0V7mlwraFGqay30kIkQi_p77fE",
+  authDomain: "trywise-9f8e1.firebaseapp.com",
+  projectId: "trywise-9f8e1",
+  storageBucket: "trywise-9f8e1.firebasestorage.app",
+  messagingSenderId: "482632266525",
+  appId: "1:482632266525:web:9f9e6542dc8458a905e7f4"
 };
-
-// NOTE: Leave this file as-is if you don't want to use Firebase yet.
-// The app works perfectly with just localStorage (all data stays in your browser).
-// To enable Firebase sync later:
-// 1. Create a Firebase project at firebase.google.com
-// 2. Get your config object from Project Settings > General
-// 3. Paste the values above
-// 4. Uncomment the Firebase init block in the <script> tag of index.html

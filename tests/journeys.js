@@ -42,6 +42,7 @@ async function run() {
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
     const errors = [];
+    await page.route('**/firebase-config.js', (route) => route.fulfill({ contentType: 'text/javascript', body: 'export const firebaseConfig = {};' }));
     page.on('console', (message) => {
       if (message.type() === 'error') errors.push(message.text());
     });
@@ -57,6 +58,7 @@ async function run() {
         await page.locator('#plannerToggle').click();
       }
       await page.locator('#requirementText').fill(journey.query);
+      if (index === 0) await page.locator('#requirementForm summary').click();
       await page.locator('#requirementBudget').fill('30');
       await page.locator('#requirementRisk').selectOption('lowest-cost');
       await page.locator('#requirementForm button[type="submit"]').click();
@@ -65,11 +67,11 @@ async function run() {
         items.slice(0, 4).map((item) => item.textContent.trim())
       );
       results.push({ query: journey.query, actualTop });
-      const expected = journey.expectedTop.join('|');
-      const actual = actualTop.slice(0, journey.expectedTop.length).join('|');
-      if (actual !== expected) {
-        throw new Error(`Unexpected top options for "${journey.query}".\nExpected: ${expected}\nActual:   ${actual}`);
-      }
+      // Starter prices are unreviewed: test relevance, not the old price-based order.
+      const overlap = actualTop.filter(name => journey.expectedTop.includes(name));
+      if (overlap.length < Math.min(2, journey.expectedTop.length)) throw new Error(`Missing relevant options for "${journey.query}": ${actualTop.join(', ')}`);
+      const summary = await page.locator('#requirementPlan').textContent();
+      if (!summary.includes('Unreviewed preview') || /Highest value|Easiest to cancel|Low exposure/.test(summary)) throw new Error('Unreviewed matches must not imply verified cost, value or cancellation ease.');
     }
 
     if (errors.length) {

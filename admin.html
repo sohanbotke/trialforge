@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Review &amp; publish · TryWise</title><link rel="icon" href="/assets/trywise-mark.svg"><link rel="stylesheet" href="/admin.css"></head>
+<body>
+<a class="skip-link" href="#workspace">Skip to review workspace</a>
+<header class="app-header"><div><a href="/" class="brand">← TryWise</a><h1>Review &amp; publish</h1><p>Verify the evidence. Publish with confidence.</p></div><div class="account"><p id="identity" role="status">Checking your sign-in…</p><p id="connection" role="status"></p><button id="signIn" disabled>Sign in with Google</button><button id="signOut" hidden>Sign out</button></div></header>
+<p id="message" role="status" aria-live="polite"></p>
+<main id="workspace" hidden data-view="queue" tabindex="-1">
+  <section id="queuePanel" aria-labelledby="queueHeading">
+    <div class="panel-heading"><h2 id="queueHeading" tabindex="-1">Review queue</h2><button id="refresh">Refresh</button></div>
+    <label>Source<select id="queueType"><option value="collected">Nightly discoveries</option><option value="seeds">Starter catalog</option><option value="published">Published / withdrawn</option></select></label>
+    <label>Search loaded entries<input id="queueSearch" type="search" placeholder="Name, provider, or offer ID"></label>
+    <label>Review status<select id="reviewFilter"><option value="all">All offer groups</option><option value="pending">Needs review</option></select></label>
+    <p id="coverage" class="muted"></p><p id="queueStatus" role="status"></p><p id="queueError" role="alert" hidden></p>
+    <button id="resumeCurrent" hidden>Return to current review</button>
+    <details id="parkedPanel" hidden><summary>Drafts kept in this tab</summary><p class="muted">Private, in memory only. Refreshing or signing out clears these drafts.</p><div id="parkedDrafts"></div></details>
+    <div id="queue"></div><button id="more" hidden>Load older versions</button>
+  </section>
+  <section id="editorPanel" aria-labelledby="editorHeading">
+    <div class="editor-top"><button id="backToQueue" type="button">← Back to queue</button><button id="cancel" type="button" hidden>Close review</button></div>
+    <h2 id="editorHeading" tabindex="-1">Offer review</h2><p id="selection">Choose an entry to review its evidence and details.</p>
+    <p id="editorStatus" role="status"></p><p id="revisionNotice" role="status" hidden></p><div id="editorError" role="alert" tabindex="-1" hidden></div>
+    <details id="sourcePanel" hidden><summary>Source evidence &amp; audit notes</summary><div id="evidence"></div></details>
+    <aside id="draftInfo" hidden aria-label="AI draft evidence"></aside>
+    <form id="reviewForm" hidden novalidate><fieldset id="fields">
+      <fieldset class="form-section"><legend><span>1</span> Offer details</legend>
+        <label>Offer name<input id="name" required maxlength="120"></label>
+        <label>Description<textarea id="description" required maxlength="1000"></textarea></label>
+        <label>Official offer URL<input id="url" type="url" required maxlength="2000" placeholder="https://"></label>
+        <div class="grid"><label>Category<select id="category" required></select></label><label>Offer type<select id="offerType" required><option value="">Choose after checking terms</option></select></label></div>
+      </fieldset>
+      <fieldset class="form-section"><legend><span>2</span> Pricing &amp; eligibility</legend>
+        <p class="muted">All prices are USD. Free tiers, discounts and refund guarantees are not free trials.</p>
+        <div class="grid"><label>Free-trial days<input id="trialDays" type="number" min="0" max="365" step="1" required value="0"><small>Use 0 unless this is a genuine free trial.</small></label><label>Planning review interval (days)<input id="reviewDays" type="number" min="1" max="365" step="1" required value="30"></label></div>
+        <div class="grid"><label>Monthly equivalent / base cost (USD)<input id="monthlyValue" type="number" min="0" max="100000" step="0.01" required></label><label>Upfront cost (USD)<input id="upfrontCost" type="number" min="0" max="100000" step="0.01" required value="0"></label></div>
+        <label>Pricing and billing details<textarea id="priceDetails" required maxlength="500" placeholder="Charge, billing frequency, commitment, usage fees and renewal"></textarea></label>
+        <label>Eligibility<textarea id="eligibility" required maxlength="500"></textarea></label>
+        <label>Available countries / regions<input id="region" required maxlength="120" placeholder="For example: United States"></label>
+        <label>Cancellation / refund terms<textarea id="cancellation" required maxlength="500"></textarea></label>
+        <label>Suggested user goal<textarea id="goal" required maxlength="500"></textarea></label>
+        <label>Offer expiry (optional, your local time)<input id="expiresAt" type="datetime-local"><small>Leave blank only if no expiry is stated.</small></label>
+      </fieldset>
+      <fieldset class="form-section"><legend><span>3</span> Publish destination</legend>
+        <p class="muted">Update the same offer, or use a new ID for a distinct plan or promotion. Saved personal plans never change.</p>
+        <label>Offer ID<input id="offerId" required maxlength="80" pattern="[a-z0-9][a-z0-9-]*" list="offerIds" aria-describedby="targetStatus"></label><datalist id="offerIds"></datalist>
+        <div class="toolbar"><button type="button" id="loadTarget">Check / load offer ID</button><button type="button" id="newVariant">Create a distinct variant</button></div><p id="targetStatus"></p>
+        <details id="identityDetails"><summary>Offer identity identifiers <span id="identityState"></span></summary>
+          <p class="muted">Use lowercase identifiers consistently. Existing identities are read-only. A different plan, region, billing commitment or campaign needs its own identity.</p>
+          <div class="grid"><label>Provider<input id="identityProvider" required maxlength="40" pattern="[a-z0-9][a-z0-9-]*" placeholder="github"></label><label>Product<input id="identityProduct" required maxlength="40" pattern="[a-z0-9][a-z0-9-]*" placeholder="copilot"></label></div>
+          <div class="grid"><label>Plan<input id="identityPlan" required maxlength="40" pattern="[a-z0-9][a-z0-9-]*" placeholder="free"></label><label>Region identifier<input id="identityRegion" required maxlength="40" pattern="[a-z0-9][a-z0-9-]*" placeholder="us"><small>Must match the verified availability above.</small></label></div>
+          <label>Eligibility / billing / campaign identifier<input id="identityScope" required maxlength="40" pattern="[a-z0-9][a-z0-9-]*" placeholder="general or annual-new-users"></label>
+        </details>
+        <div id="duplicates"></div><label class="check" id="distinctLabel" hidden><input id="distinctVariant" type="checkbox"> I checked the similar listings; this is a distinct plan, region, billing commitment or promotion.</label>
+      </fieldset>
+      <fieldset class="form-section"><legend><span>4</span> Review decision</legend>
+        <label>Private review notes<textarea id="notes" maxlength="1000"></textarea></label>
+        <label class="check"><input id="confirmed" type="checkbox" required> I checked the source, pricing, type/duration, eligibility, region, expiry and cancellation terms.</label>
+      </fieldset>
+      <div class="action-bar"><p id="saveStatus" role="status">No unsaved edits</p><div id="actionError" hidden></div><div class="toolbar"><button id="parkDraft" type="button">Keep draft in this tab</button><button id="reject" type="button">Reject candidate</button><button id="publish" type="submit" class="primary">Approve &amp; publish</button></div><small>Tab drafts clear on refresh or sign-out. Nothing publishes without confirmation.</small></div>
+    </fieldset></form>
+  </section>
+</main>
+<script type="module" src="/admin-ui.mjs"></script>
+</body></html>

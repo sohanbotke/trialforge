@@ -1,0 +1,9 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "plans", "fieldPath": "stateJson", "indexes": [] },
+    { "collectionGroup": "candidates", "fieldPath": "payloadJson", "indexes": [] },
+    { "collectionGroup": "crawlRuns", "fieldPath": "payloadJson", "indexes": [] },
+    { "collectionGroup": "candidateReviews", "fieldPath": "notes", "indexes": [] }
+  ]
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.trywise.nightly-collector</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/python3</string>
+    <string>/Users/sohan.botke/Workspace/trialforg/backend/nightly.py</string>
+    <string>--scheduled</string>
+    <string>--node</string><string>/Users/sohan.botke/.nvm/versions/node/v26.7.0/bin/node</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/sohan.botke/Workspace/trialforg</string>
+  <key>RunAtLoad</key><true/>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>0</integer></dict>
+  <!-- Lightweight local gate: catch up after wake/login, preserve Chicago time
+       while traveling, and retry pending uploads at most hourly. -->
+  <key>StartInterval</key><integer>900</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>LowPriorityIO</key><true/>
+  <key>Nice</key><integer>10</integer>
+  <key>Umask</key><integer>63</integer>
+  <key>StandardOutPath</key><string>/Users/sohan.botke/Library/Logs/TryWise/nightly.stdout.log</string>
+  <key>StandardErrorPath</key><string>/Users/sohan.botke/Library/Logs/TryWise/nightly.stderr.log</string>
+</dict></plist>

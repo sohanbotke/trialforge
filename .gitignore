@@ -2,3 +2,15 @@ backend/data/
 __pycache__/
 *.py[cod]
 .DS_Store
+node_modules/
+*-debug.log
+.firebase/
+dist/
+FIRESTORE-MODEL-NOTES.md
+.agents/
+.env
+.env.*
+!.env.example
+*service-account*.json
+*credentials*.json
+*session*.json

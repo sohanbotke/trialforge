@@ -1,0 +1,143 @@
+// Private workspace: users/{uid}/plans/default. Ownership comes only from Auth.
+// Required envelope: schemaVersion=1 (immutable), revision positive int (+1),
+// updatedAt=request.time, stateJson bounded opaque JSON (client validates contents).
+// Public catalog: published validated USD offers or minimal withdrawn tombstones.
+// Private candidateReviews: decision, target ID, notes<=1000, actor/time, revision.
+// Private collector envelope: id, schemaVersion, observedAt, status, payloadJson<=30000.
+// Admin requires the owner's verified Google email, not a client-editable role.
+// Catalog identity map: provider/product/plan/region/scope strict slugs <=40 each.
+// Private offerKeys/{canonicalKey}: offerId, schemaVersion=1, createdAt; immutable.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous'
+        && request.auth.uid != 'trywise-nightly-collector';
+    }
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'sohan2405@gmail.com'
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function isCollector() {
+      return request.auth != null && request.auth.uid == 'trywise-nightly-collector'
+        && request.auth.token.collector == true
+        && request.auth.token.firebase.sign_in_provider == 'custom';
+    }
+    function text(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+    function offerId(v) { return text(v,1,80) && v.matches('^[a-z0-9][a-z0-9-]*$'); }
+    function candidateId(v) { return text(v,1,100) && v.matches('^[a-zA-Z0-9-]+$'); }
+    function validRevision(data) { return data.revision is int && data.revision > 0 && data.revision < 2147483647; }
+    function httpsUrl(v) { return text(v,9,2000) && v.matches('^https://[a-zA-Z0-9.-]+(:443)?(/[^ <>"\\\\]*)?$'); }
+    function identityPart(v) { return text(v,1,40) && v.matches('^[a-z0-9][a-z0-9-]*$'); }
+    function validIdentity(data) {
+      let v=data.identity;
+      return v is map && v.keys().hasAll(['provider','product','plan','region','scope'])
+        && v.keys().hasOnly(['provider','product','plan','region','scope'])
+        && identityPart(v.provider) && identityPart(v.product) && identityPart(v.plan)
+        && identityPart(v.region) && identityPart(v.scope)
+        && data.identityKey == 'v1~'+v.provider+'~'+v.product+'~'+v.plan+'~'+data.offerType+'~'+v.region+'~'+v.scope+'~usd'
+        && getAfter(/databases/$(database)/documents/offerKeys/$(data.identityKey)).data.offerId == data.id;
+    }
+    function validOfferKey(data,key) {
+      return text(key,1,240) && key.matches('^v1~[a-z0-9_~-]+$')
+        && data.keys().hasAll(['offerId','schemaVersion','createdAt']) && data.keys().hasOnly(['offerId','schemaVersion','createdAt'])
+        && offerId(data.offerId) && data.schemaVersion == 1 && data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/catalog/$(data.offerId)).data.status == 'published'
+        && getAfter(/databases/$(database)/documents/catalog/$(data.offerId)).data.identityKey == key
+        && getAfter(/databases/$(database)/documents/catalog/$(data.offerId)).data.updatedAt == request.time;
+    }
+    function isValidCatalog(data, id) {
+      return data.schemaVersion == 1 && data.id == id && offerId(id) && validRevision(data)
+        && data.updatedAt == request.time && (
+          (data.status == 'withdrawn' && data.keys().hasOnly(['id','schemaVersion','status','revision','updatedAt','identityKey'])
+            && (!('identityKey' in data) || get(/databases/$(database)/documents/offerKeys/$(data.identityKey)).data.offerId == id))
+          || (data.status == 'published'
+            && data.keys().hasAll(['identity','identityKey','name','description','category','url','offerType','trialDays','reviewDays','monthlyValue','upfrontCost','currency','priceDetails','eligibility','region','cancellation','goal','verifiedAt','expiresAt','sourceCandidate'])
+            && data.keys().hasOnly(['identity','identityKey','id','schemaVersion','status','revision','updatedAt','name','description','category','url','offerType','trialDays','reviewDays','monthlyValue','upfrontCost','currency','priceDetails','eligibility','region','cancellation','goal','verifiedAt','expiresAt','sourceCandidate'])
+            && validIdentity(data)
+            && text(data.name,1,120) && text(data.description,1,1000) && httpsUrl(data.url)
+            && data.category in ['design','family','productivity','devtools','learning','home','shows','health','finance','meals','delivery','services','cloudinfra','aiapis','harnesses']
+            && data.offerType in ['trial','free_tier','discount','guarantee','open_source']
+            && data.trialDays is int && data.trialDays >= 0 && data.trialDays <= 365
+            && ((data.offerType == 'trial' && data.trialDays > 0) || (data.offerType != 'trial' && data.trialDays == 0))
+            && data.reviewDays is int && data.reviewDays >= 1 && data.reviewDays <= 365
+            && data.monthlyValue is number && data.monthlyValue >= 0 && data.monthlyValue <= 100000
+            && (!(data.offerType in ['free_tier','open_source']) || data.monthlyValue == 0)
+            && data.upfrontCost is number && data.upfrontCost >= 0 && data.upfrontCost <= 100000
+            && data.currency == 'USD' && text(data.priceDetails,1,500) && text(data.eligibility,1,500)
+            && text(data.region,1,120) && text(data.cancellation,1,500) && text(data.goal,1,500)
+            && data.verifiedAt == request.time && candidateId(data.sourceCandidate)
+            && (data.expiresAt == null || (data.expiresAt is timestamp && data.expiresAt > request.time))
+            && getAfter(/databases/$(database)/documents/candidateReviews/$(data.sourceCandidate)).data.status == 'approved'
+            && getAfter(/databases/$(database)/documents/candidateReviews/$(data.sourceCandidate)).data.publishedId == id
+            && getAfter(/databases/$(database)/documents/candidateReviews/$(data.sourceCandidate)).data.reviewedAt == request.time)
+        );
+    }
+    function isValidReview(data, id) {
+      return data.keys().hasAll(['candidateId','status','publishedId','notes','reviewedBy','reviewedAt','revision','schemaVersion'])
+        && data.keys().hasOnly(['candidateId','status','publishedId','notes','reviewedBy','reviewedAt','revision','schemaVersion'])
+        && data.candidateId == id && candidateId(id) && data.schemaVersion == 1 && validRevision(data)
+        && text(data.notes,0,1000) && data.reviewedBy == request.auth.uid && data.reviewedAt == request.time
+        && ((data.status == 'rejected' && data.publishedId == '') ||
+          (data.status == 'approved' && offerId(data.publishedId)
+            && getAfter(/databases/$(database)/documents/catalog/$(data.publishedId)).data.sourceCandidate == id
+            && getAfter(/databases/$(database)/documents/catalog/$(data.publishedId)).data.verifiedAt == request.time));
+    }
+    function isValidCollection(data, id) {
+      return data.keys().hasAll(['id','schemaVersion','status','observedAt','payloadJson'])
+        && data.keys().hasOnly(['id','schemaVersion','status','observedAt','payloadJson'])
+        && data.id == id && candidateId(id) && data.schemaVersion == 1
+        && data.status in ['pending_review','collected','partial_failure']
+        && text(data.observedAt,20,40) && text(data.payloadJson,1,30000);
+    }
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+    function isValidPlan(data) {
+      return data.keys().hasAll(['schemaVersion', 'revision', 'updatedAt', 'stateJson'])
+        && data.keys().hasOnly(['schemaVersion', 'revision', 'updatedAt', 'stateJson'])
+        && data.schemaVersion == 1
+        && data.revision is int && data.revision > 0 && data.revision < 2147483647
+        && data.updatedAt is timestamp && data.updatedAt == request.time
+        && data.stateJson is string && data.stateJson.size() > 1 && data.stateJson.size() <= 750000;
+    }
+    match /users/{uid}/plans/default {
+      allow get: if isOwner(uid);
+      allow create: if isOwner(uid) && isValidPlan(request.resource.data)
+        && request.resource.data.revision == 1;
+      allow update: if isOwner(uid) && isValidPlan(request.resource.data)
+        && request.resource.data.schemaVersion == resource.data.schemaVersion
+        && request.resource.data.revision == resource.data.revision + 1;
+    }
+    match /adminAccess/status { allow get: if isAdmin(); }
+    match /catalog/{id} {
+      // Explicitly public: contains only approved offer fields or a tombstone.
+      allow read: if true;
+      allow create: if isAdmin() && isValidCatalog(request.resource.data,id) && request.resource.data.revision == 1;
+      allow update: if isAdmin() && isValidCatalog(request.resource.data,id) && request.resource.data.revision == resource.data.revision + 1
+        && (!('identityKey' in resource.data) || request.resource.data.identityKey == resource.data.identityKey);
+    }
+    match /offerKeys/{key} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && validOfferKey(request.resource.data,key);
+      // Claims cannot be reassigned or deleted, including after withdrawal.
+    }
+    match /candidateReviews/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidReview(request.resource.data,id) && request.resource.data.revision == 1;
+      allow update: if isAdmin() && isValidReview(request.resource.data,id) && request.resource.data.revision == resource.data.revision + 1;
+    }
+    match /candidates/{id} {
+      allow read: if isAdmin();
+      allow create: if isCollector() && isValidCollection(request.resource.data,id) && request.resource.data.status == 'pending_review';
+    }
+    match /crawlRuns/{id} {
+      allow read: if isAdmin();
+      allow create: if isCollector() && isValidCollection(request.resource.data,id);
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

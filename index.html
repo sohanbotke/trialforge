@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TryWise - Private Trial Planner</title>
+  <meta name="description" content="Compare useful trials, save a personal plan, and decide before you pay. TryWise helps you track goals, costs, and decision dates.">
+  <link rel="icon" type="image/svg+xml" href="/assets/trywise-mark.svg">
   <style>
     :root {
       --bg: #fff8f0;
@@ -15,9 +17,9 @@
       --brand: #007c89;
       --brand-strong: #005c66;
       --accent: #ff5a3d;
-      --green: #138a50;
-      --amber: #c77900;
-      --red: #d13f32;
+      --green: #096b3b;
+      --amber: #855000;
+      --red: #ad3026;
       --magenta: #c026d3;
       --sun: #ffbf3d;
       --blue-soft: #dff8fb;
@@ -32,6 +34,16 @@
     }
 
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 3px solid var(--brand-strong); outline-offset: 3px; }
+    :where(input, select, textarea, button, a, [tabindex]) { scroll-margin-block: 130px; }
+    .skip-link { position: fixed; top: 8px; left: 12px; z-index: 30; padding: 12px; background: #fff; transform: translateY(-150%); }
+    .skip-link:focus { transform: translateY(0); }
+    .btn.mobile-only { display: none; }
+    .results-summary { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .results-summary p { margin: 0; }
+    .undo-notice { padding: 12px; border: 1px solid var(--brand); border-radius: 7px; background: var(--blue-soft); margin-bottom: 12px; }
+    .field-error { color: var(--red); margin: 0; }
 
     body {
       margin: 0;
@@ -117,7 +129,7 @@
     }
 
     .btn {
-      min-height: 38px;
+      min-height: 44px;
       border: 1px solid var(--line);
       background: var(--panel);
       color: var(--text);
@@ -138,7 +150,7 @@
     }
 
     .btn.primary {
-      background: linear-gradient(135deg, var(--brand), var(--green) 52%, #1aa870);
+      background: var(--brand-strong);
       border-color: var(--brand);
       color: #fff;
     }
@@ -148,6 +160,7 @@
       border-color: #efc2bd;
       background: #fff8f7;
     }
+    .btn:disabled { cursor: default; background: #edf2f0; color: #46574f; border-color: #cbd6d0; transform: none; box-shadow: none; }
 
     .btn.icon-only {
       width: 34px;
@@ -162,7 +175,7 @@
     input:focus-visible,
     select:focus-visible,
     textarea:focus-visible {
-      outline: 3px solid rgba(23, 107, 135, 0.22);
+      outline: 3px solid var(--brand-strong);
       outline-offset: 2px;
     }
 
@@ -326,7 +339,7 @@
       border: 0;
       background: transparent;
       border-radius: 6px;
-      min-height: 38px;
+      min-height: 44px;
       color: var(--muted);
       font-weight: 750;
     }
@@ -348,7 +361,7 @@
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 240, 199, 0.72));
       color: var(--brand-strong);
       border-radius: 999px;
-      min-height: 32px;
+      min-height: 44px;
       padding: 6px 10px;
       font-weight: 750;
       box-shadow: 0 4px 14px rgba(23, 32, 51, 0.05);
@@ -406,7 +419,7 @@
 
     .chip {
       width: 100%;
-      min-height: 38px;
+      min-height: 44px;
       border: 1px solid var(--line);
       border-radius: 7px;
       background: var(--panel-soft);
@@ -456,8 +469,9 @@
     }
 
     input, select, textarea {
+      min-width: 0;
       width: 100%;
-      border: 1px solid var(--line);
+      border: 1px solid #97899c;
       border-radius: 7px;
       background: #fff;
       color: var(--text);
@@ -476,6 +490,7 @@
     }
 
     .trial-card {
+      overflow-wrap: anywhere;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -537,7 +552,7 @@
       color: #435064;
       font-size: 0.76rem;
       font-weight: 750;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
     }
 
     .badge.green { background: var(--green-soft); color: var(--green); }
@@ -807,6 +822,9 @@
       .layout {
         grid-template-columns: 1fr;
       }
+      .btn.mobile-only { display: inline-flex; }
+      .sidebar:not(.expanded) { display: none; }
+      .interest-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
       .topbar {
         grid-template-columns: 1fr;
@@ -822,7 +840,6 @@
         padding: 12px;
       }
 
-      .stats,
       .grid,
       .explore-strip,
       .deal-metrics,
@@ -835,8 +852,18 @@
       }
 
       .tabs {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        position: static;
       }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .stat { min-height: 68px; padding: 8px 12px; }
+      .stat-value { font-size: 1.2rem; }
+      .toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar .btn { padding-inline: 8px; font-size: 0.85rem; }
+      .hero-copy h2 { font-size: 1.15rem; }
+      .hero-panel .panel-header .card-top { display: flex; align-items: center; }
+      #plannerToggle { font-size: 0.8rem; padding-inline: 8px; }
+      #plannerToggle .icon { display: none; }
 
       .card-top {
         display: grid;
@@ -848,9 +875,38 @@
         justify-content: center;
       }
     }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+    [hidden] { display: none !important; }
+    .plan-tools { position: relative; }
+    summary { cursor: pointer; }
+    .plan-tools summary { list-style: none; }
+    .plan-tools[open] .tool-menu { width: 210px; max-width: 100%; padding: 12px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 8px; }
+    .discovery-options summary, .offer-details summary { padding: 10px 0; font-weight: 700; }
+    .discovery-options[open] .filters { margin-top: 12px; }
+    .catalog-section { grid-column: 1 / -1; margin: 8px 0 0; }
+    .catalog-section h3, .catalog-section p { margin: 0 0 6px; }
+    .offer-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+    .offer-facts dt { color: var(--muted); font-size: .8rem; }
+    .offer-facts dd { margin: 4px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+    .hero-copy p { margin-bottom: 0; }
+    .quick-starts { max-height: 48px; overflow-x: auto; flex-wrap: nowrap; }
+    .quick-start { white-space: nowrap; flex-shrink: 0; }
+    .toolbar { display: flex; align-items: flex-start; flex-wrap: wrap; }
+    @media (max-width: 680px) {
+      .topbar { gap: 12px; }
+      .toolbar .btn { width: auto; }
+      .hero-panel .panel-body { padding: 12px; }
+      .hero-copy p { font-size: .85rem; }
+      .offer-facts { grid-template-columns: 1fr 1fr; }
+      .tabs { display: flex; overflow-x: auto; }
+      .tabs .tab { flex: 0 0 auto; white-space: nowrap; }
+    }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">Skip to planner and options</a>
   <div class="app">
     <header class="topbar">
       <div class="identity">
@@ -862,15 +918,18 @@
         </div>
         <div>
           <h1>TryWise</h1>
-          <p class="subhead">A private try planner for finding useful offers, testing them intentionally, and deciding before they convert.</p>
+          <p class="subhead">Find useful options. Compare the real cost. Decide before you pay.</p>
         </div>
       </div>
       <div class="toolbar">
+        <details class="plan-tools" id="planTools">
+          <summary class="btn">Plan tools</summary>
+          <div class="tool-menu">
         <button class="btn" id="shareBtn" type="button" title="Copy a summary of your try plan">
           <svg class="icon" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>
-          Share
+          Copy plan
         </button>
-        <button class="btn primary" id="setupBtn" type="button" title="Set interests, sources, and alerts">
+        <button class="btn" id="setupBtn" type="button" title="Set interests, sources, and alerts">
           <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
           Setup
         </button>
@@ -878,11 +937,15 @@
           <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>
           Export
         </button>
+          </div>
+        </details>
+        <button class="btn" id="accountBtn" type="button" aria-haspopup="dialog" aria-controls="accountDialog" aria-live="polite">Sign in</button>
       </div>
     </header>
 
     <main class="layout">
-      <aside class="sidebar">
+      <button class="btn mobile-only" id="sidebarToggle" type="button" aria-expanded="false" aria-controls="sidebar">Interests &amp; privacy</button>
+      <aside class="sidebar" id="sidebar" aria-label="Interests and privacy">
         <section class="panel">
           <div class="panel-header">
             <h2 class="panel-title">
@@ -906,8 +969,8 @@
             <div class="privacy-row">
               <div class="privacy-icon">1</div>
               <div>
-                <strong>Manual only</strong>
-                <div class="small muted">Everything stays in this browser.</div>
+                <strong id="storageTitle">Guest storage</strong>
+                <div class="small muted" id="storageDetail">Saved in this browser. Sign in to save across devices.</div>
               </div>
               <span class="badge green">On</span>
             </div>
@@ -923,7 +986,7 @@
               <div class="privacy-icon">3</div>
               <div>
                 <strong>Bank scan</strong>
-                <div class="small muted">Not part of this MVP.</div>
+                <div class="small muted">No bank connection required.</div>
               </div>
               <span class="badge">Off</span>
             </div>
@@ -931,11 +994,11 @@
         </section>
       </aside>
 
-      <section class="main">
-        <section class="stats" aria-label="Trial summary">
+      <section class="main" id="mainContent" tabindex="-1" aria-label="Trial planner">
+        <section class="stats" aria-label="Trial summary" hidden>
           <div class="stat">
             <p class="stat-value" id="activeCount">0</p>
-            <p class="stat-label">Options in plan</p>
+            <p class="stat-label">Started options</p>
           </div>
           <div class="stat">
             <p class="stat-value" id="urgentCount">0</p>
@@ -943,7 +1006,7 @@
           </div>
           <div class="stat">
             <p class="stat-value" id="monthlyValue">$0</p>
-            <p class="stat-label">Monthly exposure</p>
+            <p class="stat-label">Tracked monthly cost</p>
           </div>
           <div class="stat">
             <p class="stat-value" id="savedCount">0</p>
@@ -951,39 +1014,40 @@
           </div>
         </section>
 
-        <nav class="tabs" aria-label="TryWise views">
-          <button class="tab active" type="button" data-view="discover">Find Options</button>
-          <button class="tab" type="button" data-view="active">My Try Plan</button>
-          <button class="tab" type="button" data-view="review">Decisions</button>
-          <button class="tab" type="button" data-view="radar">Sources</button>
-          <button class="tab" type="button" data-view="insights">Compare</button>
+        <nav class="tabs" aria-label="TryWise views" role="tablist">
+          <button class="tab active" id="discoverTab" role="tab" aria-selected="true" aria-controls="discoverView" type="button" data-view="discover">Find Options</button>
+          <button class="tab" id="activeTab" role="tab" aria-selected="false" aria-controls="activeView" tabindex="-1" type="button" data-view="active">My Try Plan</button>
+          <button class="tab" id="reviewTab" role="tab" aria-selected="false" aria-controls="reviewView" tabindex="-1" type="button" data-view="review">Decisions</button>
+          <button class="tab" id="radarTab" role="tab" aria-selected="false" aria-controls="radarView" tabindex="-1" type="button" data-view="radar">Sources</button>
+          <button class="tab" id="insightsTab" role="tab" aria-selected="false" aria-controls="insightsView" tabindex="-1" type="button" data-view="insights">Plan summary</button>
         </nav>
 
-        <section class="view active" id="discoverView">
+        <section class="view active" id="discoverView" role="tabpanel" aria-labelledby="discoverTab" tabindex="0">
           <div class="panel hero-panel">
             <div class="panel-header">
               <div class="card-top">
                 <h2 class="panel-title">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
-                  Requirement Planner
+                  Find your next option
                 </h2>
-                <button class="btn" id="plannerToggle" type="button" aria-expanded="true">
+                <button class="btn" id="plannerToggle" type="button" aria-expanded="true" aria-controls="plannerBody">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-                  New Try Plan
+                  Hide Planner
                 </button>
               </div>
             </div>
             <div class="panel-body stack">
               <div class="planner-shell" id="plannerBody">
                 <div class="hero-copy">
-                  <h2>Tell TryWise what you want to try cheaply.</h2>
-                  <p>It turns a rough need into ranked offers, trial windows, cancellation risk, and a practical plan before anything converts.</p>
+                  <p id="plannerPrivacy">Browse as a guest. Save options now; start tracking only when you’re ready.</p>
                 </div>
                 <form class="trial-form" id="requirementForm">
                   <div class="field wide">
                     <label for="requirementText">What do you want to try or save on?</label>
-                    <input id="requirementText" type="text" placeholder="Meal kits for busy weekdays, cheapest way to watch live sports, AI coding tools">
+                    <input id="requirementText" type="text" placeholder="e.g. Meal kits for busy weekdays" required>
                   </div>
+                  <details class="discovery-options wide">
+                    <summary>Budget &amp; sorting (optional)</summary>
                   <div class="field">
                     <label for="requirementBudget">Monthly budget</label>
                     <input id="requirementBudget" type="number" min="0" step="1" placeholder="25">
@@ -991,14 +1055,14 @@
                   <div class="field">
                     <label for="requirementRisk">Preference</label>
                     <select id="requirementRisk">
-                      <option value="lowest-cost">Lowest cost first</option>
-                      <option value="lowest-friction">Lowest cancellation friction</option>
-                      <option value="highest-value">Highest value first</option>
+                      <option value="lowest-cost">Lower reviewed base cost</option>
+                      <option value="relevance">Relevance to my request</option>
                     </select>
                   </div>
+                  </details>
                   <button class="btn primary wide" type="submit">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M13 5l7 7-7 7"></path></svg>
-                    Build Try Plan
+                    Find options
                   </button>
                 </form>
                 <div class="quick-starts" aria-label="Quick requirement examples">
@@ -1010,14 +1074,14 @@
                 <button class="quick-start" type="button" data-quick-requirement="Free AI APIs with daily access to models">Free AI APIs</button>
                 <button class="quick-start" type="button" data-quick-requirement="Free AI agent harnesses I can run locally">Agent harnesses</button>
                 </div>
-                <div class="explore-strip" aria-label="How TryWise explores options">
+                <div class="explore-strip" aria-label="How TryWise explores options" hidden>
                   <div class="explore-tile">
                     <strong>Find</strong>
-                    <span class="small muted">Map your need to categories and facets.</span>
+                    <span class="small muted">Find offers that match your need.</span>
                   </div>
                   <div class="explore-tile">
                     <strong>Compare</strong>
-                    <span class="small muted">See exposure, fit, source, and caveats.</span>
+                    <span class="small muted">Check costs, eligibility, and cancellation terms.</span>
                   </div>
                   <div class="explore-tile">
                     <strong>Try</strong>
@@ -1037,10 +1101,12 @@
             <div class="panel-header">
               <h2 class="panel-title">
                 <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
-                Ranked Options
+                Explore options
               </h2>
             </div>
             <div class="panel-body">
+              <details class="discovery-options" id="catalogFilters">
+                <summary>Filter options</summary>
               <div class="filters">
                 <div class="field">
                   <label for="searchInput">Search</label>
@@ -1051,42 +1117,59 @@
                   <select id="sourceFilter">
                     <option value="all">All sources</option>
                     <option value="official">Official only</option>
-                    <option value="community">Community verified</option>
+                    <option value="community">Community sources</option>
                   </select>
                 </div>
                 <div class="field">
-                  <label for="valueFilter">Minimum regular value</label>
+                  <label for="valueFilter">Maximum reviewed base cost</label>
                   <select id="valueFilter">
-                    <option value="0">Any regular value</option>
-                    <option value="10">$10+/mo</option>
-                    <option value="20">$20+/mo</option>
-                    <option value="40">$40+/mo</option>
+                    <option value="">Any cost, including unknown</option>
+                    <option value="0">$0 base cost</option>
+                    <option value="10">Up to $10/mo</option>
+                    <option value="20">Up to $20/mo</option>
+                    <option value="40">Up to $40/mo</option>
                   </select>
                 </div>
+                <div class="field">
+                  <label for="reviewFilter">Review status</label>
+                  <select id="reviewFilter"><option value="all">Reviewed first, then previews</option><option value="reviewed">Reviewed only</option></select>
+                </div>
+                <div class="field">
+                  <label for="offerTypeFilter">Offer type</label>
+                  <select id="offerTypeFilter"><option value="all">All types</option><option value="trial">Free trial</option><option value="free_tier">Free tier</option><option value="discount">Intro discount</option><option value="guarantee">Money-back guarantee</option><option value="open_source">Open source</option></select>
+                </div>
+              </div>
+              <p class="small muted">Cost filters use reviewed monthly base prices, not total bills. Usage, delivery, annual commitments, and other charges may apply; see terms.</p>
+              </details>
+              <div class="results-summary">
+                <p class="small muted" id="resultsCount" role="status" aria-live="polite" aria-atomic="true"></p>
+                <p class="small muted" id="catalogStatus" role="status">Loading catalog…</p>
+                <button class="btn" id="clearFiltersBtn" type="button">Clear filters</button>
               </div>
               <div class="grid" id="trialFeed"></div>
             </div>
           </div>
         </section>
 
-        <section class="view" id="activeView">
+        <section class="view" id="activeView" role="tabpanel" aria-labelledby="activeTab" tabindex="0">
           <div class="grid">
             <section class="panel">
               <div class="panel-header">
                 <h2 class="panel-title">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M3 10h18"></path></svg>
-                  Add Option
+                  Track a started option
                 </h2>
               </div>
               <div class="panel-body">
                 <form class="trial-form" id="trialForm">
+                  <p class="small muted wide">Enter dates and cost from your actual signup. For a free tier, choose a personal review date—not a trial expiry. TryWise does not cancel subscriptions or send reminders yet.</p>
                   <div class="field">
                     <label for="serviceName">Option</label>
                     <input id="serviceName" type="text" placeholder="Adobe Express" required>
                   </div>
                   <div class="field">
-                    <label for="monthlyCost">Monthly exposure</label>
-                    <input id="monthlyCost" type="number" min="0" step="0.01" placeholder="9.99">
+                    <label for="monthlyCost">Expected monthly cost ($)</label>
+                    <input id="monthlyCost" type="number" min="0" step="0.01" placeholder="Confirm amount, or 0 if free" required>
                   </div>
                   <div class="field">
                     <label for="startDate">Started</label>
@@ -1094,7 +1177,8 @@
                   </div>
                   <div class="field">
                     <label for="endDate">Decision date</label>
-                    <input id="endDate" type="date" required>
+                    <input id="endDate" type="date" required aria-describedby="dateError">
+                    <p class="small field-error" id="dateError" hidden>Choose a decision date on or after the start date.</p>
                   </div>
                   <div class="field wide">
                     <label for="trialGoal">Try goal</label>
@@ -1121,13 +1205,20 @@
                 </h2>
               </div>
               <div class="panel-body">
+                <div class="undo-notice" id="undoNotice" hidden>
+                  <p id="undoMessage" role="status"></p>
+                  <div class="card-actions">
+                    <button class="btn" id="undoRemoveBtn" type="button">Undo removal</button>
+                    <button class="btn" id="dismissUndoBtn" type="button">Dismiss</button>
+                  </div>
+                </div>
                 <div class="stack" id="activeTrials"></div>
               </div>
             </section>
           </div>
         </section>
 
-        <section class="view" id="reviewView">
+        <section class="view" id="reviewView" role="tabpanel" aria-labelledby="reviewTab" tabindex="0">
           <div class="panel">
             <div class="panel-header">
               <h2 class="panel-title">
@@ -1139,7 +1230,7 @@
           </div>
         </section>
 
-        <section class="view" id="radarView">
+        <section class="view" id="radarView" role="tabpanel" aria-labelledby="radarTab" tabindex="0">
           <div class="grid">
             <section class="panel">
               <div class="panel-header">
@@ -1163,13 +1254,13 @@
           </div>
         </section>
 
-        <section class="view" id="insightsView">
+        <section class="view" id="insightsView" role="tabpanel" aria-labelledby="insightsTab" tabindex="0">
           <div class="grid">
             <section class="panel">
               <div class="panel-header">
                 <h2 class="panel-title">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 14l4-4 4 4 5-7"></path></svg>
-                  Compare Options
+                  Plan cost &amp; decision summary
                 </h2>
               </div>
               <div class="panel-body stack" id="optimizationPlan"></div>
@@ -1190,14 +1281,14 @@
     </main>
   </div>
 
-  <dialog class="onboarding" id="onboardingDialog">
+  <dialog class="onboarding" id="onboardingDialog" aria-labelledby="setupTitle" aria-describedby="setupDescription">
     <form method="dialog" class="onboarding-card" id="onboardingForm">
       <div class="onboarding-head">
         <div>
-          <h2>Set up your trial radar</h2>
-          <p class="muted">Start with a need, then choose interests, sources, and alert timing. Everything stays local until you connect a backend.</p>
+          <h2 id="setupTitle">Choose your preferences</h2>
+          <p class="muted" id="setupDescription">Choose interests and preferences for your plan. Signed-in preferences sync to your account. Automatic monitoring and alerts are not available yet; check decision dates in your plan.</p>
         </div>
-        <button class="btn" value="cancel" type="button" id="closeOnboardingBtn">Later</button>
+        <button class="btn" value="cancel" type="button" id="closeOnboardingBtn">Cancel</button>
       </div>
 
       <div class="onboarding-grid">
@@ -1217,7 +1308,7 @@
           <input id="keywordInput" type="text" placeholder="Meal kits, live sports, AI tools, kids activities">
         </div>
         <div class="field">
-          <label for="alertCadence">Alert cadence</label>
+          <label for="alertCadence">Future alert preference (not active)</label>
           <select id="alertCadence">
             <option value="daily">Daily digest</option>
             <option value="weekly">Weekly digest</option>
@@ -1245,17 +1336,40 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <dialog class="onboarding" id="accountDialog" aria-labelledby="accountTitle" aria-describedby="accountIdentity" style="max-width: 600px; overflow-wrap: anywhere">
+    <div class="onboarding-card">
+      <div class="onboarding-head">
+        <h2 id="accountTitle">Your account</h2>
+        <button class="btn" id="closeAccountBtn" type="button">Close</button>
+      </div>
+      <p id="accountIdentity">You are using a guest plan.</p>
+      <p id="syncStatus" role="status" aria-live="polite" aria-atomic="true">Connecting…</p>
+      <div class="card-actions">
+        <button class="btn primary" id="signInBtn" type="button">Continue with Google</button>
+        <button class="btn" id="signOutBtn" type="button" hidden>Sign out</button>
+        <button class="btn" id="retrySyncBtn" type="button" hidden>Retry connection</button>
+        <button class="btn" id="loadLatestBtn" type="button" hidden>Load latest plan</button>
+      </div>
+      <p class="small muted" id="accountPrivacy"></p>
+      <div class="card-actions">
+        <button class="btn" id="importGuestBtn" type="button" hidden>Import guest plan</button>
+        <button class="btn" id="accountExportBtn" type="button">Export a backup</button>
+        <a class="btn" id="adminLink" href="/admin.html" hidden>Review &amp; publish offers</a>
+      </div>
+      <div class="field">
+        <label for="importFile">Import a TryWise JSON backup (adds missing records)</label>
+        <input id="importFile" type="file" accept="application/json,.json">
+      </div>
+    </div>
+  </dialog>
+
   <script type="module">
-    import { firebaseConfig } from './firebase-config.js';
-
-    async function initializeFirebaseIfConfigured() {
-      const hasFirebaseConfig = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR_');
-      if (!hasFirebaseConfig) {
-        return;
-      }
-
-      console.info('Firebase config detected. Sync backend is not enabled in this static MVP.');
-    }
+    import { defaultState, validateState } from './plan-state.mjs';
+    import { initializeAccounts } from './account-ui.mjs';
+    import { seedCatalog } from './seed-catalog.mjs';
+    import { mergedCatalog, offerTypes } from './catalog-model.mjs';
+    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord } from './consumer-model.mjs';
+    let accountManager = null;
 
     const STATE_KEY = 'trywise-state-v2';
     const LEGACY_STATE_KEYS = ['trialforge-state-v2'];
@@ -1319,567 +1433,46 @@
         id: 'official',
         label: 'Official pages',
         description: 'Pricing, trial, and promo pages from product websites.',
-        status: 'Frontend catalog now; backend collector scaffolded'
+        status: 'Manually curated offers available; automatic monitoring is not active'
       },
       {
         id: 'deal-sites',
         label: 'Deal sites',
         description: 'Public SaaS/deal pages such as AppSumo-like sources.',
-        status: 'Backend collector scaffolded'
+        status: 'Planned source; automatic monitoring is not active'
       },
       {
         id: 'forums',
         label: 'Forums',
         description: 'Public communities where users share limited trial links.',
-        status: 'Requires rate limits and source allowlist'
+        status: 'Planned source; automatic monitoring is not active'
       },
       {
         id: 'newsletters',
         label: 'Newsletters/RSS',
         description: 'RSS feeds or forwarded newsletters converted into trial candidates.',
-        status: 'Backend collector scaffolded'
+        status: 'Planned source; automatic monitoring is not active'
       },
       {
         id: 'extension',
         label: 'Chrome extension',
         description: 'Save a trial candidate from the current page while browsing.',
-        status: 'Extension scaffolded'
+        status: 'In development; not connected to your plan'
       }
     ];
 
-    const trialCatalog = [
-      {
-        id: 'adobe-express',
-        name: 'Adobe Express Premium',
-        categories: ['design', 'family'],
-        facets: ['software trial', 'design'],
-        description: 'Design, short video, quick social assets, cards, school flyers, and invitations.',
-        trialDays: 90,
-        monthlyValue: 9.99,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'New users and selected promos',
-        url: 'https://express.adobe.com/sp/premium',
-        goal: 'Create three useful family or social designs before the decision date.'
-      },
-      {
-        id: 'canva-pro',
-        name: 'Canva Pro',
-        categories: ['design', 'productivity'],
-        facets: ['software trial', 'design'],
-        description: 'Templates, brand kit, background remover, content planner, and collaboration.',
-        trialDays: 30,
-        monthlyValue: 12.99,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'New users',
-        url: 'https://www.canva.com/pro/',
-        goal: 'Build a reusable template set and decide if it replaces an existing design workflow.'
-      },
-      {
-        id: 'figma-professional',
-        name: 'Figma Professional',
-        categories: ['design', 'devtools'],
-        facets: ['software trial', 'design'],
-        description: 'Collaborative design files, shared libraries, and team workspaces.',
-        trialDays: 30,
-        monthlyValue: 15,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'New teams',
-        url: 'https://www.figma.com/pricing/',
-        goal: 'Prototype one real app screen and test whether collaboration features matter.'
-      },
-      {
-        id: 'notion-plus',
-        name: 'Notion Plus',
-        categories: ['productivity', 'family', 'learning'],
-        facets: ['software trial', 'planning'],
-        description: 'Personal wiki, project docs, database views, and shared planning spaces.',
-        trialDays: 30,
-        monthlyValue: 10,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'Workspace trials vary by account',
-        url: 'https://www.notion.com/pricing',
-        goal: 'Run one household or project dashboard for two weeks.'
-      },
-      {
-        id: 'github-copilot',
-        name: 'GitHub Copilot',
-        categories: ['devtools', 'productivity'],
-        facets: ['software trial', 'coding tool'],
-        description: 'AI coding assistance in common editors and GitHub workflows.',
-        trialDays: 30,
-        monthlyValue: 10,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'New eligible users',
-        url: 'https://github.com/features/copilot',
-        goal: 'Use it on one contained coding project and log whether it saves time.'
-      },
-      {
-        id: 'linear',
-        name: 'Linear',
-        categories: ['productivity', 'devtools'],
-        facets: ['software trial', 'planning'],
-        description: 'Issue tracking, cycles, project planning, and lightweight engineering workflows.',
-        trialDays: 14,
-        monthlyValue: 10,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'New workspaces',
-        url: 'https://linear.app/pricing',
-        goal: 'Track one side project with issues, cycles, and a weekly review.'
-      },
-      {
-        id: 'masterclass',
-        name: 'MasterClass Membership',
-        categories: ['learning', 'family', 'home'],
-        facets: ['streaming shows', 'learning'],
-        description: 'Structured classes for cooking, writing, music, business, and lifestyle learning.',
-        trialDays: 30,
-        monthlyValue: 15,
-        source: 'community',
-        verified: '2026-08-22',
-        eligibility: 'Annual membership plans; promos, guest passes, and satisfaction guarantee terms vary',
-        url: 'https://www.masterclass.com/checkout',
-        goal: 'Complete one short class module and verify plan terms before the guarantee window ends.'
-      },
-      {
-        id: 'skillshare',
-        name: 'Skillshare',
-        categories: ['learning', 'design', 'home'],
-        facets: ['learning', 'software trial'],
-        description: 'Creative, business, and maker classes with practical project formats.',
-        trialDays: 30,
-        monthlyValue: 14,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'New users',
-        url: 'https://www.skillshare.com/en/membership',
-        goal: 'Finish one project-based class and create a visible output.'
-      },
-      {
-        id: 'audible-standard',
-        name: 'Audible Standard',
-        categories: ['learning', 'shows'],
-        facets: ['audiobooks', 'podcasts'],
-        description: 'Audiobook and podcast membership candidate for testing commute, walk, and bedtime listening.',
-        trialDays: 30,
-        monthlyValue: 8.99,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'New eligible members; auto-renews after trial',
-        url: 'https://www.audible.com/ep/free-trial?language=en_US',
-        goal: 'Finish one audiobook or replace one paid podcast/audiobook purchase before renewal.'
-      },
-      {
-        id: 'kindle-unlimited',
-        name: 'Kindle Unlimited',
-        categories: ['learning', 'family'],
-        facets: ['ebooks', 'books', 'reading'],
-        description: 'Digital reading membership candidate for ebooks, magazines, comics, and some audiobooks.',
-        trialDays: 30,
-        monthlyValue: 11.99,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Eligibility varies by Amazon account and country',
-        url: 'https://www.amazon.com/kindle-dbs/hz/subscribe/ku/',
-        goal: 'Read enough from the included catalog to decide if it replaces individual book purchases.'
-      },
-      {
-        id: 'headspace',
-        name: 'Headspace',
-        categories: ['health', 'family'],
-        facets: ['wellness', 'meditation'],
-        description: 'Guided meditation, sleep support, focus, and family-friendly mindfulness content.',
-        trialDays: 14,
-        monthlyValue: 12.99,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'New users',
-        url: 'https://www.headspace.com/subscriptions',
-        goal: 'Use it five times and decide if it improves sleep or focus.'
-      },
-      {
-        id: 'ynab',
-        name: 'YNAB',
-        categories: ['finance', 'family'],
-        facets: ['software trial', 'budgeting'],
-        description: 'Budgeting workflow for planning dollars, reducing surprises, and shared finances.',
-        trialDays: 34,
-        monthlyValue: 14.99,
-        source: 'official',
-        verified: '2026-08-22',
-        eligibility: 'New users',
-        url: 'https://www.ynab.com/pricing',
-        goal: 'Build one monthly budget and run a weekly money check-in.'
-      },
-      {
-        id: 'hulu',
-        name: 'Hulu',
-        categories: ['shows', 'family'],
-        facets: ['streaming shows', 'movies'],
-        description: 'Streaming plan candidate for testing TV, movies, and family entertainment needs.',
-        trialDays: 30,
-        monthlyValue: 9.99,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Trials and intro offers vary; verify on official site',
-        url: 'https://www.hulu.com/welcome',
-        goal: 'Watch the shows you actually wanted and decide if the catalog is worth keeping.'
-      },
-      {
-        id: 'youtube-tv',
-        name: 'YouTube TV',
-        categories: ['shows', 'family'],
-        facets: ['live sports', 'live tv', 'streaming shows'],
-        description: 'Live TV streaming candidate for sports, news, and cable replacement testing.',
-        trialDays: 14,
-        monthlyValue: 72.99,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Trial length and intro pricing vary by account',
-        url: 'https://tv.youtube.com/',
-        goal: 'Test whether it can replace cable or a sports package before conversion.'
-      },
-      {
-        id: 'hellofresh',
-        name: 'HelloFresh',
-        categories: ['meals', 'delivery', 'family'],
-        facets: ['meal kit', 'dinner'],
-        description: 'Meal-kit candidate for comparing dinner cost, prep time, and household fit.',
-        trialDays: 21,
-        monthlyValue: 59.99,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Intro discounts vary by location and account',
-        url: 'https://www.hellofresh.com/',
-        goal: 'Try two weeks of meals and compare cost, waste, and time saved.'
-      },
-      {
-        id: 'instacart-plus',
-        name: 'Instacart+',
-        categories: ['delivery', 'meals', 'family'],
-        facets: ['grocery delivery'],
-        description: 'Grocery delivery membership candidate for testing saved trips and fees.',
-        trialDays: 14,
-        monthlyValue: 9.99,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Trial availability varies by market and account',
-        url: 'https://www.instacart.com/instacart-plus',
-        goal: 'Place two real grocery orders and compare fees, substitutions, and time saved.'
-      },
-      {
-        id: 'doordash-dashpass',
-        name: 'DashPass',
-        categories: ['delivery', 'meals'],
-        facets: ['restaurant delivery', 'takeout'],
-        description: 'Delivery membership candidate for testing whether order frequency justifies fees.',
-        trialDays: 30,
-        monthlyValue: 9.99,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Trial and card-linked offers vary',
-        url: 'https://www.doordash.com/dashpass/',
-        goal: 'Track two to four orders and calculate whether fee savings beat the monthly cost.'
-      },
-      {
-        id: 'thumbtack',
-        name: 'Thumbtack',
-        categories: ['services', 'home'],
-        facets: ['local quotes'],
-        description: 'Local service marketplace candidate for comparing quotes before hiring.',
-        trialDays: 7,
-        monthlyValue: 0,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Marketplace availability varies by service and location',
-        url: 'https://www.thumbtack.com/',
-        goal: 'Collect three quotes and compare price, availability, and confidence.'
-      },
-      {
-        id: 'cloudflare-workers',
-        name: 'Cloudflare Workers',
-        categories: ['cloudinfra', 'devtools'],
-        facets: ['free cloud hosting', 'app hosting', 'serverless'],
-        description: 'Serverless app hosting with a useful free tier for APIs, workers, static assets, and edge experiments.',
-        trialDays: 30,
-        monthlyValue: 5,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free tier limits and paid plan thresholds can change; verify current quotas.',
-        url: 'https://www.cloudflare.com/products/workers/',
-        goal: 'Deploy one small API or app and confirm request, CPU, storage, and custom-domain limits.'
-      },
-      {
-        id: 'vercel-hobby',
-        name: 'Vercel Hobby',
-        categories: ['cloudinfra', 'devtools'],
-        facets: ['free cloud hosting', 'app hosting', 'nextjs hosting'],
-        description: 'Frontend and full-stack app hosting for Next.js and web projects with a hobby tier.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Personal/hobby use only; commercial and team usage may require paid plans.',
-        url: 'https://vercel.com/pricing',
-        goal: 'Deploy one app, test preview deployments, bandwidth limits, and whether usage stays within hobby rules.'
-      },
-      {
-        id: 'netlify-free',
-        name: 'Netlify Free',
-        categories: ['cloudinfra', 'devtools'],
-        facets: ['free cloud hosting', 'app hosting'],
-        description: 'Static and Jamstack hosting with builds, deploy previews, forms, and serverless functions.',
-        trialDays: 30,
-        monthlyValue: 19,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free plan limits apply; verify build minutes, bandwidth, forms, and function quotas.',
-        url: 'https://www.netlify.com/pricing/',
-        goal: 'Host one static app and verify build, bandwidth, function, and team limits before relying on it.'
-      },
-      {
-        id: 'render-free',
-        name: 'Render Free',
-        categories: ['cloudinfra', 'devtools'],
-        facets: ['free cloud hosting', 'app hosting'],
-        description: 'Cloud hosting for web services, static sites, databases, and background workers with free/trial-friendly tiers.',
-        trialDays: 30,
-        monthlyValue: 7,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free instance availability and sleep behavior can change; verify current plan details.',
-        url: 'https://render.com/pricing',
-        goal: 'Deploy one small service and measure cold start, sleep behavior, and monthly cost risk.'
-      },
-      {
-        id: 'oracle-cloud-free',
-        name: 'Oracle Cloud Free Tier',
-        categories: ['cloudinfra', 'devtools'],
-        facets: ['free cloud hosting', 'compute', 'free tier'],
-        description: 'Cloud free tier with always-free resources and trial credits for broader cloud services.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Account, region, capacity, and always-free limits vary; verify before production use.',
-        url: 'https://www.oracle.com/cloud/free/',
-        goal: 'Check whether always-free compute is available in your region and document upgrade/billing risk.'
-      },
-      {
-        id: 'aws-free-tier',
-        name: 'AWS Free Tier',
-        categories: ['cloudinfra', 'devtools'],
-        facets: ['free cloud hosting', 'compute', 'free tier'],
-        description: 'Broad cloud free tier for compute, storage, databases, and serverless services.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Many offers are time-limited, usage-limited, or service-specific; billing alerts are essential.',
-        url: 'https://aws.amazon.com/free/',
-        goal: 'Identify the exact services needed and set budget alerts before deploying anything persistent.'
-      },
-      {
-        id: 'google-cloud-free',
-        name: 'Google Cloud Free',
-        categories: ['cloudinfra', 'aiapis', 'devtools'],
-        facets: ['free cloud hosting', 'free ai api', 'free tier'],
-        description: 'Cloud free program and credits for trying infrastructure, serverless, databases, and AI-related services.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Credit/free tier terms vary by account and service; verify billing activation requirements.',
-        url: 'https://cloud.google.com/free',
-        goal: 'Use only the services needed for one app and confirm what happens after credits or limits expire.'
-      },
-      {
-        id: 'gemini-api-free',
-        name: 'Google Gemini API',
-        categories: ['aiapis', 'devtools'],
-        facets: ['free ai api', 'model api'],
-        description: 'Model API access through Google AI Studio / Gemini API with documented free-tier rate limits.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free-tier rate limits vary by model, region, and account; verify before connecting a harness.',
-        url: 'https://ai.google.dev/gemini-api/docs/rate-limits',
-        goal: 'Connect one local harness and confirm daily/minute quotas, model quality, and billing requirements.'
-      },
-      {
-        id: 'groq-api-free',
-        name: 'Groq API',
-        categories: ['aiapis', 'devtools'],
-        facets: ['free ai api', 'model api'],
-        description: 'Fast hosted model API with documented rate limits for experimentation and agent harness testing.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free access and rate limits can change by model/account; verify current console limits.',
-        url: 'https://console.groq.com/docs/rate-limits',
-        goal: 'Connect one coding or chat harness and measure latency, reliability, and model fit.'
-      },
-      {
-        id: 'openrouter-free-models',
-        name: 'OpenRouter Free Models',
-        categories: ['aiapis', 'harnesses', 'devtools'],
-        facets: ['free ai api', 'model router'],
-        description: 'Model-router API with a filterable list of free models that many local harnesses can use.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free model availability, limits, and provider routing can change frequently.',
-        url: 'https://openrouter.ai/models?max_price=0',
-        goal: 'Connect one OpenAI-compatible harness and compare two free models on your actual tasks.'
-      },
-      {
-        id: 'cloudflare-workers-ai',
-        name: 'Cloudflare Workers AI',
-        categories: ['aiapis', 'cloudinfra', 'devtools'],
-        facets: ['free ai api', 'free cloud hosting', 'model api'],
-        description: 'AI inference APIs colocated with Cloudflare Workers for lightweight agent and app experiments.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free allocation and paid neurons/pricing vary; verify current model and usage limits.',
-        url: 'https://developers.cloudflare.com/workers-ai/platform/pricing/',
-        goal: 'Try one edge-hosted AI feature and confirm free allocation, latency, and model coverage.'
-      },
-      {
-        id: 'github-models',
-        name: 'GitHub Models',
-        categories: ['aiapis', 'devtools'],
-        facets: ['free ai api', 'model api', 'coding tool'],
-        description: 'GitHub-hosted model playground and API surface for trying models in developer workflows.',
-        trialDays: 30,
-        monthlyValue: 20,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Availability, limits, and billing vary by GitHub account and plan.',
-        url: 'https://docs.github.com/en/github-models',
-        goal: 'Test one model from a dev workflow and confirm rate limits and API compatibility.'
-      },
-      {
-        id: 'aider',
-        name: 'Aider',
-        categories: ['harnesses', 'devtools'],
-        facets: ['agent harness', 'coding tool'],
-        description: 'Open-source AI pair-programming harness that runs in your terminal and edits local repos.',
-        trialDays: 30,
-        monthlyValue: 0,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free/open-source harness; API/model costs depend on connected provider.',
-        url: 'https://aider.chat/',
-        goal: 'Connect it to one local or API model and try a contained patch with tests.'
-      },
-      {
-        id: 'opencode',
-        name: 'OpenCode',
-        categories: ['harnesses', 'devtools'],
-        facets: ['agent harness', 'coding tool'],
-        description: 'Terminal-based AI coding agent/harness for connecting models to local development workflows.',
-        trialDays: 30,
-        monthlyValue: 0,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Free/open-source harness; provider model/API costs depend on configuration.',
-        url: 'https://opencode.ai/',
-        goal: 'Run it on a small repo and compare workflow quality against your current coding setup.'
-      },
-      {
-        id: 'continue',
-        name: 'Continue',
-        categories: ['harnesses', 'devtools'],
-        facets: ['agent harness', 'coding tool'],
-        description: 'Open-source AI code assistant extension and harness for local or hosted models.',
-        trialDays: 30,
-        monthlyValue: 0,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Open-source/local use available; model costs depend on selected provider.',
-        url: 'https://continue.dev/',
-        goal: 'Connect a local model and a free API model, then compare code-editing usefulness.'
-      },
-      {
-        id: 'openhands',
-        name: 'OpenHands',
-        categories: ['harnesses', 'devtools'],
-        facets: ['agent harness', 'coding tool'],
-        description: 'Open-source software development agent platform for autonomous coding workflows.',
-        trialDays: 30,
-        monthlyValue: 0,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Open-source harness; requires local setup and compatible model/API provider.',
-        url: 'https://docs.openhands.dev/overview/introduction',
-        goal: 'Run one sandboxed coding task and document setup complexity, cost, and patch quality.'
-      },
-      {
-        id: 'litellm',
-        name: 'LiteLLM',
-        categories: ['harnesses', 'aiapis', 'devtools'],
-        facets: ['model router'],
-        description: 'Model gateway/router for connecting harnesses to many OpenAI-compatible and hosted model APIs.',
-        trialDays: 30,
-        monthlyValue: 0,
-        source: 'official',
-        verified: '2026-08-23',
-        eligibility: 'Open-source proxy/router; downstream provider costs and free limits vary.',
-        url: 'https://docs.litellm.ai/docs/',
-        goal: 'Route one harness through two model providers and confirm fallback, logging, and cost controls.'
-      }
-    ];
-
-    const checkedLinkStatus = new Map([
-      ['https://www.masterclass.com/checkout', { status: 'bot-blocked', match: 'plans-page' }],
-      ['https://www.doordash.com/dashpass/', { status: 'ok', match: 'membership-page' }],
-      ['https://www.thumbtack.com/', { status: 'ok', match: 'marketplace-page' }]
-    ]);
-
-    const defaultState = {
-      onboardingComplete: false,
-      interests: [],
-      requirements: [],
-      dismissedRequirementIds: [],
-      keywords: '',
-      alertCadence: 'weekly',
-      minimumTrialValue: 0,
-      sources: ['official', 'deal-sites', 'newsletters'],
-      trials: [],
-      decisions: []
-    };
+    let trialCatalog = [];
+    let latestCatalogRecords = null;
 
     let state = loadState();
     let editingTrialId = null;
     let focusedReviewTrialId = null;
+    const removedTrials = [];
 
     function loadState() {
-      const stored = localStorage.getItem(STATE_KEY) || loadLegacyState();
-      if (!stored) return structuredClone(defaultState);
       try {
-        const parsed = JSON.parse(stored);
-        return {
-          onboardingComplete: Boolean(parsed.onboardingComplete),
-          interests: Array.isArray(parsed.interests) ? parsed.interests : defaultState.interests,
-          requirements: Array.isArray(parsed.requirements) ? parsed.requirements : defaultState.requirements,
-          dismissedRequirementIds: Array.isArray(parsed.dismissedRequirementIds) ? parsed.dismissedRequirementIds : defaultState.dismissedRequirementIds,
-          keywords: typeof parsed.keywords === 'string' ? parsed.keywords : defaultState.keywords,
-          alertCadence: parsed.alertCadence || defaultState.alertCadence,
-          minimumTrialValue: Number(parsed.minimumTrialValue || defaultState.minimumTrialValue),
-          sources: Array.isArray(parsed.sources) ? parsed.sources : defaultState.sources,
-          trials: Array.isArray(parsed.trials) ? parsed.trials : [],
-          decisions: Array.isArray(parsed.decisions) ? parsed.decisions : []
-        };
+        const stored = localStorage.getItem(STATE_KEY) || loadLegacyState();
+        return stored ? validateState(JSON.parse(stored)) : structuredClone(defaultState);
       } catch {
         return structuredClone(defaultState);
       }
@@ -1894,10 +1487,14 @@
     }
 
     function saveState() {
-      localStorage.setItem(STATE_KEY, JSON.stringify(state));
+      try { accountManager.save(state); }
+      catch (error) { showToast(error.message); }
     }
 
     function render() {
+      const focused = document.activeElement;
+      const focusAttribute = ['data-interest', 'data-add-catalog', 'data-edit-trial', 'data-review-trial'].find((name) => focused?.hasAttribute(name));
+      const focusSelector = focusAttribute ? `[${focusAttribute}="${CSS.escape(focused.getAttribute(focusAttribute))}"]` : null;
       renderInterests();
       renderStats();
       renderRequirementPlan();
@@ -1909,13 +1506,21 @@
       renderOptimizationPlan();
       renderDecisionHistory();
       renderOnboardingOptions();
+      if (focusSelector) {
+        const replacement = document.querySelector(focusSelector);
+        if (replacement?.disabled) {
+          const card = replacement.closest('article');
+          card.tabIndex = -1;
+          card.focus({ preventScroll: true });
+        } else replacement?.focus({ preventScroll: true });
+      }
     }
 
     function renderInterests() {
       const selected = new Set(state.interests);
       const counts = countTrialsByInterest();
       document.getElementById('interestList').innerHTML = interests.map((interest) => `
-        <button class="chip ${selected.has(interest.id) ? 'active' : ''}" type="button" data-interest="${interest.id}">
+        <button class="chip ${selected.has(interest.id) ? 'active' : ''}" type="button" data-interest="${interest.id}" aria-pressed="${selected.has(interest.id)}">
           <span>${escapeHTML(interest.label)}</span>
           <small>${counts[interest.id] || 0}</small>
         </button>
@@ -1939,15 +1544,14 @@
       document.getElementById('urgentCount').textContent = urgent.length;
       document.getElementById('monthlyValue').textContent = `$${value.toFixed(0)}`;
       document.getElementById('savedCount').textContent = state.decisions.length;
+      document.querySelector('.stats').hidden = document.getElementById('discoverView').classList.contains('active') || (!activeTrials.length && !state.decisions.length);
     }
 
     function renderRequirementPlan() {
       const container = document.getElementById('requirementPlan');
       const latest = state.requirements.at(-1);
       if (!latest) {
-        container.innerHTML = `
-          <div class="empty">Tell TryWise what you need. It will map the request to trial categories and rank low-risk options from the current catalog.</div>
-        `;
+        container.innerHTML = '';
         return;
       }
       if (state.dismissedRequirementIds.includes(latest.id)) {
@@ -1961,7 +1565,7 @@
           <div class="card-top">
             <div>
               <h3 class="card-title">Try plan for: ${escapeHTML(latest.text)}</h3>
-              <p class="card-meta">${escapeHTML(latest.preference)} • budget ${latest.budget ? `$${latest.budget}/mo` : 'not set'}</p>
+              <p class="card-meta">${latest.preference === 'lowest-cost' ? 'Lower reviewed base cost' : 'Relevance to your request'} • budget ${latest.budget ? `$${latest.budget}/mo` : 'not set'}</p>
             </div>
             <div class="card-actions">
               <span class="badge blue">${latest.categories.map(interestLabel).join(', ') || 'General'}</span>
@@ -1970,7 +1574,7 @@
               </button>
             </div>
           </div>
-          <p class="small muted">Ranked by category fit, regular price exposure, cancellation friction, source confidence, and your stated preference.</p>
+          <p class="small muted">Reviewed matches first, then unreviewed previews. Ordered by category and keyword fit, with reviewed base cost considered for your budget. This is not a quality rating or a total-cost guarantee.</p>
           ${matches.length ? `
             <div class="timeline">
               ${matches.map((trial, index) => `
@@ -1984,7 +1588,7 @@
                 </div>
               `).join('')}
             </div>
-          ` : '<p class="small muted">No catalog matches yet. Radar will use your keywords to watch sources.</p>'}
+          ` : '<p class="small muted">No catalog matches yet. Try a broader description or browse the options below.</p>'}
         </article>
       `;
     }
@@ -2022,6 +1626,7 @@
       saveState();
       render();
       setPlannerCollapsed(true);
+      document.getElementById('plannerToggle').focus();
       showToast('Try plan built');
     }
 
@@ -2046,7 +1651,7 @@
       return new RegExp(`(^|\\W)${escaped}(\\W|$)`, 'i').test(text);
     }
 
-    function rankCatalogForRequirement(requirement) {
+    function rankCatalogForRequirement(requirement, includeAll = false) {
       const categories = new Set(requirement.categories || []);
       const facets = new Set(requirement.facets || []);
       const text = requirement.text.toLowerCase();
@@ -2062,50 +1667,46 @@
             .toLowerCase()
             .split(/\W+/)
             .filter((word) => word.length > 3 && text.includes(word)).length;
-          const scorecard = optionScorecard(trial);
-          const withinBudget = !budget || scorecard.exposure <= budget;
-          const budgetPenalty = budget && scorecard.exposure > budget ? Math.min(25, scorecard.exposure - budget) : 0;
-          const sourceBonus = trial.source === 'official' ? 8 : 3;
-          const preferenceBonus = preference === 'lowest-friction'
-            ? scorecard.frictionScore
-            : preference === 'highest-value'
-              ? Math.min(24, scorecard.exposure)
-              : Math.max(0, 24 - scorecard.exposure / 2);
-          const score = facetMatches * 55 + categoryMatches * 24 + textMatch * 6 + sourceBonus + preferenceBonus + (withinBudget ? 8 : 0) - budgetPenalty;
+          const cost = reviewedCost(trial);
+          const withinBudget = cost !== null && (!budget || cost <= budget);
+          const budgetPenalty = cost !== null && budget && cost > budget ? Math.min(25, cost - budget) : 0;
+          const preferenceBonus = preference === 'lowest-cost' && cost !== null ? Math.max(0, 24 - cost / 2) : 0;
+          const score = facetMatches * 55 + categoryMatches * 24 + textMatch * 6 + preferenceBonus + (withinBudget ? 8 : 0) - budgetPenalty;
           const rankReason = facetMatches
-            ? `Matches ${[...(trial.facets || [])].filter((facet) => facets.has(facet)).join(', ')} and has ${scorecard.riskLabel.toLowerCase()} exposure.`
+            ? `Matches ${[...(trial.facets || [])].filter((facet) => facets.has(facet)).join(', ')}. ${isReviewed(trial) ? 'Check limits and terms for your needs.' : 'Unreviewed preview; costs and terms need confirmation.'}`
             : categoryMatches
-              ? `Matches ${trial.categories.filter((category) => categories.has(category)).map(interestLabel).join(', ')} and has ${scorecard.riskLabel.toLowerCase()} exposure.`
+              ? `Matches ${trial.categories.filter((category) => categories.has(category)).map(interestLabel).join(', ')}. ${isReviewed(trial) ? 'Check limits and terms for your needs.' : 'Unreviewed preview; costs and terms need confirmation.'}`
             : `Adjacent option from ${trial.source} sources; verify fit before adding.`;
           return { ...trial, score, rankReason, categoryMatches, facetMatches };
         })
         .filter((trial) => {
+          if (includeAll) return true;
           if (categories.size || facets.size) {
             return trial.categoryMatches > 0 || trial.facetMatches > 0;
           }
           return trial.score > 0;
         })
-        .sort((a, b) => b.score - a.score || a.monthlyValue - b.monthlyValue);
+        .sort((a, b) => reviewedFirst(a, b) || b.score - a.score || a.name.localeCompare(b.name));
     }
 
-    function renderOnboardingOptions() {
+    function renderOnboardingOptions(profile = state) {
       document.getElementById('onboardingInterests').innerHTML = interests.map((interest) => `
         <label class="setup-option">
-          <input type="checkbox" name="setup-interest" value="${interest.id}" ${state.interests.includes(interest.id) ? 'checked' : ''}>
+          <input type="checkbox" name="setup-interest" value="${interest.id}" ${profile.interests.includes(interest.id) ? 'checked' : ''}>
           <span>${escapeHTML(interest.label)}</span>
         </label>
       `).join('');
 
       document.getElementById('onboardingSources').innerHTML = sourceTypes.map((source) => `
         <label class="setup-option">
-          <input type="checkbox" name="setup-source" value="${source.id}" ${state.sources.includes(source.id) ? 'checked' : ''}>
+          <input type="checkbox" name="setup-source" value="${source.id}" ${profile.sources.includes(source.id) ? 'checked' : ''}>
           <span>${escapeHTML(source.label)}</span>
         </label>
       `).join('');
 
-      document.getElementById('keywordInput').value = state.keywords;
-      document.getElementById('alertCadence').value = state.alertCadence;
-      document.getElementById('minimumTrialValue').value = String(state.minimumTrialValue);
+      document.getElementById('keywordInput').value = profile.keywords;
+      document.getElementById('alertCadence').value = profile.alertCadence;
+      document.getElementById('minimumTrialValue').value = String(profile.minimumTrialValue);
     }
 
     function renderSourceRadar() {
@@ -2115,9 +1716,9 @@
           <div class="card-top">
             <div>
               <h3 class="card-title">${escapeHTML(source.label)}</h3>
-              <p class="card-meta">${selected.has(source.id) ? 'Enabled in radar profile' : 'Disabled'}</p>
+              <p class="card-meta">${selected.has(source.id) ? 'Selected in your preferences' : 'Not selected'}</p>
             </div>
-            <span class="badge ${selected.has(source.id) ? 'green' : ''}">${selected.has(source.id) ? 'On' : 'Off'}</span>
+            <span class="badge ${selected.has(source.id) ? 'blue' : ''}">${selected.has(source.id) ? 'Selected' : 'Not selected'}</span>
           </div>
           <p class="small muted">${escapeHTML(source.description)}</p>
           <p class="small"><strong>Status:</strong> ${escapeHTML(source.status)}</p>
@@ -2134,7 +1735,7 @@
       document.getElementById('alertPlan').innerHTML = `
         <article class="trial-card featured">
           <h3 class="card-title">${state.alertCadence === 'off' ? 'Alerts are off' : `${capitalize(state.alertCadence)} trial digest`}</h3>
-          <p class="small muted">The static app records this preference locally. The backend scaffold uses the same shape for scheduled collectors.</p>
+          <p class="small muted">Preference saved only. TryWise does not send alerts or monitor sources automatically yet. Check your plan for upcoming decision dates.</p>
           <div class="timeline">
             <div class="timeline-item">
               <div class="timeline-date">Watch</div>
@@ -2155,13 +1756,15 @@
 
     function renderTrialFeed() {
       const latestRequirement = state.requirements.at(-1);
-      const selected = new Set(latestRequirement?.categories?.length ? latestRequirement.categories : state.interests);
+      const selected = new Set(state.interests);
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
       const source = document.getElementById('sourceFilter').value;
-      const minValue = Number(document.getElementById('valueFilter').value);
+      const maximum = document.getElementById('valueFilter').value;
+      const review = document.getElementById('reviewFilter').value;
+      const type = document.getElementById('offerTypeFilter').value;
       const trackedIds = new Set(state.trials.map((trial) => trial.catalogId));
 
-      const ranked = latestRequirement ? rankCatalogForRequirement(latestRequirement) : trialCatalog;
+      const ranked = latestRequirement ? rankCatalogForRequirement(latestRequirement, true) : [...trialCatalog].sort(reviewedFirst);
       const matching = ranked.filter((trial) => {
         const interestMatch = selected.size === 0 || trial.categories.some((category) => selected.has(category));
         const queryMatch = !query || [
@@ -2171,25 +1774,35 @@
           ...trial.categories
         ].join(' ').toLowerCase().includes(query);
         const sourceMatch = source === 'all' || trial.source === source;
-        const valueMatch = trial.monthlyValue >= minValue;
+        const valueMatch = matchesConsumerFilters(trial, { maximum, review, type });
         return interestMatch && queryMatch && sourceMatch && valueMatch;
       });
 
       const feed = document.getElementById('trialFeed');
+      const filtered = selected.size > 0 || query || source !== 'all' || maximum !== '' || review !== 'all' || type !== 'all';
+      document.getElementById('resultsCount').textContent = `${matching.length} of ${trialCatalog.length} options${selected.size ? ` · Interests: ${[...selected].map(interestLabel).join(', ')}` : ''}${latestRequirement ? ' · Ranked for your latest request' : ''}`;
+      document.getElementById('clearFiltersBtn').disabled = !filtered;
       if (matching.length === 0) {
-        feed.innerHTML = `<div class="empty">No matching trials. Try another interest or clear the filters.</div>`;
+        feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>No matching options</strong><p>Try a broader search, change your interests, or use Clear filters above to see all options.</p></div>`;
         return;
       }
 
-      feed.innerHTML = matching.map((trial, index) => trialCard(trial, trackedIds.has(trial.id), index)).join('');
+      const reviewed = matching.filter(isReviewed);
+      const previews = matching.filter(trial => !isReviewed(trial));
+      feed.innerHTML = `${reviewed.length ? '<div class="catalog-section"><h3>Reviewed options</h3><p class="small muted">Checked by an admin on the date shown. Provider terms can change.</p></div>' : '<div class="catalog-section"><h3>No reviewed matches yet</h3><p class="small muted">We’re building verified coverage. Previews below are research starting points, not recommendations.</p></div>'}
+        ${reviewed.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}
+        ${previews.length ? '<div class="catalog-section"><h3>Unreviewed previews</h3><p class="small muted">Prices, availability, and eligibility are not confirmed. Check the provider before committing.</p></div>' : ''}
+        ${previews.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}`;
     }
 
     function trialCard(trial, alreadyTracked, index = null) {
       const latestRequirement = state.requirements.at(-1);
       const selectedInterests = latestRequirement?.categories?.length ? latestRequirement.categories : state.interests;
       const selected = selectedInterests.some((interest) => trial.categories.includes(interest));
-      const scorecard = optionScorecard(trial);
       const confidence = linkConfidence(trial);
+      const base = reviewedCost(trial);
+      const upfront = reviewedCost(trial, 'upfrontCost');
+      const money = amount => amount === null ? 'Not confirmed' : `$${amount.toFixed(2)}`;
       return `
         <article class="trial-card ${selected ? 'featured' : ''}">
           <div class="card-top">
@@ -2197,79 +1810,43 @@
               <h3 class="card-title">${escapeHTML(trial.name)}</h3>
               <p class="card-meta">${optionSummary(trial)}</p>
             </div>
-            ${index === null ? `<span class="badge ${trial.source === 'official' ? 'green' : 'blue'}">${escapeHTML(trial.source)}</span>` : `<span class="badge rank-pill">#${index + 1}</span>`}
+            <span class="badge ${isReviewed(trial) ? 'green' : 'amber'}">${escapeHTML(confidence.label)}</span>
           </div>
-          <div class="deal-metrics">
-            <div class="deal-metric">
-              <strong>$${scorecard.tryCost.toFixed(0)}</strong>
-              <span>estimated try cost</span>
-            </div>
-            <div class="deal-metric">
-              <strong>$${scorecard.exposure.toFixed(0)}/mo</strong>
-              <span>post-trial exposure</span>
-            </div>
-            <div class="deal-metric">
-              <strong>${escapeHTML(scorecard.riskLabel)}</strong>
-              <span>conversion risk</span>
-            </div>
-          </div>
+          <dl class="offer-facts">
+            <div><dt>Listed upfront cost</dt><dd>${money(upfront)}</dd></div>
+            <div><dt>${trial.offerType === 'trial' && isReviewed(trial) ? 'Monthly base after trial' : 'Monthly base cost'}</dt><dd>${money(base)}${base === null ? '' : '/mo'}</dd></div>
+          </dl>
           <p class="small muted">${escapeHTML(trial.description)}</p>
           <div class="badge-row">
             ${trial.categories.map((category) => `<span class="badge">${interestLabel(category)}</span>`).join('')}
-            <span class="badge ${confidence.label.includes('needed') ? 'amber' : 'green'}">${escapeHTML(confidence.label)}</span>
-            <span class="badge ${trial.source === 'official' ? 'green' : 'blue'}">${escapeHTML(trial.source)}</span>
-            <span class="badge ${scorecard.riskTone}">Risk: ${scorecard.riskLabel}</span>
-            <span class="badge">Cancel: ${escapeHTML(scorecard.cancelBurden)}</span>
             <span class="badge">${escapeHTML(destinationDomain(trial.url))}</span>
           </div>
-          <p class="small"><strong>Eligibility:</strong> ${escapeHTML(trial.eligibility)}</p>
-          <p class="small confidence-line"><strong>Link:</strong> ${escapeHTML(confidence.detail)}</p>
-          ${trial.rankReason ? `<p class="small"><strong>Why ranked:</strong> ${escapeHTML(trial.rankReason)}</p>` : ''}
+          <p class="small confidence-line">${isReviewed(trial) ? `Reviewed ${escapeHTML(trial.verified || '— date unavailable')}. Base prices are not necessarily the total bill.` : 'Unreviewed: confirm the offer and all costs with the provider.'}</p>
+          <details class="offer-details">
+            <summary>Terms &amp; evidence</summary>
+            <p class="small"><strong>Eligibility${isReviewed(trial) ? '' : ' (unconfirmed)'}:</strong> ${escapeHTML(trial.eligibility)}</p>
+            <p class="small"><strong>Pricing, region &amp; cancellation:</strong> ${escapeHTML(confidence.detail)}</p>
+            ${trial.rankReason ? `<p class="small"><strong>Why shown:</strong> ${escapeHTML(trial.rankReason)}</p>` : ''}
+          </details>
           <div class="card-actions">
             <button class="btn primary" type="button" data-add-catalog="${trial.id}" ${alreadyTracked ? 'disabled' : ''}>
-              ${alreadyTracked ? 'In plan' : 'Add to Try Plan'}
+              ${alreadyTracked ? 'Saved in plan' : 'Save option'}
             </button>
-            <a class="btn" href="${trial.url}" target="_blank" rel="noopener">Open</a>
+            <a class="btn" href="${trial.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.name)} offer (opens in a new tab)">Visit offer ↗</a>
           </div>
         </article>
       `;
     }
 
     function optionSummary(trial) {
-      const scorecard = optionScorecard(trial);
-      return `$${scorecard.tryCost.toFixed(0)} try cost • $${scorecard.exposure.toFixed(2)}/mo exposure • ${trial.trialDays} day window`;
-    }
-
-    function optionScorecard(trial) {
-      const exposure = Number(trial.postTrialExposure ?? trial.monthlyValue ?? 0);
-      const tryCost = Number(trial.upfrontCost ?? 0);
-      const isMarketplace = trial.categories.includes('services') || exposure === 0;
-      const riskLabel = exposure >= 40 ? 'High' : exposure >= 15 ? 'Medium' : 'Low';
-      const riskTone = riskLabel === 'High' ? 'red' : riskLabel === 'Medium' ? 'amber' : 'green';
-      const cancelBurden = trial.cancelBurden || (isMarketplace ? 'Quote-based' : exposure >= 40 ? 'Review closely' : 'Low');
-      const frictionScore = cancelBurden === 'Low' ? 24 : cancelBurden === 'Review closely' ? 12 : 8;
-      return { exposure, tryCost, riskLabel, riskTone, cancelBurden, frictionScore };
+      if (isReviewed(trial)) return `${offerTypes[trial.offerType]}${trial.offerType === 'trial' ? ` • ${trial.providerTrialDays} day trial` : ''}`;
+      return 'Research preview • current terms not confirmed';
     }
 
     function linkConfidence(trial) {
-      const checked = checkedLinkStatus.get(trial.url) || inferCheckedLinkStatus(trial.url);
-      if (checked.status === 'bot-blocked') {
-        return {
-          label: 'Browser check needed',
-          detail: `${checked.match}; scripted checker was blocked. Open and verify terms before relying on this offer.`
-        };
-      }
-      return {
-        label: checked.match === 'trial-page' ? 'Trial page checked' : 'Offer page checked',
-        detail: `${checked.match}; last manual/scripted check ${trial.verified}. Verify current terms before purchase.`
-      };
-    }
-
-    function inferCheckedLinkStatus(url) {
-      if (/free-trial|membership|subscribe|instacart-plus|welcome|premium|pro|pricing|dashpass/i.test(url)) {
-        return { status: 'ok', match: /free-trial|trial|instacart-plus/i.test(url) ? 'trial-page' : 'plans-page' };
-      }
-      return { status: 'not-checked', match: 'offer-page' };
+      if (trial.verificationStatus === 'reviewed') return { label: 'Admin reviewed', detail: `Reviewed ${trial.verified || 'recently'}. ${trial.priceDetails} Region: ${trial.region}. Cancellation: ${trial.cancellation}` };
+      if (trial.verificationStatus === 'unreviewed') return { label: 'Review needed', detail: 'Starter catalog entry; current price, eligibility, and offer terms have not been approved. Confirm with the provider.' };
+      return { label: 'Review needed', detail: 'Current terms have not been reviewed. An official URL is not proof that pricing, eligibility, or cancellation details are current.' };
     }
 
     function destinationDomain(url) {
@@ -2282,15 +1859,22 @@
 
     function renderActiveTrials() {
       const active = state.trials
-        .filter((trial) => trial.status === 'active')
-        .sort((a, b) => parseISODate(a.endDate) - parseISODate(b.endDate));
+        .filter((trial) => trial.status === 'active' || trial.status === 'saved')
+        .sort((a, b) => Number(b.status === 'saved') - Number(a.status === 'saved') || a.endDate.localeCompare(b.endDate));
       const container = document.getElementById('activeTrials');
       if (active.length === 0) {
-        container.innerHTML = `<div class="empty">No options in your try plan yet. Add one from ranked options or the form.</div>`;
+        container.innerHTML = `<div class="empty"><strong>Your plan is ready for its first option</strong><p>Browse offers or add an option using the form.</p><button class="btn" type="button" data-view="discover">Find options</button></div>`;
         return;
       }
 
       container.innerHTML = active.map((trial) => {
+        if (trial.status === 'saved') return `
+          <article class="trial-card" data-saved-option="${trial.id}">
+            <div class="card-top"><h3 class="card-title">${escapeHTML(trial.service)}</h3><span class="badge">Saved — not started</span></div>
+            <p class="small muted">No countdown or recurring cost is tracked yet. Confirm your actual dates and cost when you start.</p>
+            <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'Not set yet')}</p>
+            <div class="card-actions"><button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
+          </article>`;
         const days = daysUntil(trial.endDate);
         const total = Math.max(1, daysBetween(trial.startDate, trial.endDate));
         const elapsed = Math.max(0, daysBetween(trial.startDate, todayISO));
@@ -2305,11 +1889,11 @@
               </div>
               <span class="badge ${tone}">$${Number(trial.monthlyValue || 0).toFixed(2)}/mo</span>
             </div>
-            <div class="progress" aria-label="Try plan progress"><span style="width: ${progress}%"></span></div>
+            <div class="progress" role="progressbar" aria-label="${escapeHTML(trial.service)} trial progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width: ${progress}%"></span></div>
             <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'No goal set')}</p>
             <p class="small muted"><strong>Keep if:</strong> ${escapeHTML(trial.keepCriteria || 'No criteria set')}</p>
             <div class="card-actions">
-              <button class="btn" type="button" data-edit-trial="${trial.id}">Load into form</button>
+              <button class="btn" type="button" data-edit-trial="${trial.id}">Edit option</button>
               <button class="btn primary" type="button" data-review-trial="${trial.id}">Review</button>
               <button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button>
             </div>
@@ -2371,7 +1955,7 @@
       const active = state.trials.filter((trial) => trial.status === 'active');
       const container = document.getElementById('optimizationPlan');
       if (active.length === 0) {
-        container.innerHTML = `<div class="empty">Add options to generate a practical comparison.</div>`;
+        container.innerHTML = `<div class="empty">Start tracking an option to see its cost and decision date. Saved options do not count toward recurring costs.</div>`;
         return;
       }
 
@@ -2380,14 +1964,14 @@
       const soonest = sorted[0];
       const recommendations = [
         `Review ${soonest.service} first. ${daysLabel(daysUntil(soonest.endDate))}.`,
-        `Total post-trial exposure is $${monthly.toFixed(2)}/mo if every active trial converts.`,
+        `Your expected monthly cost across started options is $${monthly.toFixed(2)}, based on the amounts you entered.`,
         'Mark cancel planned for anything without a goal, clear usage, or a replacement benefit.',
         'Keep only options that replace an existing paid tool or create repeated weekly value.'
       ];
 
       container.innerHTML = `
         <div class="trial-card featured">
-          <h3 class="card-title">Current comparison plan</h3>
+          <h3 class="card-title">Current plan summary</h3>
           <p class="small muted">Generated locally from your try plan and decisions.</p>
           <div class="timeline">
             ${recommendations.map((item, index) => `
@@ -2427,29 +2011,20 @@
     function addCatalogTrial(id) {
       const catalog = trialCatalog.find((trial) => trial.id === id);
       if (!catalog) return;
-      const start = todayISO;
-      const end = addDays(start, catalog.trialDays);
-      const scorecard = optionScorecard(catalog);
-      state.trials.push({
-        id: crypto.randomUUID(),
-        catalogId: catalog.id,
-        service: catalog.name,
-        monthlyValue: catalog.monthlyValue,
-        startDate: start,
-        endDate: end,
-        goal: catalog.goal,
-        keepCriteria: `Keep only if it creates repeated value before the decision date, eligibility is confirmed, and $${scorecard.exposure.toFixed(2)}/mo exposure is acceptable.`,
-        status: 'active',
-        checks: {},
-        createdAt: new Date().toISOString()
-      });
+      if (state.trials.some((trial) => trial.catalogId === id)) return;
+      state.trials.push(shortlistRecord(catalog, { id: crypto.randomUUID(), createdAt: new Date().toISOString() }));
       saveState();
       render();
-      showToast(`${catalog.name} added to your try plan`);
+      showToast(`${catalog.name} saved — tracking has not started`);
     }
 
     function addManualTrial(event) {
       event.preventDefault();
+      if (!validateTrialDates()) {
+        document.getElementById('endDate').focus();
+        document.getElementById('endDate').reportValidity();
+        return;
+      }
       const form = event.currentTarget;
       const existing = state.trials.find((item) => item.id === editingTrialId);
       const nextValues = {
@@ -2462,7 +2037,7 @@
       };
 
       if (existing) {
-        Object.assign(existing, nextValues, { updatedAt: new Date().toISOString() });
+        Object.assign(existing, nextValues, { status: existing.status === 'saved' ? 'active' : existing.status, updatedAt: new Date().toISOString() });
       } else {
         state.trials.push({
           id: crypto.randomUUID(),
@@ -2485,15 +2060,17 @@
       const trial = state.trials.find((item) => item.id === id);
       if (!trial) return;
       document.getElementById('serviceName').value = trial.service;
-      document.getElementById('monthlyCost').value = trial.monthlyValue;
+      document.getElementById('monthlyCost').value = trial.status === 'saved' ? '' : trial.monthlyValue;
       document.getElementById('startDate').value = trial.startDate;
       document.getElementById('endDate').value = trial.endDate;
       document.getElementById('trialGoal').value = trial.goal || '';
       document.getElementById('keepCriteria').value = trial.keepCriteria || '';
       editingTrialId = trial.id;
-      document.getElementById('trialSubmitLabel').textContent = 'Save Option';
+      document.getElementById('trialSubmitLabel').textContent = trial.status === 'saved' ? 'Confirm dates & start tracking' : 'Save Option';
       document.getElementById('cancelEditBtn').hidden = false;
       switchView('active');
+      validateTrialDates();
+      document.getElementById('serviceName').focus();
       showToast('Option loaded into form');
     }
 
@@ -2505,10 +2082,50 @@
 
     function removeTrial(id) {
       const trial = state.trials.find((item) => item.id === id);
+      if (!trial) return;
+      removedTrials.push(trial);
       state.trials = state.trials.filter((item) => item.id !== id);
+      if (editingTrialId === id) {
+        document.getElementById('trialForm').reset();
+        clearEditMode();
+        setDefaultDates();
+      }
       saveState();
       render();
+      renderUndoNotice();
+      document.getElementById('undoRemoveBtn').focus();
       showToast(`${trial?.service || 'Option'} removed`);
+    }
+
+    function renderUndoNotice() {
+      document.getElementById('undoNotice').hidden = removedTrials.length === 0;
+      document.getElementById('undoMessage').textContent = removedTrials.length
+        ? `${removedTrials.at(-1).service} removed. Undo is available until you leave or reload this page.` : '';
+    }
+
+    function undoRemoval() {
+      const trial = removedTrials.at(-1);
+      if (!trial) return;
+      if (trial.catalogId && state.trials.some((item) => item.catalogId === trial.catalogId)) {
+        showToast('This option is already in your plan. Remove the new entry before restoring the original.');
+        return;
+      }
+      removedTrials.pop();
+      state.trials.push(trial);
+      saveState();
+      render();
+      renderUndoNotice();
+      document.querySelector(`[data-edit-trial="${CSS.escape(trial.id)}"]`)?.focus();
+      showToast(`${trial.service} restored`);
+    }
+
+    function validateTrialDates() {
+      const end = document.getElementById('endDate');
+      const invalid = value('startDate') && end.value && end.value < value('startDate');
+      end.setCustomValidity(invalid ? 'Choose a decision date on or after the start date.' : '');
+      end.setAttribute('aria-invalid', String(Boolean(invalid)));
+      document.getElementById('dateError').hidden = !invalid;
+      return !invalid;
     }
 
     function updateCheck(id, index, checked) {
@@ -2544,6 +2161,7 @@
       }
       saveState();
       render();
+      (document.querySelector('#reviewQueue button') || document.getElementById('reviewTab')).focus({ preventScroll: true });
       showToast(`${trial.service}: ${choice === 'cancel' ? 'cancel planned' : choice}`);
     }
 
@@ -2552,17 +2170,26 @@
       switchView('review');
       renderReviewQueue();
       requestAnimationFrame(() => {
-        document.getElementById(`review-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const card = document.getElementById(`review-${id}`);
+        if (!card) return;
+        card.tabIndex = -1;
+        card.focus({ preventScroll: true });
+        card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' });
       });
     }
 
     function switchView(view) {
       document.querySelectorAll('.tab').forEach((tab) => {
-        tab.classList.toggle('active', tab.dataset.view === view);
+        const selected = tab.dataset.view === view;
+        tab.classList.toggle('active', selected);
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
       });
       document.querySelectorAll('.view').forEach((panel) => {
         panel.classList.toggle('active', panel.id === `${view}View`);
       });
+      renderStats();
+      document.querySelector(`.tab[data-view="${view}"]`)?.focus({ preventScroll: true });
     }
 
     function openOnboarding() {
@@ -2592,12 +2219,13 @@
     }
 
     function applyParentDefaults() {
-      state.interests = ['family', 'design', 'productivity', 'learning', 'home'];
-      state.sources = ['official', 'deal-sites', 'newsletters', 'forums'];
-      state.keywords = 'kids activities, design tools, learning, family productivity, meal planning';
-      state.alertCadence = 'weekly';
-      state.minimumTrialValue = 10;
-      renderOnboardingOptions();
+      renderOnboardingOptions({
+        interests: ['family', 'design', 'productivity', 'learning', 'home'],
+        sources: ['official', 'deal-sites', 'newsletters', 'forums'],
+        keywords: 'kids activities, design tools, learning, family productivity, meal planning',
+        alertCadence: 'weekly',
+        minimumTrialValue: 10
+      });
     }
 
     function exportData() {
@@ -2612,10 +2240,10 @@
     }
 
     async function sharePlan() {
-      const active = state.trials.filter((trial) => trial.status === 'active');
+      const active = state.trials.filter((trial) => trial.status === 'active' || trial.status === 'saved');
       const lines = [
         'My TryWise plan:',
-        ...active.map((trial) => `- ${trial.service}: ${daysLabel(daysUntil(trial.endDate))}; goal: ${trial.goal || 'not set'}`)
+        ...active.map((trial) => `- ${trial.service}: ${trial.status === 'saved' ? 'saved, not started' : daysLabel(daysUntil(trial.endDate))}; goal: ${trial.goal || 'not set'}`)
       ];
       const text = lines.join('\n');
       try {
@@ -2629,6 +2257,7 @@
     function setDefaultDates() {
       document.getElementById('startDate').value = todayISO;
       document.getElementById('endDate').value = addDays(todayISO, 30);
+      validateTrialDates();
     }
 
     function value(id) {
@@ -2713,7 +2342,7 @@
       toast.textContent = message;
       toast.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
     }
 
     document.addEventListener('click', (event) => {
@@ -2773,10 +2402,44 @@
           event.target.checked
         );
       }
-      if (event.target.matches('#sourceFilter, #valueFilter')) renderTrialFeed();
+      if (event.target.matches('#sourceFilter, #valueFilter, #reviewFilter, #offerTypeFilter')) renderTrialFeed();
     });
 
     document.getElementById('searchInput').addEventListener('input', renderTrialFeed);
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const expanded = document.getElementById('sidebar').classList.toggle('expanded');
+      document.getElementById('sidebarToggle').setAttribute('aria-expanded', String(expanded));
+    });
+    document.querySelector('.tabs').addEventListener('keydown', (event) => {
+      const tabs = [...document.querySelectorAll('.tab')];
+      const index = tabs.indexOf(event.target);
+      if (index < 0) return;
+      const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length
+        : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+        : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null;
+      if (next === null) return;
+      event.preventDefault();
+      switchView(tabs[next].dataset.view);
+    });
+    document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('sourceFilter').value = 'all';
+      document.getElementById('valueFilter').value = '';
+      document.getElementById('reviewFilter').value = 'all';
+      document.getElementById('offerTypeFilter').value = 'all';
+      state.interests = [];
+      saveState();
+      renderInterests();
+      renderTrialFeed();
+      document.getElementById('searchInput').focus();
+    });
+    document.getElementById('undoRemoveBtn').addEventListener('click', undoRemoval);
+    document.getElementById('dismissUndoBtn').addEventListener('click', () => {
+      removedTrials.length = 0;
+      renderUndoNotice();
+      document.getElementById('activeTab').focus();
+    });
+    ['startDate', 'endDate'].forEach((id) => document.getElementById(id).addEventListener('input', validateTrialDates));
     document.getElementById('requirementForm').addEventListener('submit', submitRequirement);
     document.getElementById('plannerToggle').addEventListener('click', () => {
       const panel = document.querySelector('.hero-panel');
@@ -2798,7 +2461,46 @@
 
     setDefaultDates();
     render();
-    initializeFirebaseIfConfigured();
+    accountManager = initializeAccounts({
+      getState: () => state,
+      readGuest: loadState,
+      writeGuest: (next) => localStorage.setItem(STATE_KEY, JSON.stringify(next)),
+      replaceState(next, options = {}) {
+        state = next;
+        if (options.sessionChanged || options.reload) {
+          document.getElementById('trialForm').reset();
+          document.getElementById('requirementForm').reset();
+          document.getElementById('searchInput').value = '';
+          document.getElementById('sourceFilter').value = 'all';
+          document.getElementById('valueFilter').value = '';
+          document.getElementById('reviewFilter').value = 'all';
+          document.getElementById('offerTypeFilter').value = 'all';
+          document.getElementById('onboardingDialog').close();
+          clearEditMode();
+          setDefaultDates();
+          removedTrials.length = 0;
+          renderUndoNotice();
+          focusedReviewTrialId = null;
+          setPlannerCollapsed(false);
+        }
+        render();
+      },
+      notify: showToast,
+      onCatalog(records, status) {
+        if (records) { latestCatalogRecords = records; trialCatalog = mergedCatalog(seedCatalog, records); }
+        document.getElementById('catalogStatus').textContent = status === 'error'
+          ? 'Catalog connection unavailable. Reload when online; your saved plan is unchanged.'
+          : status === 'local' ? 'Local starter catalog — entries need review.'
+          : 'Live catalog updates are active. Starter entries remain unreviewed until approved.';
+        render();
+      },
+      exportPlan: exportData
+    });
+    setInterval(() => {
+      if (!latestCatalogRecords) return;
+      const next = mergedCatalog(seedCatalog, latestCatalogRecords);
+      if (next.length !== trialCatalog.length) { trialCatalog = next; render(); }
+    }, 60000);
 
     window.__tryWiseSmoke = {
       getState: () => state,

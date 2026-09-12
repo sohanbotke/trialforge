@@ -6,6 +6,7 @@ async function run() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
+  await page.route('**/firebase-config.js', (route) => route.fulfill({ contentType: 'text/javascript', body: 'export const firebaseConfig = {};' }));
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text());
   });
@@ -16,6 +17,7 @@ async function run() {
   await page.reload({ waitUntil: 'networkidle' });
   await page.locator('h1').filter({ hasText: 'TryWise' }).waitFor();
   await page.locator('#requirementText').fill('Cheapest meal kits for busy weekdays');
+  await page.locator('#requirementForm summary').click();
   await page.locator('#requirementBudget').fill('30');
   await page.locator('#requirementForm button[type="submit"]').click();
   await page.locator('#requirementPlan').getByText('Try plan for: Cheapest meal kits for busy weekdays').waitFor();
@@ -23,6 +25,9 @@ async function run() {
   await page.locator('button[data-view="active"]').click();
   await page.locator('#activeTrials').getByText('HelloFresh').waitFor();
   await page.locator('[data-edit-trial]').first().click();
+  await page.locator('#startDate').fill('2026-09-12');
+  await page.locator('#endDate').fill('2026-09-20');
+  await page.locator('#monthlyCost').fill('15');
   await page.locator('#trialGoal').fill('Updated smoke-test goal');
   await page.locator('#trialForm button[type="submit"]').click();
   await page.locator('#activeTrials').getByText('Updated smoke-test goal').waitFor();
@@ -33,7 +38,7 @@ async function run() {
   await page.locator('#sourceRadar').getByText('Official pages').waitFor();
   await page.locator('#alertPlan').getByText('Weekly trial digest').waitFor();
   await page.locator('button[data-view="insights"]').click();
-  await page.locator('#optimizationPlan').getByText('Current comparison plan').waitFor();
+  await page.locator('#optimizationPlan').getByText('Current plan summary').waitFor();
 
   await page.setViewportSize({ width: 390, height: 900 });
   await page.locator('button[data-view="discover"]').click();
