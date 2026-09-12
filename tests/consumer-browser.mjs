@@ -56,6 +56,10 @@ try {
   await page.locator('#searchInput').fill('nothing-matches-xyz');
   assert.match(await page.locator('#trialFeed').textContent(), /No matching options/);
   await page.locator('#clearFiltersBtn').click();
+  await page.locator('#searchInput').fill('streaming fixture');
+  await page.locator('#catalogFilters summary').click();
+  await page.locator('#clearFiltersBtn').click();
+  assert.equal(await page.locator('#catalogFilters summary').evaluate(el => el === document.activeElement), true, 'Clearing collapsed filters must focus a visible control');
   await page.locator('[data-add-catalog="hellofresh"]').click();
   assert.equal(await page.locator('[data-add-catalog="hellofresh"]').isDisabled(), true);
   await page.reload();

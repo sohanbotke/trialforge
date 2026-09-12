@@ -14,7 +14,7 @@ async function run() {
     assert.equal(response.status(), 200);
     assert.equal(response.headers()['x-content-type-options'], 'nosniff');
     await page.waitForFunction(() => !document.querySelector('main').inert);
-    for (const file of ['firebase-config.js', 'firebase-client.mjs', 'plan-state.mjs', 'plan-store.mjs', 'account-ui.mjs', 'assets/trywise-mark.svg', 'seed-catalog.mjs', 'catalog-client.mjs', 'catalog-model.mjs', 'admin.html', 'admin.css', 'admin-ui.mjs', 'offer-identity.mjs', 'starter-audit.mjs']) {
+    for (const file of ['firebase-config.js', 'firebase-client.mjs', 'plan-state.mjs', 'plan-store.mjs', 'account-ui.mjs', 'assets/trywise-mark.svg', 'seed-catalog.mjs', 'catalog-client.mjs', 'catalog-model.mjs', 'consumer-model.mjs', 'admin.html', 'admin.css', 'admin-ui.mjs', 'offer-identity.mjs', 'starter-audit.mjs']) {
       const asset = await context.request.get(`${baseUrl}/${file}`);
       assert.equal(asset.status(), 200, `${file} must be published`);
       if (/\.(mjs|js)$/.test(file)) assert.match(asset.headers()['content-type'], /javascript/);

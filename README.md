@@ -1,6 +1,6 @@
 # TryWise
 
-TryWise helps people find the cheapest, lowest-risk way to try what they need:
+TryWise helps people find useful options, understand the costs, and decide what to keep:
 software, streaming, meals, delivery, local services, activities, subscriptions,
 and other trial-friendly options.
 
@@ -10,15 +10,16 @@ or browser-extension access to be useful.
 ## What It Does
 
 - Select interest areas such as family life, meals, shows, design, productivity, dev tools, learning, health, finance, and home projects.
-- Complete first-run onboarding for interests, keywords, source comfort, alert cadence, and minimum trial value.
-- Browse unreviewed starter entries and live admin-approved offers, with source and pricing details.
+- Optionally configure interests and preferences through Plan tools → Setup. Alert settings are future preferences, not active delivery.
+- Browse reviewed offers first, with research previews clearly separated and unverified costs shown as unknown.
+- Filter by reviewed monthly base cost, offer type, and review status; inspect terms and evidence on demand.
 - As the verified Google owner, review evidence, approve/publish, reject, or withdraw offers at `/admin.html`.
 - Build a requirement-first try plan, such as "cheapest way to watch live sports" or "meal kits for busy weekdays."
-- Add a trial as an experiment with a goal, decision date, monthly value, and keep criteria.
+- Save an option without starting it. In My Try Plan, choose Start tracking and confirm actual dates and cost before a countdown begins.
 - Review active trials before they convert using a practical checklist.
 - Inspect the source radar and alert plan that a backend collector can use later.
-- Generate a local optimization plan based on active trials and decisions.
-- Export or copy your try plan without creating an account.
+- Inspect a cost/deadline summary based on started options and decisions. Side-by-side product comparison is planned, not implemented yet.
+- Export or copy your try plan through Plan tools without creating an account.
 - Sign in with Google to save plans, interests, preferences, and decision history across devices.
 - Import a guest plan or JSON backup into your account without replacing existing records.
 
@@ -54,7 +55,7 @@ To publish runtime files only:
 rtk npm run deploy
 ```
 
-The predeploy build copies 15 explicitly listed runtime files into `dist/`.
+The predeploy build copies 16 explicitly listed runtime files into `dist/`.
 Tests, development skills, debug logs, database rules, and backend scaffolds are
 not published. Database rules and Google sign-in are deployed separately with:
 
@@ -62,8 +63,10 @@ not published. Database rules and Google sign-in are deployed separately with:
 rtk proxy npx -y firebase-tools@latest deploy --only firestore,auth --project trywise-9f8e1
 ```
 
-Tester journey: sign in with Google, add an offer, edit its goal, wait for the
-account button to show a checkmark, then sign in on a second device. Use Import
+Tester journey: browse as a guest and save an offer. Confirm that saving does not
+start a countdown. Sign in, explicitly import the guest plan, then choose Start
+tracking and enter actual dates, cost, and a goal. Wait for the account button to
+show a checkmark, then sign in on a second device. Use Import
 guest plan if you started without signing in. Feedback should include the page,
 action, expected result, and what happened, without sharing private plan content.
 
@@ -132,11 +135,25 @@ firebase-config.js          Public Firebase web configuration
 firebase-client.mjs         Google sign-in and Firestore adapter
 plan-store.mjs              Account isolation, save queue, and conflict handling
 plan-state.mjs              State validation and import merging
+consumer-model.mjs          Reviewed pricing/filter rules and shortlist records
 account-ui.mjs              Account controls and save feedback
 assets/trywise-mark.svg  Local visual asset
 backend/                    Nightly collector and discovery scaffolds
 extension/                  Chrome extension clipper scaffold
 ```
+
+## Consumer improvement checkpoints
+
+See [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md) for the phased plan, including later
+interest-driven delivery and streaming comparisons, and
+[CONSUMER-IMPROVEMENTS-2026-09-12.md](CONSUMER-IMPROVEMENTS-2026-09-12.md) for the
+current implementation and release notes. GitHub branch uploads do not deploy
+Firebase Hosting automatically. Reload older open tabs before using saved options;
+the previous client version does not recognize the new `saved` status.
+
+With a local server running on port 4177, check the consumer flows with
+`npm run test:consumer`, `npm run test:smoke`, `npm run test:journeys`, and
+`npm run test:ux`. Account and publishing tests additionally require the demo emulators.
 
 ## Product Direction
 

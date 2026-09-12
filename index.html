@@ -2431,7 +2431,8 @@
       saveState();
       renderInterests();
       renderTrialFeed();
-      document.getElementById('searchInput').focus();
+      const filters = document.getElementById('catalogFilters');
+      (filters.open ? document.getElementById('searchInput') : filters.querySelector('summary')).focus();
     });
     document.getElementById('undoRemoveBtn').addEventListener('click', undoRemoval);
     document.getElementById('dismissUndoBtn').addEventListener('click', () => {
