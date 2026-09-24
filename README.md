@@ -110,6 +110,27 @@ Future work should improve requirement capture, source coverage, ranking, and
 alerts before adding high-trust integrations like email forwarding or financial
 account scanning.
 
+## Deployment And Live Data Loop
+
+The live site is Firebase Hosting project `trywise-9f8e1`
+(`https://trywise-9f8e1.web.app/`).
+
+```text
+.github/workflows/collect.yml   Weekly: tests -> collector -> commits backend/data/
+.github/workflows/deploy.yml    On push to main: deploys to Firebase Hosting
+firebase.json / .firebaserc      Hosting config for the project
+```
+
+The deploy workflow needs one repo secret: `FIREBASE_SERVICE_ACCOUNT_TRYWISE_9F8E1`
+(Firebase console -> Project settings -> Service accounts -> Generate new private
+key; paste the whole JSON as the secret value).
+
+On load, the app fetches `backend/data/trials.generated.json` (when present) and
+merges new/updated radar finds into the catalog with `radar` source badges and a
+"fresh finds" banner. They flow through search, requirement ranking, scorecards,
+and Add to Try Plan like curated entries. If the file is missing, the app falls
+back to the curated catalog silently.
+
 ## Backend Run
 
 ```bash
@@ -117,8 +138,8 @@ cd backend
 python3 collector.py
 ```
 
-Generated files are written under `backend/data/` and are intentionally ignored by
-Git.
+Generated files are written under `backend/data/` and are intentionally tracked
+by Git so the scheduled collector can diff runs and the frontend can serve them.
 
 ## Test
 

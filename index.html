@@ -683,6 +683,16 @@
       background: rgba(255, 255, 255, 0.7);
     }
 
+    .fresh-banner {
+      border: 1px solid #f0d9a8;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      background: #fff8e8;
+      color: #6b5518;
+      font-size: 14px;
+    }
+
     .privacy-row {
       display: grid;
       grid-template-columns: 30px minmax(0, 1fr) auto;
@@ -1840,6 +1850,85 @@
       }
     ];
 
+    // ---- Weekly radar integration -------------------------------------------
+    // The collector (backend/collector.py) publishes fresh trial candidates to
+    // backend/data/trials.generated.json. On load we merge new/updated finds
+    // into the catalog so they flow through search, ranking, scoring and the
+    // Add-to-Plan flow like any curated entry. If the file is missing (local
+    // dev, or before the first collector run) the app simply uses the curated
+    // catalog.
+    function hashString(str) {
+      let h = 5381;
+      for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+      return h.toString(36);
+    }
+
+    function parsePriceHint(hint) {
+      if (!hint) return 0;
+      const match = String(hint).match(/\$?\s?(\d+(?:\.\d{1,2})?)/);
+      return match ? Number(match[1]) : 0;
+    }
+
+    function buildGeneratedDescription(candidate) {
+      const parts = [];
+      if (candidate.trial_days) parts.push(`${candidate.trial_days}-day trial`);
+      if (candidate.price_hint) parts.push(`then ${candidate.price_hint}`);
+      parts.push(`Spotted by the TryWise radar on ${candidate.source_label || 'a public source'}.`);
+      if (Array.isArray(candidate.signals) && candidate.signals.length) {
+        parts.push(`Signals: ${candidate.signals.slice(0, 3).join(', ')}.`);
+      }
+      return parts.join(' ');
+    }
+
+    function generatedToCatalogEntry(candidate) {
+      if (!candidate || !candidate.url || !candidate.title) return null;
+      const monthly = parsePriceHint(candidate.price_hint);
+      return {
+        id: `gen-${hashString(candidate.url)}`,
+        name: candidate.title,
+        categories: Array.isArray(candidate.categories) && candidate.categories.length
+          ? candidate.categories
+          : ['productivity'],
+        facets: ['radar find'],
+        description: buildGeneratedDescription(candidate),
+        trialDays: Number(candidate.trial_days || 0),
+        monthlyValue: monthly,
+        postTrialExposure: monthly,
+        source: 'radar',
+        verified: String(candidate.last_seen || candidate.discovered_at || '').slice(0, 10),
+        eligibility: candidate.eligibility_hint || 'Check the offer page for current eligibility.',
+        url: candidate.url,
+        goal: 'Verify the current terms on the offer page, then decide before any trial converts.',
+        generated: true,
+        freshStatus: candidate.status === 'updated' ? 'updated' : 'new'
+      };
+    }
+
+    async function loadGeneratedCatalog() {
+      try {
+        const res = await fetch('backend/data/trials.generated.json', { cache: 'no-store' });
+        if (!res.ok) return 0;
+        const payload = await res.json();
+        if (payload.schema_version !== 2 || !Array.isArray(payload.candidates)) return 0;
+        const fresh = payload.candidates.filter(
+          (candidate) => candidate.status === 'new' || candidate.status === 'updated'
+        );
+        const known = new Set(trialCatalog.map((trial) => trial.id));
+        let added = 0;
+        for (const candidate of fresh) {
+          const entry = generatedToCatalogEntry(candidate);
+          if (entry && !known.has(entry.id)) {
+            trialCatalog.push(entry);
+            known.add(entry.id);
+            added++;
+          }
+        }
+        return added;
+      } catch {
+        return 0;
+      }
+    }
+
     const checkedLinkStatus = new Map([
       ['https://www.masterclass.com/checkout', { status: 'bot-blocked', match: 'plans-page' }],
       ['https://www.doordash.com/dashpass/', { status: 'ok', match: 'membership-page' }],
@@ -2181,7 +2270,12 @@
         return;
       }
 
-      feed.innerHTML = matching.map((trial, index) => trialCard(trial, trackedIds.has(trial.id), index)).join('');
+      const freshCount = matching.filter((trial) => trial.generated).length;
+      const freshBanner = freshCount
+        ? `<div class="fresh-banner"><strong>${freshCount} fresh ${freshCount === 1 ? 'find' : 'finds'}</strong> from the weekly radar — marked <span class="badge blue">radar</span>. Verify terms on the offer page before relying on them.</div>`
+        : '';
+
+      feed.innerHTML = freshBanner + matching.map((trial, index) => trialCard(trial, trackedIds.has(trial.id), index)).join('');
     }
 
     function trialCard(trial, alreadyTracked, index = null) {
@@ -2216,6 +2310,7 @@
           <p class="small muted">${escapeHTML(trial.description)}</p>
           <div class="badge-row">
             ${trial.categories.map((category) => `<span class="badge">${interestLabel(category)}</span>`).join('')}
+            ${trial.generated ? `<span class="badge amber">Fresh: ${escapeHTML(trial.freshStatus || 'new')}</span>` : ''}
             <span class="badge ${confidence.label.includes('needed') ? 'amber' : 'green'}">${escapeHTML(confidence.label)}</span>
             <span class="badge ${trial.source === 'official' ? 'green' : 'blue'}">${escapeHTML(trial.source)}</span>
             <span class="badge ${scorecard.riskTone}">Risk: ${scorecard.riskLabel}</span>
@@ -2799,6 +2894,7 @@
     setDefaultDates();
     render();
     initializeFirebaseIfConfigured();
+    loadGeneratedCatalog().then((added) => { if (added > 0) render(); });
 
     window.__tryWiseSmoke = {
       getState: () => state,
