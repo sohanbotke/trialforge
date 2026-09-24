@@ -1,0 +1,48 @@
+name: Weekly trial candidate collection
+
+# Runs the TryWise collector every Monday morning, then commits the refreshed
+# candidates + alert digest back to the repo. state.json MUST be committed for
+# new/updated/gone diffing to work across runs.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Mondays 06:00 UTC
+  workflow_dispatch:      # allow manual runs from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collector
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run collector unit tests
+        run: python3 -m unittest test_collector
+        working-directory: backend
+
+      - name: Run collector
+        run: python3 backend/collector.py --quiet
+        env:
+          TRYWISE_CONTACT: ${{ secrets.TRYWISE_CONTACT }}
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name "trywise-collector"
+          git config user.email "trywise-collector@users.noreply.github.com"
+          git add backend/data
+          if git diff --cached --quiet; then
+            echo "No candidate changes to commit."
+          else
+            git commit -m "chore: weekly trial candidate refresh"
+            git push
+          fi
