@@ -1,4 +1,6 @@
-backend/data/
 __pycache__/
 *.py[cod]
 .DS_Store
+# NOTE: backend/data/ is intentionally tracked — the scheduled collector
+# commits trials.generated.json, alerts.generated.md, and state.json so
+# weekly runs can diff against previous state.
