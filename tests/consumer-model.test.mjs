@@ -3,6 +3,27 @@ import assert from 'node:assert/strict';
 import { reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar } from '../consumer-model.mjs';
 import { defaultState, validateState, mergePlans } from '../plan-state.mjs';
 import { createPlanStore } from '../plan-store.mjs';
+import { searchIntent, searchTextScore, matchesCatalogSearch, emptySearchMessage } from '../consumer-model.mjs';
+
+test('love and dating synonyms map to relationships, not unrelated offers', () => {
+  const dating={name:'Fixture dating service',description:'Meet singles and build relationships.'};
+  const streaming={name:'Fixture streaming service',description:'Movies and live sports. Find shows you love.'};
+  for(const query of ['love','find love','dating apps','relationship services','matchmaking']) {
+    assert.equal(searchIntent(query),'relationships');
+    assert.equal(matchesCatalogSearch(dating,query),true);
+    assert.equal(matchesCatalogSearch(streaming,query),false);
+  }
+  assert.equal(searchIntent('I love movies'),'general');
+  assert.equal(searchIntent('I love coding'),'general');
+  assert.match(emptySearchMessage('love'),/dating or relationship services/);
+});
+test('unknown queries and generic query words cannot create relevance from price', () => {
+  const free={name:'Cloud fixture',description:'A free hosting plan',monthlyValue:0};
+  assert.equal(searchTextScore(free,'find me something for zzzunknown'),0);
+  assert.equal(matchesCatalogSearch(free,'zzznomatch'),false);
+  assert.equal(matchesCatalogSearch(free,'hosting'),true);
+  assert.equal(matchesCatalogSearch(free,''),true);
+});
 
 const preview = { id: 'preview', name: 'Preview', monthlyValue: 0, upfrontCost: 0, verificationStatus: 'unreviewed' };
 const reviewed = { ...preview, id: 'reviewed', name: 'Reviewed', verificationStatus: 'reviewed', verifiedAt:new Date().toISOString(), offerType: 'free_tier' };
