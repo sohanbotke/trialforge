@@ -39,6 +39,7 @@ jobs:
           node tests/consumer-browser.mjs
           node tests/catalog-browser.mjs
           node tests/admin-entry-browser.mjs
+          node tests/search-browser.mjs
           npm run test:smoke
           npm run test:journeys
           npm run test:ux

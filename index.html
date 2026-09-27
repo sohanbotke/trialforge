@@ -329,10 +329,9 @@
       border-radius: var(--radius);
       padding: 5px;
       margin-bottom: 14px;
-      position: sticky;
-      top: 8px;
-      z-index: 10;
-      backdrop-filter: blur(10px);
+      /* In-flow navigation cannot obscure form fields or catalog actions while
+         scrolling, including at zoomed and intermediate viewport widths. */
+      position: static;
     }
 
     .tab {
@@ -1398,7 +1397,7 @@
     import { initializeAccounts } from './account-ui.mjs';
     import { seedCatalog } from './seed-catalog.mjs';
     import { mergedCatalog, offerTypes } from './catalog-model.mjs';
-    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar, offerConfidence, reviewLabel } from './consumer-model.mjs';
+    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar, offerConfidence, reviewLabel, searchIntent, searchTextScore, matchesCatalogSearch, emptySearchMessage } from './consumer-model.mjs';
     import { offerStatus, retiredOffers } from './catalog-policy.mjs';
     let accountManager = null;
     let canReviewCatalog = false;
@@ -1499,6 +1498,7 @@
     let comparisonIds = [];
 
     let state = loadState();
+    let requirementFilterActive = false;
     let editingTrialId = null;
     let focusedReviewTrialId = null;
     const removedTrials = [];
@@ -1603,7 +1603,7 @@
               <p class="card-meta">${latest.preference === 'lowest-cost' ? 'Lower reviewed base cost' : 'Relevance to your request'} • budget ${latest.budget ? `$${latest.budget}/mo` : 'not set'}</p>
             </div>
             <div class="card-actions">
-              <span class="badge blue">${latest.categories.map(interestLabel).join(', ') || 'General'}</span>
+              <span class="badge blue">${searchIntent(latest.text) === 'relationships' ? 'Dating &amp; relationships' : latest.categories.map(interestLabel).join(', ') || 'General'}</span>
               <button class="btn icon-only" type="button" data-dismiss-requirement title="Hide this try plan summary" aria-label="Hide this try plan summary">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
               </button>
@@ -1623,7 +1623,7 @@
                 </div>
               `).join('')}
             </div>
-          ` : `<p class="small muted">${catalogLoadStatus === 'loading' ? 'Loading catalog matches…' : 'No catalog matches yet. Try a broader description or browse the options below.'}</p>`}
+          ` : `<p class="small muted">${catalogLoadStatus === 'loading' ? 'Loading catalog matches…' : escapeHTML(emptySearchMessage(latest.text))}</p>`}
         </article>
       `;
     }
@@ -1655,6 +1655,8 @@
         createdAt: new Date().toISOString()
       });
       state.interests = categories;
+      requirementFilterActive = true;
+      document.getElementById('searchInput').value = '';
       state.dismissedRequirementIds = state.dismissedRequirementIds.filter((id) => id !== state.requirements.at(-1).id);
       state.keywords = [...new Set([state.keywords, ...keywords].filter(Boolean))].join(', ');
       state.onboardingComplete = true;
@@ -1662,10 +1664,11 @@
       render();
       setPlannerCollapsed(true);
       document.getElementById('plannerToggle').focus();
-      showToast('Try plan built');
+      showToast(catalogLoadStatus === 'loading' ? 'Searching the catalog…' : rankCatalogForRequirement(state.requirements.at(-1)).length ? 'Matching options found' : 'No matching options in this catalog yet');
     }
 
     function inferRequirementCategories(text) {
+      if (searchIntent(text) === 'relationships') return [];
       const lowered = text.toLowerCase();
       const categories = requirementCategoryHints
         .filter((hint) => hint.terms.some((term) => termMatchesText(term, lowered)))
@@ -1674,6 +1677,7 @@
     }
 
     function inferRequirementFacets(text) {
+      if (searchIntent(text) === 'relationships') return [];
       const lowered = text.toLowerCase();
       const facets = requirementFacetHints
         .filter((hint) => hint.terms.some((term) => termMatchesText(term, lowered)))
@@ -1695,14 +1699,11 @@
 
       return trialCatalog
         .filter(trial => includeAll || (trial.verificationStatus === 'unreviewed' || isReviewed(trial)))
+        .filter(trial => includeAll || searchIntent(text) !== 'relationships' || matchesCatalogSearch(trial,text))
         .map((trial) => {
           const categoryMatches = trial.categories.filter((category) => categories.has(category)).length;
           const facetMatches = (trial.facets || []).filter((facet) => facets.has(facet)).length;
-          const textMatch = [trial.name, trial.description, trial.eligibility, trial.goal, ...trial.categories]
-            .join(' ')
-            .toLowerCase()
-            .split(/\W+/)
-            .filter((word) => word.length > 3 && text.includes(word)).length;
+          const textMatch = searchTextScore(trial,text);
           const cost = reviewedCost(trial);
           const withinBudget = cost !== null && (!budget || cost <= budget);
           const budgetPenalty = cost !== null && budget && cost > budget ? Math.min(25, cost - budget) : 0;
@@ -1713,14 +1714,14 @@
             : categoryMatches
               ? `Matches ${trial.categories.filter((category) => categories.has(category)).map(interestLabel).join(', ')}. ${isReviewed(trial) ? 'Check limits and terms for your needs.' : 'Unreviewed preview; costs and terms need confirmation.'}`
             : `Adjacent option from ${trial.source} sources; verify fit before adding.`;
-          return { ...trial, score, rankReason, categoryMatches, facetMatches };
+          return { ...trial, score, rankReason, categoryMatches, facetMatches, textMatch };
         })
         .filter((trial) => {
           if (includeAll) return true;
           if (categories.size || facets.size) {
             return trial.categoryMatches > 0 || trial.facetMatches > 0;
           }
-          return trial.score > 0;
+          return trial.textMatch > 0; // A low price alone is never a relevance match.
         })
         .sort((a, b) => reviewedFirst(a, b) || b.score - a.score || a.name.localeCompare(b.name));
     }
@@ -1800,15 +1801,10 @@
       const type = document.getElementById('offerTypeFilter').value;
       const trackedIds = new Set(state.trials.map((trial) => trial.catalogId));
 
-      const ranked = latestRequirement ? rankCatalogForRequirement(latestRequirement, true) : [...trialCatalog].sort(reviewedFirst);
+      const ranked = requirementFilterActive && latestRequirement ? rankCatalogForRequirement(latestRequirement) : [...trialCatalog].sort(reviewedFirst);
       const matching = ranked.filter((trial) => {
         const interestMatch = selected.size === 0 || trial.categories.some((category) => selected.has(category));
-        const queryMatch = !query || [
-          trial.name,
-          trial.description,
-          trial.eligibility,
-          ...trial.categories
-        ].join(' ').toLowerCase().includes(query);
+        const queryMatch = matchesCatalogSearch(trial,query);
         const sourceMatch = source === 'all' || trial.source === source;
         const valueMatch = matchesConsumerFilters(trial, { maximum, review, type });
         return interestMatch && queryMatch && sourceMatch && valueMatch;
@@ -1821,11 +1817,13 @@
         feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>${catalogLoadStatus === 'loading' ? 'Finding your options…' : 'Could not load the catalog'}</strong><p>${catalogLoadStatus === 'loading' ? 'You can enter a search while the catalog connects.' : 'Your saved plan is still available. Reload to try the catalog again.'}</p>${catalogLoadStatus === 'error' ? '<button class="btn" type="button" data-reload-catalog>Retry catalog</button>' : ''}</div>`;
         return;
       }
-      const filtered = selected.size > 0 || query || source !== 'all' || maximum !== '' || review !== 'all' || type !== 'all';
-      document.getElementById('resultsCount').textContent = `${matching.length} of ${trialCatalog.length} options${selected.size ? ` · Interests: ${[...selected].map(interestLabel).join(', ')}` : ''}${latestRequirement ? ' · Ranked for your latest request' : ''}`;
+      const filtered = requirementFilterActive || selected.size > 0 || query || source !== 'all' || maximum !== '' || review !== 'all' || type !== 'all';
+      const activeQuery = query || (requirementFilterActive ? latestRequirement?.text || '' : '');
+      document.getElementById('resultsCount').textContent = `${matching.length} of ${trialCatalog.length} options${searchIntent(activeQuery) === 'relationships' ? ' · Dating & relationships' : ''}${selected.size ? ` · Interests: ${[...selected].map(interestLabel).join(', ')}` : ''}${requirementFilterActive ? ' · Matching your request' : ''}`;
       document.getElementById('clearFiltersBtn').disabled = !filtered;
       if (matching.length === 0) {
-        feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>No matching options</strong><p>Try a broader search, change your interests, or use Clear filters above to see all options.</p></div>`;
+        const catalogHasIntent = trialCatalog.some(trial=>matchesCatalogSearch(trial,activeQuery));
+        feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>No matching options</strong><p>${escapeHTML(catalogHasIntent ? 'Your current search and filters have no matches. Clear filters to browse all options.' : emptySearchMessage(activeQuery))}</p><button class="btn" type="button" data-browse-all>Browse all options</button></div>`;
         return;
       }
 
@@ -2454,6 +2452,7 @@
       if (target.dataset.reviewTrial) focusReviewTrial(target.dataset.reviewTrial);
       if (target.dataset.calendarTrial) exportDecision(target.dataset.calendarTrial);
       if (target.dataset.reloadCatalog !== undefined) location.reload();
+      if (target.dataset.browseAll !== undefined) document.getElementById('clearFiltersBtn').click();
       if (target.dataset.compareTrial) {
         const id = target.dataset.compareTrial;
         if (comparisonIds.includes(id)) comparisonIds = comparisonIds.filter(item => item !== id);
@@ -2522,6 +2521,7 @@
       switchView(tabs[next].dataset.view);
     });
     document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+      requirementFilterActive = false;
       document.getElementById('searchInput').value = '';
       document.getElementById('sourceFilter').value = 'all';
       document.getElementById('valueFilter').value = '';
@@ -2569,6 +2569,7 @@
       replaceState(next, options = {}) {
         state = next;
         if (options.sessionChanged || options.reload) {
+          requirementFilterActive = false;
           comparisonIds = [];
           document.getElementById('comparisonDialog').close();
           document.getElementById('comparisonTable').replaceChildren();

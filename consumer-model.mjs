@@ -1,5 +1,28 @@
 // Consumer-facing claims must be supported by reviewed catalog data.
 import { offerStatus, REVIEW_WINDOW_DAYS } from './catalog-policy.mjs';
+
+const searchWords = text => String(text || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').match(/[a-z0-9]+/g) || [];
+const genericWords = new Set('a an the i my me we our you your to for of with and or in on at is are be can could would should want need looking find best good useful something way before after try trial trials app apps service services option options free cheapest'.split(' '));
+const datingWords = ['dating','relationship','relationships','matchmaking','singles','tinder','bumble','hinge','eharmony'];
+export function searchIntent(query) {
+  const words = searchWords(query);
+  if (words.some(word=>datingWords.includes(word)) || (words.includes('love') && !words.some(word=>['movie','movies','show','shows','book','books','music','song','songs','coding','code'].includes(word)))) return 'relationships';
+  return 'general';
+}
+export function searchTextScore(offer, query) {
+  const words = new Set(searchWords([offer.name,offer.description,offer.goal,...(offer.categories||[]),...(offer.facets||[])].join(' ')));
+  if (searchIntent(query) === 'relationships') return datingWords.some(word=>words.has(word)) ? 1 : 0;
+  return [...new Set(searchWords(query).filter(word=>!genericWords.has(word)))].filter(word=>words.has(word)).length;
+}
+export function matchesCatalogSearch(offer,query) {
+  return !query.trim() || searchTextScore(offer,query)>0;
+}
+export function emptySearchMessage(query) {
+  return searchIntent(query) === 'relationships'
+    ? 'You’re looking for dating or relationship services. We don’t have matching entries in the current catalog yet. We won’t substitute unrelated offers. You can browse all options or track a service you already use in My Try Plan.'
+    : 'No relevant catalog matches yet. Try a provider name or a more specific topic, or clear the search to browse all options.';
+}
+
 export function isReviewed(offer) {
   return offer.verificationStatus === 'reviewed' && offerStatus({...offer, status:'published'}) === 'current';
 }
