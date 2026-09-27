@@ -108,6 +108,15 @@ async function run() {
       await page.keyboard.press('Escape');
     }
 
+    // Stress longer labels independently of platform font metrics.
+    await page.setViewportSize({width:320,height:900});
+    await page.locator('#activeTab').click();
+    const calendarButton = page.locator('[data-calendar-trial]');
+    const calendarLabel = await calendarButton.textContent();
+    await calendarButton.evaluate(el => { el.textContent = 'Export decision to calendar — choose a reminder in your calendar app'; });
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Long action labels must wrap inside the plan');
+    await calendarButton.evaluate((el, label) => { el.textContent = label; }, calendarLabel);
+
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('#discoverTab').click();
     await page.locator('#sidebarToggle').click();

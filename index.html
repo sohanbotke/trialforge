@@ -403,7 +403,17 @@
 
     .stack {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      min-width: 0;
       gap: 12px;
+    }
+
+    .card-actions .btn {
+      min-width: 0;
+      max-width: 100%;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      justify-content: center;
     }
 
     .grid {
