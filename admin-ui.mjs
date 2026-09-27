@@ -7,6 +7,9 @@ import { starterAudit, auditDate } from './starter-audit.mjs';
 import { offerStatus, recheckQueue, REVIEW_WINDOW_DAYS } from './catalog-policy.mjs';
 const el = id => document.getElementById(id);
 const emulator = ['localhost','127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('emulator') === '1';
+const entryParams = new URLSearchParams(location.search);
+const requestedQueue = entryParams.get('queue');
+if (['seeds','collected','published','recheck'].includes(requestedQueue)) el('queueType').value = requestedQueue;
 const config = emulator ? { apiKey:'demo-key',projectId:'demo-trywise',authDomain:'demo-trywise.firebaseapp.com',appId:'demo-trywise-app' } : firebaseConfig;
 let client, allowed = false, generation = 0, selectionGeneration = 0, selected = null, expectedReview = 0, expectedCatalog = 0, targetId = '', dirty = false, busy = false, cursor, catalog = [], stopCatalog;
 let queueGeneration=0, loadedRows=new Map();
@@ -202,6 +205,30 @@ async function select(item) {
   } catch (error) { if (session === generation&&ticket===selectionGeneration){message(`Could not load this review: ${error.message}. Select the entry again to retry.`,true);}return false;
   }finally{if(session===generation&&ticket===selectionGeneration){editor.loading=false;syncEditor();}}
 }
+async function openRequestedOffer(session) {
+  const id = entryParams.get('offer');
+  if (!id) return;
+  if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(id)) { message('Invalid review link. Choose an entry from the queue.',true); return; }
+  const ticket = selectionGeneration;
+  try {
+    // This runs only after server-checked admin access. Never trust URL fields as
+    // offer data or bypass the existing source evidence and confirmation form.
+    const offer = await readWithDeadline(client.catalog.offer(id));
+    if (session !== generation || !allowed || ticket !== selectionGeneration || selected || editor.loading) return;
+    const seed = seedCatalog.find(item=>item.id===id);
+    if (offer) {
+      el('queueType').value = 'published';
+      await loadQueue();
+      if (session === generation && allowed && ticket === selectionGeneration && !selected && !editor.loading) await select({offer,title:offer.name||id,url:offer.url,candidateId:offer.sourceCandidate||`seed-${id}`});
+    } else if (seed) {
+      el('queueType').value = 'seeds';
+      await loadQueue();
+      if (session === generation && allowed && ticket === selectionGeneration && !selected && !editor.loading) await select({seed,title:seed.name,url:seed.url,candidateId:`seed-${id}`});
+    } else message('This entry is no longer available. Choose an entry from the queue.',true);
+  } catch {
+    if (session === generation && allowed && ticket === selectionGeneration) message('Could not open the linked entry. Select it from the queue or reload to retry.',true);
+  }
+}
 async function loadQueue(append = false) {
   if (!allowed || busy) return;
   const session = generation, type = el('queueType').value, ticket=++queueGeneration;
@@ -345,7 +372,7 @@ try {
       allowed=admin;
       el('identity').textContent=admin ? `Admin: ${user.email}` : 'This account is not authorized to review or publish offers.';
       el('workspace').hidden=!admin;
-      if(admin){stopCatalog=client.catalog.watchCatalog(items=>{if(session!==generation||!allowed)return;catalog=items;showCoverage();showRevisionNotice();if(selected)showDuplicates();if(['published','recheck'].includes(el('queueType').value))void loadQueue();else renderQueue();},()=>{if(session===generation)message('Catalog unavailable. Refresh when online; your edits are kept.',true);});void loadQueue();}
+      if(admin){stopCatalog=client.catalog.watchCatalog(items=>{if(session!==generation||!allowed)return;catalog=items;showCoverage();showRevisionNotice();if(selected)showDuplicates();if(['published','recheck'].includes(el('queueType').value))void loadQueue();else renderQueue();},()=>{if(session===generation)message('Catalog unavailable. Refresh when online; your edits are kept.',true);});void loadQueue();void openRequestedOffer(session);}
     }catch{if(session===generation)message('Could not verify admin access. Check your connection and reload.',true);}
   });
 } catch { el('identity').textContent='Connection unavailable. Check your connection and reload.'; }
