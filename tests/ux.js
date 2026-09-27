@@ -101,6 +101,22 @@ async function run() {
         await page.locator(`#${view}Tab`).click();
         const dimensions = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
         assert(dimensions.content <= dimensions.viewport, `${view} overflows at ${width}px`);
+        assert.equal(await page.locator('.tabs').evaluate(el => getComputedStyle(el).position), 'static', `View navigation must not overlay ${view} content at ${width}px`);
+        const obscured = await page.evaluate(view => {
+          const nav = document.querySelector('.tabs');
+          const controls = [...document.querySelectorAll(`#${view}View input, #${view}View textarea, #${view}View button, #${view}View a, #${view}View summary`)].filter(el => el.getClientRects().length);
+          const failures = [];
+          for (const control of controls) {
+            const y = control.getBoundingClientRect().top + scrollY;
+            for (const offset of [12, 40, 120, 300]) {
+              window.scrollTo(0, Math.max(0, y - offset));
+              const a = control.getBoundingClientRect(), b = nav.getBoundingClientRect();
+              if (a.top < innerHeight && a.bottom > 0 && b.top < a.bottom && b.bottom > a.top && b.left < a.right && b.right > a.left) failures.push(control.id || control.textContent.trim().slice(0,40));
+            }
+          }
+          return failures;
+        }, view);
+        assert.deepEqual(obscured, [], `${view} controls obscured by navigation at ${width}px`);
       }
       await page.locator('#setupBtn').click();
       const dialog = await page.locator('#onboardingDialog').boundingBox();
@@ -116,6 +132,18 @@ async function run() {
     await calendarButton.evaluate(el => { el.textContent = 'Export decision to calendar — choose a reminder in your calendar app'; });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Long action labels must wrap inside the plan');
     await calendarButton.evaluate((el, label) => { el.textContent = label; }, calendarLabel);
+
+    if (process.env.TRYWISE_SCREENSHOT_DIR) {
+      for (const width of [390,1440]) {
+        await page.setViewportSize({width,height:900});
+        await page.locator('#serviceName').evaluate(el=>{el.focus();el.scrollIntoView({block:'start'});});
+        const visible=await page.locator('#serviceName').evaluate(el=>{
+          const box=el.getBoundingClientRect();return box.top>=0&&box.bottom<=innerHeight&&document.elementFromPoint(box.x+box.width/2,box.y+box.height/2)===el;
+        });
+        assert(visible, `Focused form input must be unobscured at ${width}px`);
+        await page.screenshot({path:`${process.env.TRYWISE_SCREENSHOT_DIR}/plan-form-${width}.png`});
+      }
+    }
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('#discoverTab').click();
