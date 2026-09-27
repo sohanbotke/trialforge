@@ -24,13 +24,20 @@ try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  async function waitForPlanner() {
+    // Before module initialization, <main> is not inert yet. That alone is
+    // not a readiness signal on a cold browser or slower network.
+    await page.waitForFunction(() => Boolean(window.__tryWiseSmoke)
+      && document.querySelector('main')?.inert === false
+      && document.querySelectorAll('#trialFeed article').length > 0);
+  }
   await page.goto(base);
-  await page.waitForFunction(() => !document.querySelector('main').inert);
+  await waitForPlanner();
   assert(await page.locator('#accountBtn').isVisible());
   assert(await page.locator('#trialFeed article').count() > 0);
   await page.locator('[data-add-catalog]').first().click();
   await page.reload();
-  await page.waitForFunction(() => !document.querySelector('main').inert);
+  await waitForPlanner();
   await page.locator('#activeTab').click();
   assert.match(await page.locator('#activeTrials').textContent(), /Saved — not started/);
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

@@ -41,14 +41,20 @@ already reach users without a Hosting deployment.
 Connecting weekly artifacts to the admin queue later requires a review-envelope
 adapter and a separate scoped collector identity—not the deployment credential.
 
-## Deployment credential — setup required
+## Deployment credential
 
-GitHub currently lacks `FIREBASE_SERVICE_ACCOUNT_TRYWISE_9F8E1`. Tests can run,
-but automatic deployment cannot authenticate until it is configured.
+Configured September 27, 2026: GitHub repository Actions secret
+`FIREBASE_SERVICE_ACCOUNT_TRYWISE_9F8E1` uses the dedicated identity
+`github-hosting-deploy@trywise-9f8e1.iam.gserviceaccount.com`. Its only project
+roles are Firebase Hosting Admin and API Keys Viewer (required by the Firebase
+CLI). The credential was transferred directly to GitHub without a local key file.
+
+For replacement or rotation:
 
 1. Have the cloud owner provision a dedicated Hosting deployment service account
    in `trywise-9f8e1`. Use Firebase Hosting Admin (`roles/firebasehosting.admin`)
-   and add only a specifically required permission identified by diagnostics.
+   and API Keys Viewer (`roles/serviceusage.apiKeysViewer`). Add any further
+   permissions only if specifically required and identified by diagnostics.
    Do not grant Owner/Editor, Firestore write, or authentication-admin access.
    Do not reuse the Firebase Admin SDK account, nightly identity, or local login.
 2. Store its JSON credential directly in repository Actions secrets as
@@ -57,9 +63,11 @@ but automatic deployment cannot authenticate until it is configured.
    final live verification to pass, not merely the upload step.
 4. Check `https://trywise-9f8e1.web.app/release.json` for the expected revision.
 
-Provisioning cloud access is not performed by this merge. The current Hosting
-action requires a service-account JSON secret. A future alternative is short-lived
-Workload Identity Federation with an appropriately adapted workflow.
+After replacing the secret, verify a successful release before revoking the old
+key. Never revoke the active key merely to remove a downloaded local copy.
+The current Hosting action requires a service-account JSON secret. A future
+alternative is short-lived Workload Identity Federation with an appropriately
+adapted workflow.
 
 References: [Firebase GitHub integration](https://firebase.google.com/docs/hosting/github-integration),
 [Hosting action inputs](https://github.com/FirebaseExtended/action-hosting-deploy#options),
