@@ -894,6 +894,15 @@
     .quick-starts { max-height: 48px; overflow-x: auto; flex-wrap: nowrap; }
     .quick-start { white-space: nowrap; flex-shrink: 0; }
     .toolbar { display: flex; align-items: flex-start; flex-wrap: wrap; }
+    .comparison-dialog { max-height: calc(100dvh - 24px); }
+    .comparison-dialog .onboarding-card { min-width: 0; }
+    .comparison-scroll { overflow-x: auto; min-width: 0; }
+    .comparison-table { border-collapse: collapse; min-width: 620px; width: 100%; table-layout: fixed; }
+    .comparison-table caption { text-align: left; padding: 0 0 12px; }
+    .comparison-table th, .comparison-table td { text-align: left; vertical-align: top; padding: 12px; border: 1px solid var(--line); overflow-wrap: anywhere; }
+    .comparison-table th { background: var(--panel-soft, #fff8ee); }
+    .comparison-table a { display: inline-flex; min-height: 44px; align-items: center; }
+    [data-compare-trial][aria-pressed="true"] { border-color: var(--accent); background: #e0f7fa; color: #005e67; }
     @media (max-width: 680px) {
       .topbar { gap: 12px; }
       .toolbar .btn { width: auto; }
@@ -1152,7 +1161,26 @@
         </section>
 
         <section class="view" id="activeView" role="tabpanel" aria-labelledby="activeTab" tabindex="0">
-          <div class="grid">
+          <div class="stack">
+            <section class="panel">
+              <div class="panel-header"><h2 class="panel-title">My Try Plan</h2></div>
+              <div class="panel-body stack">
+                <p class="small muted">Save a shortlist, compare the terms, then track only what you actually start.</p>
+                <div class="card-actions">
+                  <button class="btn" type="button" data-view="discover">Find more options</button>
+                  <button class="btn primary" type="button" id="compareSavedBtn" disabled>Compare selected (0/3)</button>
+                </div>
+                <p class="small muted" id="compareHint" role="status">Choose 2 or 3 saved options to compare.</p>
+                <div class="undo-notice" id="undoNotice" hidden>
+                  <p id="undoMessage" role="status"></p>
+                  <div class="card-actions">
+                    <button class="btn" id="undoRemoveBtn" type="button">Undo removal</button>
+                    <button class="btn" id="dismissUndoBtn" type="button">Dismiss</button>
+                  </div>
+                </div>
+                <div class="stack" id="activeTrials"></div>
+              </div>
+            </section>
             <section class="panel">
               <div class="panel-header">
                 <h2 class="panel-title">
@@ -1162,7 +1190,7 @@
               </div>
               <div class="panel-body">
                 <form class="trial-form" id="trialForm">
-                  <p class="small muted wide">Enter dates and cost from your actual signup. For a free tier, choose a personal review date—not a trial expiry. TryWise does not cancel subscriptions or send reminders yet.</p>
+                  <p class="small muted wide">Enter dates and cost from your actual signup. Choose a decision date before any renewal; for a free tier, choose a personal review date. You can export it to your calendar and set a reminder there. TryWise does not send alerts or cancel subscriptions.</p>
                   <div class="field">
                     <label for="serviceName">Option</label>
                     <input id="serviceName" type="text" placeholder="Adobe Express" required>
@@ -1197,24 +1225,6 @@
               </div>
             </section>
 
-            <section class="panel">
-              <div class="panel-header">
-                <h2 class="panel-title">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5V4a2 2 0 0 1 2-2h10l4 4v13.5A2.5 2.5 0 0 1 17.5 22h-11A2.5 2.5 0 0 1 4 19.5z"></path><path d="M14 2v6h6"></path></svg>
-                  My Try Plan
-                </h2>
-              </div>
-              <div class="panel-body">
-                <div class="undo-notice" id="undoNotice" hidden>
-                  <p id="undoMessage" role="status"></p>
-                  <div class="card-actions">
-                    <button class="btn" id="undoRemoveBtn" type="button">Undo removal</button>
-                    <button class="btn" id="dismissUndoBtn" type="button">Dismiss</button>
-                  </div>
-                </div>
-                <div class="stack" id="activeTrials"></div>
-              </div>
-            </section>
           </div>
         </section>
 
@@ -1280,6 +1290,14 @@
       </section>
     </main>
   </div>
+
+  <dialog class="onboarding comparison-dialog" id="comparisonDialog" aria-labelledby="comparisonTitle" aria-describedby="comparisonDescription">
+    <div class="onboarding-card">
+      <div class="onboarding-head"><h2 id="comparisonTitle">Compare your shortlist</h2><button class="btn" type="button" id="closeComparisonBtn" autofocus>Close</button></div>
+      <p class="small muted" id="comparisonDescription">Reviewed facts only. Unknown does not mean free. Base prices exclude possible extra charges; confirm terms with the provider. Swipe the table sideways on smaller screens.</p>
+      <div id="comparisonTable" class="comparison-scroll" tabindex="0" role="region" aria-label="Option comparison table"></div>
+    </div>
+  </dialog>
 
   <dialog class="onboarding" id="onboardingDialog" aria-labelledby="setupTitle" aria-describedby="setupDescription">
     <form method="dialog" class="onboarding-card" id="onboardingForm">
@@ -1368,7 +1386,7 @@
     import { initializeAccounts } from './account-ui.mjs';
     import { seedCatalog } from './seed-catalog.mjs';
     import { mergedCatalog, offerTypes } from './catalog-model.mjs';
-    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord } from './consumer-model.mjs';
+    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar } from './consumer-model.mjs';
     let accountManager = null;
 
     const STATE_KEY = 'trywise-state-v2';
@@ -1463,6 +1481,8 @@
 
     let trialCatalog = [];
     let latestCatalogRecords = null;
+    let catalogLoadStatus = 'loading';
+    let comparisonIds = [];
 
     let state = loadState();
     let editingTrialId = null;
@@ -1493,13 +1513,14 @@
 
     function render() {
       const focused = document.activeElement;
-      const focusAttribute = ['data-interest', 'data-add-catalog', 'data-edit-trial', 'data-review-trial'].find((name) => focused?.hasAttribute(name));
+      const focusAttribute = ['data-interest', 'data-add-catalog', 'data-edit-trial', 'data-review-trial', 'data-compare-trial'].find((name) => focused?.hasAttribute(name));
       const focusSelector = focusAttribute ? `[${focusAttribute}="${CSS.escape(focused.getAttribute(focusAttribute))}"]` : null;
       renderInterests();
       renderStats();
       renderRequirementPlan();
       renderTrialFeed();
       renderActiveTrials();
+      renderComparison();
       renderReviewQueue();
       renderSourceRadar();
       renderAlertPlan();
@@ -1542,7 +1563,7 @@
       const value = activeTrials.reduce((sum, trial) => sum + Number(trial.monthlyValue || 0), 0);
       document.getElementById('activeCount').textContent = activeTrials.length;
       document.getElementById('urgentCount').textContent = urgent.length;
-      document.getElementById('monthlyValue').textContent = `$${value.toFixed(0)}`;
+      document.getElementById('monthlyValue').textContent = `$${value.toFixed(2)}`;
       document.getElementById('savedCount').textContent = state.decisions.length;
       document.querySelector('.stats').hidden = document.getElementById('discoverView').classList.contains('active') || (!activeTrials.length && !state.decisions.length);
     }
@@ -1588,7 +1609,7 @@
                 </div>
               `).join('')}
             </div>
-          ` : '<p class="small muted">No catalog matches yet. Try a broader description or browse the options below.</p>'}
+          ` : `<p class="small muted">${catalogLoadStatus === 'loading' ? 'Loading catalog matches…' : 'No catalog matches yet. Try a broader description or browse the options below.'}</p>`}
         </article>
       `;
     }
@@ -1779,6 +1800,12 @@
       });
 
       const feed = document.getElementById('trialFeed');
+      feed.setAttribute('aria-busy', String(catalogLoadStatus === 'loading'));
+      if (catalogLoadStatus === 'loading' || (catalogLoadStatus === 'error' && latestCatalogRecords === null)) {
+        document.getElementById('resultsCount').textContent = catalogLoadStatus === 'loading' ? 'Loading options…' : 'Catalog unavailable';
+        feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>${catalogLoadStatus === 'loading' ? 'Finding your options…' : 'Could not load the catalog'}</strong><p>${catalogLoadStatus === 'loading' ? 'You can enter a search while the catalog connects.' : 'Your saved plan is still available. Reload to try the catalog again.'}</p>${catalogLoadStatus === 'error' ? '<button class="btn" type="button" data-reload-catalog>Retry catalog</button>' : ''}</div>`;
+        return;
+      }
       const filtered = selected.size > 0 || query || source !== 'all' || maximum !== '' || review !== 'all' || type !== 'all';
       document.getElementById('resultsCount').textContent = `${matching.length} of ${trialCatalog.length} options${selected.size ? ` · Interests: ${[...selected].map(interestLabel).join(', ')}` : ''}${latestRequirement ? ' · Ranked for your latest request' : ''}`;
       document.getElementById('clearFiltersBtn').disabled = !filtered;
@@ -1868,12 +1895,14 @@
       }
 
       container.innerHTML = active.map((trial) => {
+        const offer = trialCatalog.find(item => item.id === trial.catalogId);
         if (trial.status === 'saved') return `
           <article class="trial-card" data-saved-option="${trial.id}">
             <div class="card-top"><h3 class="card-title">${escapeHTML(trial.service)}</h3><span class="badge">Saved — not started</span></div>
             <p class="small muted">No countdown or recurring cost is tracked yet. Confirm your actual dates and cost when you start.</p>
             <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'Not set yet')}</p>
-            <div class="card-actions"><button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
+            <p class="small muted">${offer ? `${escapeHTML(comparisonFacts(offer).review)} · Monthly base: ${escapeHTML(comparisonFacts(offer).monthly)}` : 'Current offer details unavailable. Confirm terms before starting.'}</p>
+            <div class="card-actions"><button class="btn" type="button" data-compare-trial="${trial.id}" aria-pressed="${comparisonIds.includes(trial.id)}">${comparisonIds.includes(trial.id) ? 'Selected for comparison' : 'Select to compare'}</button>${offer ? `<a class="btn" href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.service)} offer (opens in a new tab)">Visit offer ↗</a>` : ''}<button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
           </article>`;
         const days = daysUntil(trial.endDate);
         const total = Math.max(1, daysBetween(trial.startDate, trial.endDate));
@@ -1895,11 +1924,42 @@
             <div class="card-actions">
               <button class="btn" type="button" data-edit-trial="${trial.id}">Edit option</button>
               <button class="btn primary" type="button" data-review-trial="${trial.id}">Review</button>
+              <button class="btn" type="button" data-calendar-trial="${trial.id}">Export decision to calendar</button>
               <button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button>
             </div>
           </article>
         `;
       }).join('');
+    }
+
+    function renderComparison() {
+      comparisonIds = comparisonIds.filter(id => state.trials.some(trial => trial.id === id && trial.status === 'saved'));
+      const button = document.getElementById('compareSavedBtn');
+      button.textContent = `Compare selected (${comparisonIds.length}/3)`;
+      button.disabled = comparisonIds.length < 2;
+      document.getElementById('compareHint').textContent = comparisonIds.length
+        ? `${comparisonIds.length} selected. Choose up to 3 saved options; comparisons do not start tracking.`
+        : 'Choose 2 or 3 saved options to compare.';
+      const dialog = document.getElementById('comparisonDialog');
+      if (comparisonIds.length < 2) { dialog.close(); document.getElementById('comparisonTable').replaceChildren(); return; }
+      const trials = comparisonIds.map(id => state.trials.find(trial => trial.id === id));
+      const offers = trials.map(trial => trialCatalog.find(offer => offer.id === trial.catalogId));
+      const facts = offers.map(comparisonFacts);
+      const fields = {review:'Evidence status', upfront:'Listed upfront cost', monthly:'Monthly base cost', duration:'Trial duration', pricing:'Extra costs & limits', eligibility:'Who qualifies', region:'Region', cancellation:'Cancellation'};
+      document.getElementById('comparisonTable').innerHTML = `<table class="comparison-table"><caption class="small">Terms for ${trials.length} saved options — no quality or savings score</caption><thead><tr><th scope="col">Compare</th>${trials.map(trial => `<th scope="col">${escapeHTML(trial.service)}</th>`).join('')}</tr></thead><tbody>${Object.entries(fields).map(([key,label]) => `<tr><th scope="row">${label}</th>${facts.map(fact => `<td>${escapeHTML(fact[key])}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Provider</th>${offers.map((offer, index) => `<td>${offer ? `<a href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trials[index].service)} (opens in a new tab)">Visit offer ↗</a>` : 'Unavailable'}</td>`).join('')}</tr></tbody></table>`;
+    }
+
+    function exportDecision(id) {
+      const trial = state.trials.find(item => item.id === id);
+      if (!trial) return;
+      try {
+        const url = URL.createObjectURL(new Blob([decisionCalendar(trial)], {type:'text/calendar;charset=utf-8'}));
+        const link = document.createElement('a');
+        link.href = url; link.download = 'trywise-decision.ics';
+        document.body.append(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast('Open the calendar file and set a reminder. It includes the option name and decision date, not your private notes.');
+      } catch (error) { showToast(error.message); }
     }
 
     function renderReviewQueue() {
@@ -2364,14 +2424,21 @@
       if (target.dataset.removeTrial) removeTrial(target.dataset.removeTrial);
       if (target.dataset.editTrial) loadTrialIntoForm(target.dataset.editTrial);
       if (target.dataset.reviewTrial) focusReviewTrial(target.dataset.reviewTrial);
+      if (target.dataset.calendarTrial) exportDecision(target.dataset.calendarTrial);
+      if (target.dataset.reloadCatalog !== undefined) location.reload();
+      if (target.dataset.compareTrial) {
+        const id = target.dataset.compareTrial;
+        if (comparisonIds.includes(id)) comparisonIds = comparisonIds.filter(item => item !== id);
+        else if (comparisonIds.length < 3) comparisonIds.push(id);
+        else { showToast('Compare up to 3 options. Deselect one to choose another.'); return; }
+        render();
+      }
       if (target.dataset.decide) decideTrial(target.dataset.trial, target.dataset.decide);
     });
 
     function applyQuickRequirement(requirement) {
       setPlannerCollapsed(false);
       document.getElementById('requirementText').value = requirement;
-      document.getElementById('requirementBudget').value = requirement.toLowerCase().includes('live sports') ? '80' : '30';
-      document.getElementById('requirementRisk').value = 'lowest-cost';
       document.getElementById('requirementForm').requestSubmit();
     }
 
@@ -2406,6 +2473,11 @@
     });
 
     document.getElementById('searchInput').addEventListener('input', renderTrialFeed);
+    document.getElementById('compareSavedBtn').addEventListener('click', () => {
+      renderComparison();
+      if (comparisonIds.length >= 2) document.getElementById('comparisonDialog').showModal();
+    });
+    document.getElementById('closeComparisonBtn').addEventListener('click', () => document.getElementById('comparisonDialog').close());
     document.getElementById('sidebarToggle').addEventListener('click', () => {
       const expanded = document.getElementById('sidebar').classList.toggle('expanded');
       document.getElementById('sidebarToggle').setAttribute('aria-expanded', String(expanded));
@@ -2469,6 +2541,9 @@
       replaceState(next, options = {}) {
         state = next;
         if (options.sessionChanged || options.reload) {
+          comparisonIds = [];
+          document.getElementById('comparisonDialog').close();
+          document.getElementById('comparisonTable').replaceChildren();
           document.getElementById('trialForm').reset();
           document.getElementById('requirementForm').reset();
           document.getElementById('searchInput').value = '';
@@ -2488,6 +2563,7 @@
       },
       notify: showToast,
       onCatalog(records, status) {
+        catalogLoadStatus = status;
         if (records) { latestCatalogRecords = records; trialCatalog = mergedCatalog(seedCatalog, records); }
         document.getElementById('catalogStatus').textContent = status === 'error'
           ? 'Catalog connection unavailable. Reload when online; your saved plan is unchanged.'
