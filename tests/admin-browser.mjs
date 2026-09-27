@@ -43,6 +43,7 @@ try{
   await admin.waitForFunction(()=>!document.getElementById('reviewForm').hidden&&!document.getElementById('fields').disabled);
   assert.equal(await admin.locator('#offerId').inputValue(),'hellofresh');
   assert.equal(await admin.locator('#confirmed').isChecked(),false,'Opening a review is never approval');
+  await admin.setViewportSize({width:390,height:844});
   await admin.locator('#backToQueue').click();
   await admin.locator('#queueType').selectOption('collected');
   await admin.getByRole('button',{name:/AI draft browser fixture — needs review/}).click();
