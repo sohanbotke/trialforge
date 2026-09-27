@@ -329,10 +329,9 @@
       border-radius: var(--radius);
       padding: 5px;
       margin-bottom: 14px;
-      position: sticky;
-      top: 8px;
-      z-index: 10;
-      backdrop-filter: blur(10px);
+      /* In-flow navigation cannot obscure form fields or catalog actions while
+         scrolling, including at zoomed and intermediate viewport widths. */
+      position: static;
     }
 
     .tab {
