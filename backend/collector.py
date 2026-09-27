@@ -9,7 +9,7 @@ Design principles:
   * SSRF-safe: every fetched URL is validated, hostnames are resolved, and
     connections go only to global (public) IP addresses. Redirects are
     re-validated hop by hop.
-  * Polite: robots.txt is honored per host (Disallow + Crawl-delay), with a
+  * Polite: robots.txt is honored per host (Allow/Disallow + Crawl-delay), with a
     per-host minimum interval between requests and conditional requests
     (ETag / If-Modified-Since) so scheduled runs stay cheap.
   * Stateful: data/state.json remembers every candidate URL, so each run can
@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import socket
@@ -368,7 +369,7 @@ def classify_fetch_quality(text: str, content_type: str) -> str:
 # robots.txt compliance + politeness
 # ---------------------------------------------------------------------------
 class RobotsChecker:
-    """Minimal robots.txt client: honors Disallow for our UA (and `*`) and
+    """Minimal robots.txt client: honors Allow/Disallow for our UA (or `*`) and
     Crawl-delay. Rules are cached per host for ROBOTS_TTL seconds."""
 
     def __init__(self) -> None:
@@ -379,7 +380,7 @@ class RobotsChecker:
         parsed = urlparse(url)
         host = (parsed.hostname or "").lower()
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
-        key = f"{host}:{port}"
+        key = f"{parsed.scheme}://{host}:{port}"
         now = time.time()
         cached = self._cache.get(key)
         if cached and now - cached[0] < ROBOTS_TTL:
@@ -387,14 +388,8 @@ class RobotsChecker:
         else:
             rules, delay = self._fetch_rules(parsed)
             self._cache[key] = (now, rules, delay)
-        path = parsed.path or "/"
-        for pattern, _ in rules:
-            expression = re.escape(pattern).replace(r"\*", ".*")
-            if pattern.endswith("$"):
-                expression = expression[:-2] + "$"
-            if re.match(expression, path):
-                return False, delay, f"disallowed by robots.txt ({pattern})"
-        return True, delay, "allowed"
+        allowed, note = robots_allowed(url, rules)
+        return allowed, delay, note
 
     def _fetch_rules(self, parsed) -> tuple[list[tuple[str, str]], float | None]:
         robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
@@ -410,15 +405,16 @@ class RobotsChecker:
 
 
 def parse_robots(text: str) -> tuple[list[tuple[str, str]], float | None]:
-    """Parse robots.txt into ([(path_prefix, agent)], crawl_delay). Only the
-    group for our UA name (trywisebot) or `*` is honored. A new User-agent
-    line after any rule starts a new group (agents don't leak across groups)."""
-    rules: list[tuple[str, str]] = []
-    crawl_delay: float | None = None
-    group_agents: list[str] = []
-    group_applies = False
+    """Return ([(pattern, allow|disallow)], crawl_delay) for TryWiseBot.
+
+    Matching named groups merge; wildcard groups are only a fallback. The
+    longest finite Crawl-delay among selected groups is retained conservatively.
+    RFC 9309 sections 2.2.1–2.2.4 govern groups and access rules.
+    """
+    groups = []
+    agents, rules, delays = [], [], []
     seen_rule = False
-    for raw_line in text.splitlines():
+    for raw_line in text.lstrip('\ufeff').splitlines():
         line = raw_line.split("#", 1)[0].strip()
         if not line or ":" not in line:
             continue
@@ -427,27 +423,65 @@ def parse_robots(text: str) -> tuple[list[tuple[str, str]], float | None]:
         value = value.strip()
         if field == "user-agent":
             if seen_rule:
-                group_agents = []
-                group_applies = False
+                groups.append((agents, rules, delays))
+                agents, rules, delays = [], [], []
                 seen_rule = False
-            agent = value.lower()
-            group_agents.append(agent)
-            if agent in {"*", "trywisebot"}:
-                group_applies = True
-        elif field == "disallow":
+            agents.append(value.lower())
+        elif field in {"allow", "disallow"}:
             seen_rule = True
-            if group_applies and value:
-                rules.append((value, "disallow"))
+            if agents and value:
+                rules.append((value, field))
         elif field == "crawl-delay":
             seen_rule = True
-            if group_applies:
+            if agents:
                 try:
-                    crawl_delay = float(value)
+                    delay = float(value)
+                    if math.isfinite(delay) and delay >= 0:
+                        delays.append(delay)
                 except ValueError:
                     pass
-        elif field in {"allow", "sitemap"}:
-            seen_rule = True
-    return rules, crawl_delay
+        # Sitemap and unknown extensions must not split user-agent groups.
+    groups.append((agents, rules, delays))
+    selected = [group for group in groups if "trywisebot" in group[0]]
+    if not selected:
+        selected = [group for group in groups if "*" in group[0]]
+    rules = [rule for _, group_rules, _ in selected for rule in group_rules]
+    delays = [delay for _, _, group_delays in selected for delay in group_delays]
+    return rules, max(delays, default=None)
+
+
+def robots_allowed(url: str, rules: list[tuple[str, str]]) -> tuple[bool, str]:
+    """Longest matching access rule wins, Allow wins ties; order is irrelevant.
+
+    Include query strings, support '*' and terminal '$', and compare encoded
+    octets consistently without decoding reserved separators such as %2F.
+    """
+    def normalize(value, pattern=False):
+        value = ''.join(char if ord(char) < 128 else ''.join(f'%{byte:02X}' for byte in char.encode('utf-8')) for char in value)
+        if not pattern:
+            value = value.replace('*', '%2A').replace('$', '%24')
+        def percent(match):
+            char = chr(int(match[1], 16))
+            return char if char.isascii() and (char.isalnum() or char in '-._~') else '%' + match[1].upper()
+        return re.sub(r'%([0-9a-fA-F]{2})', percent, value)
+
+    parsed = urlparse(url)
+    path = normalize((parsed.path or '/') + (';' + parsed.params if parsed.params else '') + ('?' + parsed.query if parsed.query else ''))
+    best = None
+    for raw_pattern, directive in rules:
+        pattern = normalize(raw_pattern, pattern=True)
+        anchored = pattern.endswith('$')
+        literal = pattern[:-1] if anchored else pattern
+        expression = re.escape(literal).replace(r'\*', '.*') + (r'\Z' if anchored else '')
+        if re.match(expression, path):
+            # Operator characters do not contribute literal path octets.
+            length = len(re.sub(r'%[0-9A-F]{2}', '_', literal.replace('*', '')).encode('utf-8'))
+            candidate = (length, directive == 'allow', raw_pattern)
+            if best is None or candidate[:2] > best[:2]:
+                best = candidate
+    if best is None or best[1]:
+        return True, 'allowed'
+    return False, f'disallowed by robots.txt ({best[2]})'
 
 
 class PoliteFetcher:
