@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.TRYWISE_BASE_URL || 'http://127.0.0.1:4177';
+const screenshotDir = process.env.TRYWISE_SCREENSHOT_DIR || process.env.TMPDIR || '/tmp';
 if (!['localhost', '127.0.0.1'].includes(new URL(baseUrl).hostname)) throw new Error('Consumer fixture tests must run locally.');
 const catalogModule = await readFile(new URL('../catalog-model.mjs', import.meta.url), 'utf8');
 const fixture = {
@@ -71,7 +72,7 @@ try {
   assert.equal(state.trials[0].startDate, '');
   assert.equal(state.trials[0].endDate, '');
   assert.equal(await page.locator('#urgentCount').textContent(), '0');
-  assert.equal(await page.locator('#monthlyValue').textContent(), '$0');
+  assert.equal(await page.locator('#monthlyValue').textContent(), '$0.00');
   await page.locator('#reviewTab').click();
   assert.equal(await page.locator('#reviewQueue article').count(), 0);
   await page.locator('#activeTab').click();
@@ -101,6 +102,87 @@ try {
     await page.setViewportSize({ width, height: 900 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}`);
   }
+  // A new guest can make an explicit shortlist without hidden budgets.
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.locator('#trialFeed article').first().waitFor();
+  await page.locator('[data-quick-requirement]').filter({hasText:'AI coding tools'}).click();
+  assert.equal((await page.evaluate(() => window.__tryWiseSmoke.getState())).requirements.at(-1).budget, 0);
+  await page.locator('#plannerToggle').click();
+  await page.locator('.discovery-options').first().locator('summary').click();
+  await page.locator('#requirementBudget').fill('17');
+  await page.locator('[data-quick-requirement]').filter({hasText:'Live sports'}).click();
+  assert.equal((await page.evaluate(() => window.__tryWiseSmoke.getState())).requirements.at(-1).budget, 17);
+  await page.locator('#clearFiltersBtn').click();
+  for (const id of ['reviewed-fixture','paid-fixture','hellofresh']) await page.locator(`[data-add-catalog="${id}"]`).click();
+  await page.locator('[data-add-catalog]:not(:disabled)').first().click();
+  await page.locator('#activeTab').click();
+  assert((await page.locator('#activeTrials').boundingBox()).y < (await page.locator('#trialForm').boundingBox()).y, 'Shortlist should precede the tracking form');
+  for (let i = 0; i < 4; i++) await page.locator('[data-compare-trial]').nth(i).click();
+  assert.equal(await page.locator('[data-compare-trial][aria-pressed="true"]').count(), 3);
+  assert.match(await page.locator('#toast').textContent(), /up to 3/);
+  await page.locator('#compareSavedBtn').click();
+  assert(await page.locator('#comparisonDialog').isVisible());
+  assert.equal(await page.locator('#comparisonTable thead th').count(), 4);
+  assert.match(await page.locator('#comparisonTable').textContent(), /\$12.50\/mo after trial/);
+  assert.match(await page.locator('#comparisonTable').textContent(), /Not confirmed/);
+  assert.match(await page.locator('#comparisonTable').textContent(), /<script>window.injected=true<\/script>/);
+  assert.equal(await page.evaluate(() => window.injected), undefined);
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({width,height:900});
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Comparison overflow at ${width}`);
+    const box = await page.locator('#comparisonDialog').boundingBox();
+    assert(box.x >= 0 && box.x + box.width <= width);
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:`${screenshotDir}/trywise-mvp-comparison-mobile.png`});
+  await page.setViewportSize({width:1440,height:1000});
+  await page.screenshot({path:`${screenshotDir}/trywise-mvp-comparison-desktop.png`});
+  await page.setViewportSize({width:390,height:844});
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#compareSavedBtn').evaluate(el => el === document.activeElement), true);
+  await page.locator('[data-remove-trial]').first().click();
+  assert.match(await page.locator('#compareSavedBtn').textContent(), /2\/3/);
+  await page.locator('#undoRemoveBtn').click();
+  await page.locator('[data-edit-trial]').first().click();
+  await page.locator('#startDate').fill('2026-09-27');
+  await page.locator('#endDate').fill('2026-10-02');
+  await page.locator('#monthlyCost').fill('12.50');
+  await page.locator('#keepCriteria').fill('PRIVATE calendar exclusion');
+  await page.locator('#trialForm button[type="submit"]').click();
+  const downloaded = page.waitForEvent('download');
+  await page.locator('[data-calendar-trial]').click();
+  const calendar = await downloaded;
+  assert.equal(calendar.suggestedFilename(), 'trywise-decision.ics');
+  const ics = await readFile(await calendar.path(), 'utf8');
+  assert.match(ics, /DTSTART;VALUE=DATE:20261002/);
+  assert.doesNotMatch(ics, /PRIVATE calendar exclusion/);
+  assert.match(await page.locator('#toast').textContent(), /set a reminder/);
+  await page.reload();
+  await page.locator('#activeTab').click();
+  assert.equal(await page.locator('#activeTrials article').count(), 4);
+  assert.match(await page.locator('#compareSavedBtn').textContent(), /0\/3/);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({path:`${screenshotDir}/trywise-mvp-plan-mobile.png`});
+
+  // Hold the catalog callback so loading is deterministic, not a timed guess.
+  await page.route('**/firebase-client.mjs', route => route.fulfill({contentType:'text/javascript', body:`
+    export const isFirebaseConfigured = () => true;
+    export async function createFirebaseClient() { return {
+      catalog: {watchCatalog(ready, failed) { window.deliverCatalog = () => ready([]); window.failCatalog = () => failed(); }},
+      onAuth(callback) { callback(null); }
+    }; }
+  `}));
+  await page.reload();
+  await page.waitForFunction(() => window.deliverCatalog && window.__tryWiseSmoke && !document.querySelector('main').inert);
+  assert.match(await page.locator('#resultsCount').textContent(), /Loading/);
+  assert.doesNotMatch(await page.locator('#trialFeed').textContent(), /No matching options/);
+  await page.evaluate(() => window.failCatalog());
+  assert.match(await page.locator('#trialFeed').textContent(), /Could not load/);
+  assert(await page.locator('[data-reload-catalog]').isVisible());
+  await page.evaluate(() => window.deliverCatalog());
+  await page.locator('#trialFeed article').first().waitFor();
+  assert.equal(await page.locator('#trialFeed').getAttribute('aria-busy'), 'false');
   assert.deepEqual(errors, []);
   console.log(`Consumer checks passed: reviewed-first claims, exact costs, filters, safe evidence, saved/start lifecycle, persistence. Mobile search ${Math.round(inputY)}px; feed ${Math.round(feedY)}px.`);
 } finally { await browser.close(); }

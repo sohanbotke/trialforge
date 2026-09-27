@@ -72,6 +72,26 @@ async function run() {
     assert(!((await a.locator('#activeTrials').textContent()).includes('Updated on second device')));
     await authenticate(a, `bob-${Date.now()}@example.test`, true);
     assert.equal(await a.locator('#activeTrials article').count(), 0, 'A different account must start with its own empty plan');
+    await a.locator('#discoverTab').click();
+    for (let i = 0; i < 2; i++) {
+      await a.locator('[data-add-catalog]:not(:disabled)').first().click();
+      await a.waitForFunction(() => document.getElementById('accountBtn').textContent === 'Account ✓');
+    }
+    await a.locator('#activeTab').click();
+    for (let i = 0; i < 2; i++) await a.locator('[data-compare-trial]').nth(i).click();
+    await a.locator('#compareSavedBtn').click();
+    assert(await a.locator('#comparisonDialog').isVisible());
+    // An external auth change must clear even an open private comparison.
+    await a.evaluate(async () => {
+      const { getAuth, signOut } = await import('https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js');
+      const auth = getAuth();
+      if (auth.app.options.projectId !== 'demo-trywise') throw new Error('Emulator only');
+      await signOut(auth);
+    });
+    await a.waitForFunction(() => document.getElementById('accountBtn').textContent === 'Sign in');
+    assert.equal(await a.locator('#comparisonDialog').isVisible(), false);
+    assert.equal(await a.locator('#comparisonTable').textContent(), '');
+    assert.match(await a.locator('#compareSavedBtn').textContent(), /0\/3/);
     await a.locator('#accountBtn').click();
     await a.screenshot({ path: `${process.env.TMPDIR || '/tmp'}/trywise-account-desktop.png` });
     await a.setViewportSize({ width: 390, height: 844 });

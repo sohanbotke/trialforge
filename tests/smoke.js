@@ -41,7 +41,7 @@ async function run() {
   await page.locator('#optimizationPlan').getByText('Current plan summary').waitFor();
 
   await page.setViewportSize({ width: 390, height: 900 });
-  await page.locator('button[data-view="discover"]').click();
+  await page.locator('#discoverTab').click();
   await page.locator('#trialFeed').getByRole('heading', { name: 'HelloFresh' }).waitFor();
 
   await browser.close();
