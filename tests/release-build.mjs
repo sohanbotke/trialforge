@@ -10,7 +10,7 @@ assert.equal(config.hosting.site, 'trywise-9f8e1');
 assert(config.hosting.predeploy.includes('npm run build'));
 const manifest = JSON.parse(await read('dist/release.json'));
 assert.equal(manifest.commit, execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim());
-const expected = ['index.html', 'firebase-config.js', 'firebase-client.mjs', 'plan-state.mjs', 'plan-store.mjs', 'account-ui.mjs', 'assets/trywise-mark.svg', 'seed-catalog.mjs', 'catalog-model.mjs', 'catalog-client.mjs', 'admin.html', 'admin.css', 'admin-ui.mjs', 'offer-identity.mjs', 'starter-audit.mjs', 'consumer-model.mjs'];
+const expected = ['index.html', 'firebase-config.js', 'firebase-client.mjs', 'plan-state.mjs', 'plan-store.mjs', 'account-ui.mjs', 'assets/trywise-mark.svg', 'seed-catalog.mjs', 'catalog-model.mjs', 'catalog-client.mjs', 'admin.html', 'admin.css', 'admin-ui.mjs', 'offer-identity.mjs', 'starter-audit.mjs', 'consumer-model.mjs', 'catalog-policy.mjs'];
 assert.deepEqual(Object.keys(manifest.files).sort(), expected.sort());
 for (const file of expected) {
   assert.equal(createHash('sha256').update(await read(`dist/${file}`)).digest('hex'), manifest.files[file]);

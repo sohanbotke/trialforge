@@ -1,4 +1,5 @@
 import { validateIdentity, identityKey } from './offer-identity.mjs';
+import { offerStatus, timestampMillis, retiredOffers } from './catalog-policy.mjs';
 export const categories = ['design','family','productivity','devtools','learning','home','shows','health','finance','meals','delivery','services','cloudinfra','aiapis','harnesses'];
 export const offerTypes = { trial: 'Free trial', free_tier: 'Free tier', discount: 'Intro discount', guarantee: 'Money-back guarantee', open_source: 'Open source' };
 // Private candidate payloads are untrusted, even after server-side extraction.
@@ -27,7 +28,7 @@ export function draftSuggestions(item) {
     model: typeof draft.model === 'string' ? draft.model.slice(0,120) : 'local model' };
 }
 const requiredText = { id: 80, name: 120, description: 1000, category: 30, url: 2000, offerType: 30, priceDetails: 500, eligibility: 500, region: 120, cancellation: 500, goal: 500 };
-export function validateOffer(input) {
+export function validateOffer(input, now = Date.now()) {
   const data = {};
   for (const [key, max] of Object.entries(requiredText)) {
     if (typeof input[key] !== 'string' || !input[key].trim() || input[key].length > max) throw new Error(`Complete ${key} (maximum ${max} characters).`);
@@ -49,23 +50,26 @@ export function validateOffer(input) {
   data.currency = 'USD';
   if(input.identity !== undefined){data.identity=validateIdentity(input.identity);data.identityKey=identityKey(data);}
   data.expiresAt = input.expiresAt ?? null;
-  if (data.expiresAt !== null && (!Number.isFinite(new Date(data.expiresAt).getTime()) || new Date(data.expiresAt) <= new Date())) throw new Error('Offer expiry must be in the future, or blank if not stated.');
+  if (data.expiresAt !== null && (!Number.isFinite(new Date(data.expiresAt).getTime()) || new Date(data.expiresAt).getTime() <= now)) throw new Error('Offer expiry must be in the future, or blank if not stated.');
   return data;
 }
 
 export function mergedCatalog(seeds, records, now = Date.now()) {
-  const entries = new Map(seeds.map(item => [item.id, { ...item, verificationStatus: 'unreviewed' }]));
+  const entries = new Map(seeds.filter(item => !Object.hasOwn(retiredOffers, item.id)).map(item => [item.id, { ...item, verificationStatus: 'unreviewed' }]));
   for (const record of records) {
     if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(record.id)) continue;
     entries.delete(record.id); // Tombstones and expired overrides suppress seeds too.
-    if (record.status !== 'published') continue;
-    const expiry = record.expiresAt?.toMillis?.() ?? (record.expiresAt ? Date.parse(record.expiresAt) : null);
-    if (expiry !== null && (!Number.isFinite(expiry) || expiry <= now)) continue;
+    const status = offerStatus(record, now);
+    if (['unreviewed','retired','withdrawn','expired'].includes(status)) continue;
+    const expiry = timestampMillis(record.expiresAt);
     try {
-      const data = validateOffer({ ...record, expiresAt: expiry === null ? null : new Date(expiry).toISOString() });
+      const data = validateOffer({ ...record, expiresAt: expiry === null ? null : new Date(expiry).toISOString() }, now);
+      const checked = timestampMillis(record.verifiedAt);
       entries.set(record.id, { ...data, source: 'official', categories: [data.category], facets: [offerTypes[data.offerType]],
         trialDays: data.offerType === 'trial' ? data.trialDays : data.reviewDays,
-        providerTrialDays: data.trialDays, verificationStatus: 'reviewed', verified: record.verifiedAt?.toDate?.().toISOString().slice(0, 10) || '',
+        providerTrialDays: data.trialDays, verificationStatus: status === 'current' ? 'reviewed' : status,
+        verified: checked === null || checked > now ? '' : new Date(checked).toISOString().slice(0,10),
+        verifiedAt: checked === null ? null : new Date(checked).toISOString(),
         cancelBurden: 'See terms', catalogRevision: record.revision });
     } catch { /* A malformed cloud entry must not break the guest planner. */ }
   }

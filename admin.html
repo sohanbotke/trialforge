@@ -8,7 +8,7 @@
 <main id="workspace" hidden data-view="queue" tabindex="-1">
   <section id="queuePanel" aria-labelledby="queueHeading">
     <div class="panel-heading"><h2 id="queueHeading" tabindex="-1">Review queue</h2><button id="refresh">Refresh</button></div>
-    <label>Source<select id="queueType"><option value="collected">Nightly discoveries</option><option value="seeds">Starter catalog</option><option value="published">Published / withdrawn</option></select></label>
+    <label>Source<select id="queueType"><option value="collected">Nightly discoveries</option><option value="recheck">Published offers needing recheck</option><option value="seeds">Starter catalog</option><option value="published">Published / withdrawn</option></select></label>
     <label>Search loaded entries<input id="queueSearch" type="search" placeholder="Name, provider, or offer ID"></label>
     <label>Review status<select id="reviewFilter"><option value="all">All offer groups</option><option value="pending">Needs review</option></select></label>
     <p id="coverage" class="muted"></p><p id="queueStatus" role="status"></p><p id="queueError" role="alert" hidden></p>

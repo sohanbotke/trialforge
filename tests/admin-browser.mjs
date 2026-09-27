@@ -71,6 +71,7 @@ try{
   await admin.locator('#offerType').selectOption('trial');
   await admin.locator('#trialDays').fill('14');
   await admin.locator('#monthlyValue').fill('12');
+  await admin.locator('#upfrontCost').fill('0');
   await admin.locator('#confirmed').check();
   await admin.setViewportSize({width:390,height:844});
   assert(await admin.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

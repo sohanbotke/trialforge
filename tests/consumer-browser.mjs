@@ -10,7 +10,7 @@ const fixture = {
   id: 'reviewed-fixture', name: 'Reviewed streaming fixture', description: 'A test-only streaming option.',
   source: 'official', categories: ['shows'], facets: [], verificationStatus: 'reviewed',
   offerType: 'free_tier', monthlyValue: 0, upfrontCost: 0, trialDays: 14, providerTrialDays: 0,
-  verified: '2026-09-12', url: 'https://example.test/', region: 'Test region',
+  verified: new Date().toISOString().slice(0,10), verifiedAt:new Date().toISOString(), url: 'https://example.test/', region: 'Test region',
   priceDetails: 'Usage limits apply. <script>window.injected=true</script>',
   cancellation: 'Manage through provider account.', eligibility: 'Test users only', goal: 'Watch a show'
 };

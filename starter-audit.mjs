@@ -30,7 +30,7 @@ const rows=[
  ['groq-api-free','terms_check','https://console.groq.com/docs/rate-limits','Official docs separate Free and Developer plan limits by model. Verify current limits and account eligibility; do not imply unlimited free inference.'],
  ['openrouter-free-models','source_limited','https://openrouter.ai/models?max_price=0','The fetched list included both zero-priced and paid models despite the filter URL. Select an explicit free model and verify its limits; the URL alone does not prove free pricing.'],
  ['cloudflare-workers-ai','terms_check','https://developers.cloudflare.com/workers-ai/platform/pricing/','Workers AI has a daily free allocation and different paid overage behavior. It is separate from the Workers hosting offer; verify model and allocation terms.'],
- ['github-models','terms_check','https://docs.github.com/en/github-models','Official product documentation is reachable. Verify current free evaluation limits versus paid production inference before approving a specific model offer.'],
+ ['github-models','retired','https://docs.github.com/en/github-models','September 27 recheck: GitHub confirms Models was fully retired July 30, 2026. Remove it from discovery; preserve existing saved plans. Do not infer availability from HTTP 200.'],
  ['aider','cost_scope','https://aider.chat/','Distinguish the local coding tool from the model used with it. Confirm current license and model/API costs; free software is not proof of free hosted inference.'],
  ['opencode','cost_scope','https://opencode.ai/','The product is presented as an open-source coding agent. Separate the local tool from optional hosted models or paid plans and verify the chosen setup costs.'],
  ['continue','product_changed','https://continue.dev/','The current site says Continue joined Cursor and its open-source code remains available. Recheck maintained functionality and current links instead of presenting the old service unchanged.'],
@@ -38,3 +38,4 @@ const rows=[
  ['litellm','cost_scope','https://docs.litellm.ai/docs/','Separate the software/proxy from underlying provider inference and optional enterprise services. Confirm license and deployment costs before calling the whole setup free.']
 ];
 export const starterAudit=Object.fromEntries(rows.map(([id,status,url,summary])=>[id,{id,status,url,summary,checkedAt:auditDate,approval:'not_granted_by_audit'}]));
+starterAudit['github-models'].checkedAt = '2026-09-27';

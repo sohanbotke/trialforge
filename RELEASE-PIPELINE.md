@@ -20,7 +20,7 @@ Releases are serialized and refuse a revision superseded on `main`. Firebase CLI
 
 ## Publication boundaries
 
-Only 16 runtime assets plus `release.json` enter `dist/`. The manifest identifies
+Only 17 runtime assets plus `release.json` enter `dist/`. The manifest identifies
 the commit and SHA-256 hashes. The live check compares every runtime asset,
 exercises guest save/reload and the admin gate, and checks development/data paths
 return 404. It never writes to the production database.
