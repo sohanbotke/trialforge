@@ -1,21 +1,23 @@
 # Rocky review handoff — MVP planning UX
 
 Branch: `codex/mvp-planning-ux`. Base: `7597e6d` on `main`.
-Status: awaiting Rocky's exact-commit review and Sohan's verdict. **Do not merge
-or deploy this branch to production without that verdict.**
+Status: awaiting Rocky's exact-commit PR review. **Codex must never merge or push
+to main, even after approval.** Sohan controls merging and production release.
 
 ## Working agreement
 
 - Codex implements a coherent, bounded change and pushes small commits to
-  `codex/<description>`. Rocky critiques; Sohan relays the decision.
+  `codex/<description>`, then opens a PR with Scope / Tests / Screenshots / Known
+  gaps. Rocky posts APPROVE or REQUEST CHANGES with inline comments on that PR.
 - Reviews identify the exact head SHA and base SHA. Approval of an older SHA
   does not approve subsequent changes. CI must pass for the reviewed head.
 - Correctness, security/privacy, broken tests, and scope creep are blocking.
   Style, naming, and optional refactors are advisory unless tied to a defect.
 - Every finding gets either a fix plus regression evidence, or an explicit
   reasoned response for Sohan to decide. Never silently dismiss a finding.
-- After approval, merge and verify the exact deployed revision. A successful
-  upload alone is not a successful release. No credentials in review artifacts.
+- After Rocky approves, Sohan controls the merge. Codex does not merge. Verify
+  the exact deployed revision after release; a successful upload alone is not a
+  successful release. No credentials in review artifacts.
 
 ## Scope of this branch
 
@@ -59,7 +61,9 @@ The deployment identity setup and live-test readiness fix were completed on
   test:journeys`, and `npm run test:ux`. CI also runs the demo Auth/Firestore suite.
 - Browser tests write `trywise-mvp-plan-mobile.png` and
   `trywise-mvp-comparison-mobile.png` to the platform temp directory. Screenshots
-  use test fixtures, not real account data.
+  use test fixtures, not real account data. Set `TRYWISE_SCREENSHOT_DIR` to capture
+  review images in an existing directory. PR screenshots are in
+  `review-assets/mvp-planning-ux/` and are excluded from the Hosting allowlist.
 
 ## MVP blockers for Rocky's prioritized issue backlog
 

@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.TRYWISE_BASE_URL || 'http://127.0.0.1:4177';
+const screenshotDir = process.env.TRYWISE_SCREENSHOT_DIR || process.env.TMPDIR || '/tmp';
 if (!['localhost', '127.0.0.1'].includes(new URL(baseUrl).hostname)) throw new Error('Consumer fixture tests must run locally.');
 const catalogModule = await readFile(new URL('../catalog-model.mjs', import.meta.url), 'utf8');
 const fixture = {
@@ -134,7 +135,10 @@ try {
     assert(box.x >= 0 && box.x + box.width <= width);
   }
   await page.setViewportSize({width:390,height:844});
-  await page.screenshot({path:`${process.env.TMPDIR || '/tmp'}/trywise-mvp-comparison-mobile.png`});
+  await page.screenshot({path:`${screenshotDir}/trywise-mvp-comparison-mobile.png`});
+  await page.setViewportSize({width:1440,height:1000});
+  await page.screenshot({path:`${screenshotDir}/trywise-mvp-comparison-desktop.png`});
+  await page.setViewportSize({width:390,height:844});
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#compareSavedBtn').evaluate(el => el === document.activeElement), true);
   await page.locator('[data-remove-trial]').first().click();
@@ -159,7 +163,7 @@ try {
   assert.equal(await page.locator('#activeTrials article').count(), 4);
   assert.match(await page.locator('#compareSavedBtn').textContent(), /0\/3/);
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({path:`${process.env.TMPDIR || '/tmp'}/trywise-mvp-plan-mobile.png`});
+  await page.screenshot({path:`${screenshotDir}/trywise-mvp-plan-mobile.png`});
 
   // Hold the catalog callback so loading is deterministic, not a timed guess.
   await page.route('**/firebase-client.mjs', route => route.fulfill({contentType:'text/javascript', body:`
