@@ -60,7 +60,7 @@ try{
   assert.equal(await admin.locator('#confirmed').isChecked(),false,'Applying a draft resets approval confirmation');
   await admin.setViewportSize({width:390,height:844});
   assert(await admin.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await admin.screenshot({path:'/private/tmp/trywise-ai-draft-mobile.png',fullPage:true});
+  await admin.screenshot({path:`${process.env.TMPDIR || '/tmp'}/trywise-ai-draft-mobile.png`,fullPage:true});
   await admin.locator('#backToQueue').click();
   await admin.getByRole('button',{name:/Browser approved offer — needs review/}).click();
   await admin.locator('#reviewForm').waitFor({state:'visible'});
@@ -74,9 +74,10 @@ try{
   await admin.locator('#confirmed').check();
   await admin.setViewportSize({width:390,height:844});
   assert(await admin.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await admin.screenshot({path:'/private/tmp/trywise-admin-mobile.png',fullPage:true});
+  await admin.screenshot({path:`${process.env.TMPDIR || '/tmp'}/trywise-admin-mobile.png`,fullPage:true});
   await admin.locator('#publish').click();
   await admin.waitForFunction(()=>document.getElementById('message').textContent.startsWith('Published.'));
+  await visitor.locator('#catalogFilters summary').click();
   await visitor.locator('#searchInput').fill('Browser approved offer');
   await visitor.locator('[data-add-catalog="browser-approved-offer"]').waitFor();
   assert.equal(await visitor.evaluate(()=>localStorage.getItem('trywise-state-v2')),savedBefore,'Publishing must not modify a saved plan');

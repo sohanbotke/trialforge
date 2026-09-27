@@ -1,0 +1,57 @@
+name: Deploy to Firebase Hosting
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      FIREBASE_SERVICE_ACCOUNT_TRYWISE_9F8E1:
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: firebase-live-release
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/verify.yml
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check hosting-only deployment credential
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRYWISE_9F8E1 }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo '::error::Configure FIREBASE_SERVICE_ACCOUNT_TRYWISE_9F8E1 in repository Actions secrets. See RELEASE-PIPELINE.md. No deployment attempted.'
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build only allowlisted runtime assets
+        run: npm run build
+      - name: Refuse a superseded release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          test "$current_sha" = "$GITHUB_SHA" || { echo '::error::Main advanced; release the newer revision instead.'; exit 1; }
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRYWISE_9F8E1 }}
+          channelId: live
+          projectId: trywise-9f8e1
+          firebaseToolsVersion: '15.31.0'
+      - run: npx playwright install --with-deps chromium
+      - name: Verify deployed content and access boundaries
+        run: node tests/release-live.mjs

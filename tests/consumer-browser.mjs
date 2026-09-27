@@ -96,7 +96,7 @@ try {
   assert.match(await page.locator('#decisionHistory').textContent(), /cancel planned/);
   await page.locator('#discoverTab').click();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: '/private/tmp/trywise-consumer-improvements-mobile.png', fullPage: false });
+  await page.screenshot({ path: `${process.env.TMPDIR || '/tmp'}/trywise-consumer-improvements-mobile.png`, fullPage: false });
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}`);

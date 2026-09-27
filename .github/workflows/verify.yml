@@ -1,0 +1,43 @@
+name: Verify application and collectors
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: python3 -m unittest discover -s backend -p 'test_*.py'
+      - run: npm run test:unit
+      - run: npm run build
+      - run: node tests/release-build.mjs
+      - run: npx playwright install --with-deps chromium
+      - name: Browser journeys and emulator security checks
+        run: |
+          python3 -m http.server 4177 --bind 127.0.0.1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          node tests/consumer-browser.mjs
+          npm run test:smoke
+          npm run test:journeys
+          npm run test:ux
+          npx -y firebase-tools@15.31.0 emulators:exec --only auth,firestore --project demo-trywise "npm run test:emulator-suite"

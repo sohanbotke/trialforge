@@ -119,13 +119,13 @@ try{
   await many.page.locator('#backToQueue').click();assert.equal(await many.page.locator('#editorPanel').isVisible(),false);
   await many.page.locator('#resumeCurrent').click();assert.equal(await many.page.locator('#editorPanel').isVisible(),true);
  }
- await many.page.screenshot({path:'/private/tmp/trywise-admin-fixed-mobile.png',fullPage:true});
+ await many.page.screenshot({path:`${process.env.TMPDIR || '/tmp'}/trywise-admin-fixed-mobile.png`,fullPage:true});
  await many.page.locator('#cancel').click();await many.page.locator('#queueType').selectOption('seeds');
  await many.page.locator('#queueSearch').fill('');await many.page.waitForFunction(()=>document.querySelectorAll('#queue>.offer-group').length===35);
  await many.page.getByRole('button',{name:/Notion Plus — needs review/}).click();await ready(many.page);
  assert(await many.page.locator('#editorPanel').evaluate(v=>v.getBoundingClientRect().top+scrollY<400));
  await many.page.setViewportSize({width:1440,height:900});
- await many.page.screenshot({path:'/private/tmp/trywise-admin-fixed-desktop.png',fullPage:true});
+ await many.page.screenshot({path:`${process.env.TMPDIR || '/tmp'}/trywise-admin-fixed-desktop.png`,fullPage:true});
  assert(await many.page.locator('#queuePanel').evaluate(v=>v.getBoundingClientRect().height<=innerHeight));
  for(const width of [1440,390]){
   await many.page.setViewportSize({width,height:900});

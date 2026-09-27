@@ -73,9 +73,9 @@ async function run() {
     await authenticate(a, `bob-${Date.now()}@example.test`, true);
     assert.equal(await a.locator('#activeTrials article').count(), 0, 'A different account must start with its own empty plan');
     await a.locator('#accountBtn').click();
-    await a.screenshot({ path: '/private/tmp/trywise-account-desktop.png' });
+    await a.screenshot({ path: `${process.env.TMPDIR || '/tmp'}/trywise-account-desktop.png` });
     await a.setViewportSize({ width: 390, height: 844 });
-    await a.screenshot({ path: '/private/tmp/trywise-account-mobile.png' });
+    await a.screenshot({ path: `${process.env.TMPDIR || '/tmp'}/trywise-account-mobile.png` });
     assert.deepEqual(errors, []);
     console.log('Account browser checks passed: optional import, account isolation, cross-device updates, reload persistence, and sign-out.');
   } finally { await browser.close(); }

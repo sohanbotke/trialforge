@@ -119,10 +119,10 @@ async function run() {
     await page.evaluate(() => window.scrollTo(0, 0));
     const input = await page.locator('#requirementText').boundingBox();
     assert(input.y + input.height < 844, 'The primary mobile input should fit on the first screen');
-    await page.screenshot({ path: '/private/tmp/trywise-after-mobile.png' });
+    await page.screenshot({ path: `${process.env.TMPDIR || '/tmp'}/trywise-after-mobile.png` });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({ path: '/private/tmp/trywise-after-desktop.png' });
+    await page.screenshot({ path: `${process.env.TMPDIR || '/tmp'}/trywise-after-desktop.png` });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     assert.equal(await page.locator('.hero-panel').evaluate((el) => getComputedStyle(el, '::before').animationName), 'none');
     assert.deepEqual(errors, []);

@@ -46,7 +46,7 @@ async function run() {
     await page.locator('#closeAccountBtn').click();
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
-    await page.screenshot({ path: '/private/tmp/trywise-hosted-mobile.png' });
+    await page.screenshot({ path: `${process.env.TMPDIR || '/tmp'}/trywise-hosted-mobile.png` });
     await page.goto(`${baseUrl}/admin.html`);
     await page.waitForFunction(() => !document.getElementById('signIn').disabled);
     assert.equal(await page.locator('#workspace').isVisible(), false, 'Admin queue must be hidden before authorization');

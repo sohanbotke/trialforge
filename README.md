@@ -46,6 +46,9 @@ See [ACCOUNT-STORAGE.md](ACCOUNT-STORAGE.md) for the data model and test coverag
 
 ## Hosted Tester Release
 
+See [RELEASE-PIPELINE.md](RELEASE-PIPELINE.md) for the reconciled GitHub workflows,
+deployment credential setup, and the collection-versus-publication boundary.
+
 The hosting target is https://trywise-9f8e1.web.app (same site at
 https://trywise-9f8e1.firebaseapp.com). Custom-domain naming and DNS are separate.
 
@@ -55,7 +58,8 @@ To publish runtime files only:
 rtk npm run deploy
 ```
 
-The predeploy build copies 16 explicitly listed runtime files into `dist/`.
+The predeploy build copies 16 explicitly listed runtime files and a commit/hash
+release manifest into `dist/`.
 Tests, development skills, debug logs, database rules, and backend scaffolds are
 not published. Database rules and Google sign-in are deployed separately with:
 
@@ -172,6 +176,28 @@ Future work should improve requirement capture, source coverage, ranking, and
 alerts before adding high-trust integrations like email forwarding or financial
 account scanning.
 
+## Deployment And Live Data Loop
+
+The live site is Firebase Hosting project `trywise-9f8e1`
+(`https://trywise-9f8e1.web.app/`).
+
+```text
+.github/workflows/collect.yml   Weekly: tests -> collector -> review/state artifacts -> release workflow
+.github/workflows/verify.yml    Unit, browser, collector, and emulator security checks
+.github/workflows/deploy.yml    On main or explicit call: checks -> restricted Hosting build -> live verification
+firebase.json / .firebaserc      Hosting config for the project
+```
+
+The deploy workflow needs `FIREBASE_SERVICE_ACCOUNT_TRYWISE_9F8E1`, configured
+directly in GitHub Actions secrets for a dedicated Hosting-only identity.
+See [RELEASE-PIPELINE.md](RELEASE-PIPELINE.md); never commit a key or use a broad
+Firebase Admin SDK identity for this release job.
+
+The app reads the approved Firestore catalog alongside clearly marked starter
+previews. Weekly raw candidates are review artifacts, not automatically approved
+offers. The Mac nightly collector still feeds its private admin queue. Collection
+does not change personal plans or remove unchanged approved catalog entries.
+
 ## Backend Run
 
 See [backend/NIGHTLY.md](backend/NIGHTLY.md) for the installed 3 a.m. Chicago
@@ -183,8 +209,9 @@ rtk proxy python3 backend/nightly.py --status
 rtk proxy open backend/data/nightly/review.html
 ```
 
-Generated files are written under `backend/data/` and are intentionally ignored by
-Git.
+Generated files under `backend/data/` are ignored by Git and excluded from Hosting.
+Weekly runs retain their state in Actions artifacts; local nightly state remains
+on this machine.
 
 ## Test
 
