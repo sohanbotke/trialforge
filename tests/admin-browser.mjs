@@ -46,6 +46,9 @@ try{
   await admin.setViewportSize({width:390,height:844});
   await admin.locator('#backToQueue').click();
   await admin.locator('#queueType').selectOption('collected');
+  // Restore the existing desktop split-pane assertions before their queue and
+  // editor interactions; mobile intentionally shows only one pane at a time.
+  await admin.setViewportSize({width:1280,height:720});
   await admin.getByRole('button',{name:/AI draft browser fixture — needs review/}).click();
   assert.equal(await admin.locator('#queue > .offer-group').count(),2,'Related versions form a single queue group');
   assert.equal(await admin.locator('#queue details[open]').count(),0,'History is collapsed initially');
