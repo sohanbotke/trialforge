@@ -23,7 +23,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
 from zoneinfo import ZoneInfo
 
-from collector import validate_public_url, strip_tags
+from collector import validate_public_url, strip_tags, parse_robots, robots_allowed
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'data' / 'nightly'
@@ -113,18 +113,10 @@ class Fetcher:
             parser.parse(body.splitlines())
             self.robots[origin] = (parser, body)
         parser, body = self.robots[origin]
-        if not parser.can_fetch(AGENT, url):
+        rules, crawl_delay = parse_robots(body)
+        if not robots_allowed(url, rules)[0]:
             raise ValueError('Disallowed by robots.txt')
-        # stdlib does not implement wildcard rules; conservatively honor them
-        # across groups rather than accidentally treating them as literal '*'.
-        for line in body.splitlines():
-            key, _, rule = line.partition(':')
-            rule = rule.split('#')[0].strip()
-            if key.strip().lower() == 'disallow' and ('*' in rule or '$' in rule):
-                pattern = re.escape(rule).replace(r'\*', '.*').replace(r'\$', '$')
-                if re.match(pattern, parts.path + ('?' + parts.query if parts.query else '')):
-                    raise ValueError('Disallowed by wildcard robots rule')
-        delay = max(2, parser.crawl_delay(AGENT) or parser.crawl_delay('*') or 0)
+        delay = max(2, crawl_delay or 0)
         rate = parser.request_rate(AGENT) or parser.request_rate('*')
         if rate:
             delay = max(delay, rate.seconds / rate.requests)
