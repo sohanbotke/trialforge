@@ -1396,7 +1396,8 @@
     import { initializeAccounts } from './account-ui.mjs';
     import { seedCatalog } from './seed-catalog.mjs';
     import { mergedCatalog, offerTypes } from './catalog-model.mjs';
-    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar } from './consumer-model.mjs';
+    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar, offerConfidence, reviewLabel } from './consumer-model.mjs';
+    import { offerStatus, retiredOffers } from './catalog-policy.mjs';
     let accountManager = null;
 
     const STATE_KEY = 'trywise-state-v2';
@@ -1690,6 +1691,7 @@
       const preference = requirement.preference || 'lowest-cost';
 
       return trialCatalog
+        .filter(trial => includeAll || (trial.verificationStatus === 'unreviewed' || isReviewed(trial)))
         .map((trial) => {
           const categoryMatches = trial.categories.filter((category) => categories.has(category)).length;
           const facetMatches = (trial.facets || []).filter((facet) => facets.has(facet)).length;
@@ -1828,7 +1830,7 @@
       const previews = matching.filter(trial => !isReviewed(trial));
       feed.innerHTML = `${reviewed.length ? '<div class="catalog-section"><h3>Reviewed options</h3><p class="small muted">Checked by an admin on the date shown. Provider terms can change.</p></div>' : '<div class="catalog-section"><h3>No reviewed matches yet</h3><p class="small muted">We’re building verified coverage. Previews below are research starting points, not recommendations.</p></div>'}
         ${reviewed.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}
-        ${previews.length ? '<div class="catalog-section"><h3>Unreviewed previews</h3><p class="small muted">Prices, availability, and eligibility are not confirmed. Check the provider before committing.</p></div>' : ''}
+        ${previews.length ? '<div class="catalog-section"><h3>Needs review or recheck</h3><p class="small muted">Prices, availability, and eligibility are not confirmed. Check the provider before committing.</p></div>' : ''}
         ${previews.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}`;
     }
 
@@ -1841,7 +1843,7 @@
       const upfront = reviewedCost(trial, 'upfrontCost');
       const money = amount => amount === null ? 'Not confirmed' : `$${amount.toFixed(2)}`;
       return `
-        <article class="trial-card ${selected ? 'featured' : ''}">
+        <article class="trial-card ${selected ? 'featured' : ''}" data-offer-id="${trial.id}" data-verification="${trial.verificationStatus}">
           <div class="card-top">
             <div>
               <h3 class="card-title">${escapeHTML(trial.name)}</h3>
@@ -1858,10 +1860,10 @@
             ${trial.categories.map((category) => `<span class="badge">${interestLabel(category)}</span>`).join('')}
             <span class="badge">${escapeHTML(destinationDomain(trial.url))}</span>
           </div>
-          <p class="small confidence-line">${isReviewed(trial) ? `Reviewed ${escapeHTML(trial.verified || '— date unavailable')}. Base prices are not necessarily the total bill.` : 'Unreviewed: confirm the offer and all costs with the provider.'}</p>
+          <p class="small confidence-line">${isReviewed(trial) ? `${escapeHTML(reviewLabel(trial))}. Base prices are not necessarily the total bill.` : `${escapeHTML(reviewLabel(trial))}: confirm the offer and all costs with the provider.`}</p>
           <details class="offer-details">
             <summary>Terms &amp; evidence</summary>
-            <p class="small"><strong>Eligibility${isReviewed(trial) ? '' : ' (unconfirmed)'}:</strong> ${escapeHTML(trial.eligibility)}</p>
+            <p class="small"><strong>Eligibility${isReviewed(trial) ? '' : ' (unconfirmed)'}:</strong> ${escapeHTML(isReviewed(trial) ? trial.eligibility : 'Not confirmed')}</p>
             <p class="small"><strong>Pricing, region &amp; cancellation:</strong> ${escapeHTML(confidence.detail)}</p>
             ${trial.rankReason ? `<p class="small"><strong>Why shown:</strong> ${escapeHTML(trial.rankReason)}</p>` : ''}
           </details>
@@ -1877,13 +1879,22 @@
 
     function optionSummary(trial) {
       if (isReviewed(trial)) return `${offerTypes[trial.offerType]}${trial.offerType === 'trial' ? ` • ${trial.providerTrialDays} day trial` : ''}`;
+      if (trial.verificationStatus !== 'unreviewed') return 'Needs recheck • previous terms are not current';
       return 'Research preview • current terms not confirmed';
     }
 
     function linkConfidence(trial) {
-      if (trial.verificationStatus === 'reviewed') return { label: 'Admin reviewed', detail: `Reviewed ${trial.verified || 'recently'}. ${trial.priceDetails} Region: ${trial.region}. Cancellation: ${trial.cancellation}` };
-      if (trial.verificationStatus === 'unreviewed') return { label: 'Review needed', detail: 'Starter catalog entry; current price, eligibility, and offer terms have not been approved. Confirm with the provider.' };
-      return { label: 'Review needed', detail: 'Current terms have not been reviewed. An official URL is not proof that pricing, eligibility, or cancellation details are current.' };
+      return offerConfidence(trial);
+    }
+
+    function savedOfferNotice(id) {
+      if (!id) return '';
+      if (Object.hasOwn(retiredOffers, id)) return `${retiredOffers[id].reason} Your saved plan is unchanged.`;
+      const record = latestCatalogRecords?.find(item => item.id === id);
+      const status = record && offerStatus(record);
+      if (status === 'withdrawn') return 'This offer was withdrawn. Your plan and decision dates are unchanged; check your subscription directly with the provider.';
+      if (status === 'expired') return 'This offer has expired or has an invalid expiry. Your plan and decision dates are unchanged; check your subscription directly with the provider.';
+      return '';
     }
 
     function destinationDomain(url) {
@@ -1906,11 +1917,13 @@
 
       container.innerHTML = active.map((trial) => {
         const offer = trialCatalog.find(item => item.id === trial.catalogId);
+        const availability = savedOfferNotice(trial.catalogId);
         if (trial.status === 'saved') return `
           <article class="trial-card" data-saved-option="${trial.id}">
             <div class="card-top"><h3 class="card-title">${escapeHTML(trial.service)}</h3><span class="badge">Saved — not started</span></div>
             <p class="small muted">No countdown or recurring cost is tracked yet. Confirm your actual dates and cost when you start.</p>
             <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'Not set yet')}</p>
+            ${availability ? `<p class="small availability-notice" role="status">${escapeHTML(availability)}</p>` : ''}
             <p class="small muted">${offer ? `${escapeHTML(comparisonFacts(offer).review)} · Monthly base: ${escapeHTML(comparisonFacts(offer).monthly)}` : 'Current offer details unavailable. Confirm terms before starting.'}</p>
             <div class="card-actions"><button class="btn" type="button" data-compare-trial="${trial.id}" aria-pressed="${comparisonIds.includes(trial.id)}">${comparisonIds.includes(trial.id) ? 'Selected for comparison' : 'Select to compare'}</button>${offer ? `<a class="btn" href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.service)} offer (opens in a new tab)">Visit offer ↗</a>` : ''}<button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
           </article>`;
@@ -1929,6 +1942,7 @@
               <span class="badge ${tone}">$${Number(trial.monthlyValue || 0).toFixed(2)}/mo</span>
             </div>
             <div class="progress" role="progressbar" aria-label="${escapeHTML(trial.service)} trial progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width: ${progress}%"></span></div>
+            ${availability ? `<p class="small availability-notice" role="status">${escapeHTML(availability)}</p>` : ''}
             <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'No goal set')}</p>
             <p class="small muted"><strong>Keep if:</strong> ${escapeHTML(trial.keepCriteria || 'No criteria set')}</p>
             <div class="card-actions">
@@ -2583,11 +2597,15 @@
       },
       exportPlan: exportData
     });
-    setInterval(() => {
+    function refreshCatalogStatus() {
       if (!latestCatalogRecords) return;
       const next = mergedCatalog(seedCatalog, latestCatalogRecords);
-      if (next.length !== trialCatalog.length) { trialCatalog = next; render(); }
-    }, 60000);
+      const signature = entries => JSON.stringify(entries.map(item => [item.id,item.verificationStatus,item.catalogRevision]));
+      if (signature(next) !== signature(trialCatalog)) { trialCatalog = next; render(); }
+    }
+    setInterval(refreshCatalogStatus, 30000);
+    window.addEventListener('focus', refreshCatalogStatus);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshCatalogStatus(); });
 
     window.__tryWiseSmoke = {
       getState: () => state,

@@ -5,7 +5,7 @@ import { defaultState, validateState, mergePlans } from '../plan-state.mjs';
 import { createPlanStore } from '../plan-store.mjs';
 
 const preview = { id: 'preview', name: 'Preview', monthlyValue: 0, upfrontCost: 0, verificationStatus: 'unreviewed' };
-const reviewed = { ...preview, id: 'reviewed', name: 'Reviewed', verificationStatus: 'reviewed', offerType: 'free_tier' };
+const reviewed = { ...preview, id: 'reviewed', name: 'Reviewed', verificationStatus: 'reviewed', verifiedAt:new Date().toISOString(), offerType: 'free_tier' };
 const saved = () => shortlistRecord(preview, { id: 'saved-1', createdAt: '2026-09-12T12:00:00Z' });
 const stateWith = record => ({ ...structuredClone(defaultState), trials: [record] });
 

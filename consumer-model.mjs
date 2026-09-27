@@ -1,6 +1,21 @@
 // Consumer-facing claims must be supported by reviewed catalog data.
+import { offerStatus, REVIEW_WINDOW_DAYS } from './catalog-policy.mjs';
 export function isReviewed(offer) {
-  return offer.verificationStatus === 'reviewed';
+  return offer.verificationStatus === 'reviewed' && offerStatus({...offer, status:'published'}) === 'current';
+}
+
+export function reviewLabel(offer) {
+  if (!offer) return 'Not currently in the catalog';
+  if (isReviewed(offer)) return `Reviewed ${offer.verified || '(date unavailable)'}`;
+  if (offer.verificationStatus === 'stale' || (offer.verificationStatus === 'reviewed' && offer.verifiedAt)) return `Needs recheck — last reviewed ${offer.verified || 'date unknown'}`;
+  if (offer.verificationStatus === 'needs_verification' || offer.verificationStatus === 'reviewed') return 'Needs verification — review date missing or invalid';
+  return 'Unreviewed preview';
+}
+
+export function offerConfidence(offer) {
+  if (isReviewed(offer)) return {label:'Admin reviewed', detail:`${reviewLabel(offer)}. ${offer.priceDetails} Region: ${offer.region}. Cancellation: ${offer.cancellation}`};
+  if (['stale','needs_verification','reviewed'].includes(offer.verificationStatus)) return {label:'Needs recheck', detail:`${reviewLabel(offer)}. Reviews are current for less than ${REVIEW_WINDOW_DAYS} days. Previous costs and terms are not current; verify with the provider.`};
+  return {label:'Review needed', detail:'Research starting point only. Current price, availability, eligibility and terms have not been approved. Confirm with the provider.'};
 }
 
 export function reviewedCost(offer, field = 'monthlyValue') {
@@ -38,7 +53,7 @@ export function shortlistRecord(offer, { id, createdAt }) {
 export function comparisonFacts(offer) {
   const unknown = 'Not confirmed';
   if (!offer || !isReviewed(offer)) return {
-    review: offer ? 'Unreviewed preview' : 'Not currently in the catalog',
+    review: reviewLabel(offer),
     upfront: unknown, monthly: unknown, duration: unknown,
     pricing: unknown, eligibility: unknown, region: unknown, cancellation: unknown
   };

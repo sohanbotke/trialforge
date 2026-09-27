@@ -36,6 +36,21 @@ async function pageFor(extra={}){
 async function ready(page){await page.waitForFunction(()=>!document.getElementById('reviewForm').hidden&&!document.getElementById('fields').disabled);}
 async function resolveNext(page){await page.evaluate(()=>window.fixture.pending.shift().resolve());}
 try{
+ // Recheck queue excludes current records and updates after a catalog snapshot.
+ const recheck=await pageFor({catalog:[offer('undated','Undated fixture'),
+  {...offer('current','Current fixture'),verifiedAt:new Date().toISOString()},
+  {...offer('stale','Stale fixture'),verifiedAt:new Date(Date.now()-8*86400000).toISOString()}]});
+ await recheck.page.locator('#queueType').selectOption('recheck');
+ await recheck.page.waitForFunction(()=>document.querySelectorAll('#queue>.offer-group').length===2);
+ assert.doesNotMatch(await recheck.page.locator('#queue').textContent(),/Current fixture/);
+ assert.match(await recheck.page.locator('#coverage').textContent(),/2 published entries need recheck/);
+ await recheck.page.evaluate(()=>{window.fixture.catalog.find(v=>v.id==='stale').verifiedAt=new Date().toISOString();window.fixture.emit();});
+ await recheck.page.waitForFunction(()=>document.querySelectorAll('#queue>.offer-group').length===1);
+ assert.match(await recheck.page.locator('#queue').textContent(),/Undated fixture/);
+ await recheck.page.locator('#queueType').selectOption('seeds');
+ await recheck.page.getByRole('button',{name:/HelloFresh — needs review/}).click();await ready(recheck.page);
+ for(const id of ['trialDays','monthlyValue','upfrontCost','eligibility'])assert.equal(await recheck.page.locator(`#${id}`).inputValue(),'','Unknown starter terms must stay blank');
+ await recheck.page.close();
  // Delayed loading, cancellation and out-of-order responses.
  const {page}=await pageFor({defer:true,catalog:[offer('github-copilot','Existing Copilot')],candidates:[aiCandidate,candidate('two','Candidate two')]});
  await page.getByRole('button',{name:'Candidate one — needs review',exact:true}).click();

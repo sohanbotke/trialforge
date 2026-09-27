@@ -37,6 +37,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           node tests/consumer-browser.mjs
+          node tests/catalog-browser.mjs
           npm run test:smoke
           npm run test:journeys
           npm run test:ux

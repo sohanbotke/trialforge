@@ -1,0 +1,26 @@
+name: Daily catalog recheck reminder
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 10 * * *'
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Report overdue public offers (no credentials or writes)
+        run: node scripts/catalog-recheck.mjs > catalog-recheck.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: catalog-recheck
+          path: catalog-recheck.json
+          retention-days: 14

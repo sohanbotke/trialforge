@@ -1,6 +1,7 @@
 import { validateOffer } from './catalog-model.mjs';
 import { identityKey, duplicateMatches } from './offer-identity.mjs';
 import { seedCatalog } from './seed-catalog.mjs';
+import { retiredOffers } from './catalog-policy.mjs';
 
 export function createCatalogClient(db, sdk, auth) {
   const ref = (collection, id) => sdk.doc(db, collection, id);
@@ -44,6 +45,7 @@ export function createCatalogClient(db, sdk, auth) {
       if (!uid || !/^[a-zA-Z0-9-]{1,100}$/.test(candidateId)) throw new Error('Sign in and select a valid candidate.');
       if (!['approved', 'rejected'].includes(decision)) throw new Error('Unknown decision.');
       const data = decision === 'approved' ? validateOffer(offer) : null;
+      if (data && Object.hasOwn(retiredOffers, data.id)) throw new Error('This offer is retired. Withdraw it instead of republishing it.');
       if(data){
         data.identityKey=identityKey(data);
         const matches=await matchingOffers(data);

@@ -4,6 +4,7 @@ import { seedCatalog } from './seed-catalog.mjs';
 import { categories, offerTypes, draftSuggestions } from './catalog-model.mjs';
 import { identityFields, identityHint, identityKey, decodeIdentityKey, sourceOffers, duplicateMatches, groupCandidates } from './offer-identity.mjs';
 import { starterAudit, auditDate } from './starter-audit.mjs';
+import { offerStatus, recheckQueue, REVIEW_WINDOW_DAYS } from './catalog-policy.mjs';
 const el = id => document.getElementById(id);
 const emulator = ['localhost','127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('emulator') === '1';
 const config = emulator ? { apiKey:'demo-key',projectId:'demo-trywise',authDomain:'demo-trywise.firebaseapp.com',appId:'demo-trywise-app' } : firebaseConfig;
@@ -50,7 +51,7 @@ function showDuplicates(){
     }));
   }
 }
-function showCoverage(){const approved=new Set(catalog.filter(v=>v.status==='published').map(v=>v.id));const count=seedCatalog.filter(v=>approved.has(v.id)).length;el('coverage').textContent=`${count}/${seedCatalog.length} starter entries published; ${seedCatalog.length-count} not currently approved/published. Source-audit notes: ${auditDate}; an audit is not approval.`;}
+function showCoverage(){const approved=new Set(catalog.filter(v=>offerStatus(v)==='current').map(v=>v.id));const count=seedCatalog.filter(v=>approved.has(v.id)).length;el('coverage').textContent=`${count}/${seedCatalog.length} starter entries have current reviewed evidence; ${recheckQueue(catalog).length} published entries need recheck. Reviews expire after ${REVIEW_WINDOW_DAYS} days. Source-audit notes: ${auditDate}; an audit is not approval.`;}
 const textKeys = ['name','description','url','category','offerType','priceDetails','eligibility','region','cancellation','goal'];
 const numberKeys = ['trialDays','reviewDays','monthlyValue','upfrontCost'];
 function message(text, error = false) {
@@ -123,7 +124,7 @@ function showDraft(item, suggestion, applied) {
 function mayLeave() { return !busy && (!dirty || confirm('Discard unfinished review edits? Use “Keep draft in this tab” first if you want to resume them.')); }
 function fill(data) {
   for (const key of textKeys) el(key).value = data[key] ?? '';
-  for (const key of numberKeys) el(key).value = data[key] ?? (key === 'reviewDays' ? 30 : 0);
+  for (const key of numberKeys) el(key).value = data[key] ?? (key === 'reviewDays' ? 30 : '');
   el('offerId').value = data.id;
   el('category').value = data.category || data.categories?.[0] || '';
   const expiry = data.expiresAt?.toDate?.();
@@ -168,7 +169,7 @@ async function select(item) {
     const seedId = item.seed?.id || sourceOffers[item.sourceId];
     const seed = item.seed || seedCatalog.find(v=>v.id===seedId);
     const id = item.offer?.id || review?.publishedId || seed?.id || item.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80);
-    fill({ ...(seed || {}), ...item.offer, id, name: item.offer?.name || seed?.name || item.title, url: item.offer?.url || seed?.url || item.url, offerType: item.offer?.offerType || '', trialDays: item.offer?.trialDays || 0, reviewDays: item.offer?.reviewDays || 30 });
+    fill({ ...(seed || {}), ...item.offer, id, name: item.offer?.name || seed?.name || item.title, url: item.offer?.url || seed?.url || item.url, eligibility:item.offer?.eligibility || '', offerType: item.offer?.offerType || '', trialDays: item.offer?.trialDays ?? '', reviewDays: item.offer?.reviewDays || 30 });
     el('notes').value = review?.notes || '';
     el('selection').textContent = `${item.title} · ${review?.status || 'unreviewed'}`;
     const evidence = el('evidence');
@@ -216,7 +217,7 @@ async function loadQueue(append = false) {
       nextCursor = page.cursor; hasMore = page.more;
       items = page.items.map(item=>({...item,candidateId:item.id}));
     } else if (type === 'seeds') items = seedCatalog.map(seed=>({title:seed.name,url:seed.url,seed,candidateId:`seed-${seed.id}`}));
-    else items = catalog.map(offer=>({title:`${offer.name || offer.id} · ${offer.status}`,url:offer.url,offer,candidateId:offer.sourceCandidate || `seed-${offer.id}`}));
+    else items = catalog.filter(offer=>type!=='recheck'||(offer.status==='published'&&offerStatus(offer)!=='current')).map(offer=>({title:`${offer.name || offer.id} · ${offer.status}`,url:offer.url,offer,candidateId:offer.sourceCandidate || `seed-${offer.id}`}));
     const reviewed = await readWithDeadline(Promise.all(items.map(async item => ({ item, review: await client.catalog.review(item.candidateId) }))));
     if (session !== generation || type !== el('queueType').value || ticket!==queueGeneration || !allowed) return;
     if(!append)loadedRows.clear();
@@ -234,7 +235,7 @@ function renderQueue(){
     const search=el('queueSearch').value.trim().toLowerCase();visibleItems=[];
     const groups=type==='collected'?groupCandidates(rows):rows.map(v=>({current:v,history:[],pending:!v.review&&!(v.item.seed&&catalog.some(c=>c.id===v.item.seed.id&&c.status==='published'))?1:0}));
     for (const group of groups) {
-      if(pendingOnly&&!group.pending)continue;
+      if(pendingOnly&&!group.pending&&type!=='recheck')continue;
       const {item,review}=group.current;
       if(search&&![group.current,...group.history].some(({item:v})=>[v.title,v.candidateId,v.url,v.offer?.id,v.seed?.id,v.sourceId,v.offer?.identity?.provider].filter(Boolean).join(' ').toLowerCase().includes(search)))continue;
       visibleItems.push(item);
@@ -245,6 +246,7 @@ function renderQueue(){
       const open=button(`${item.title} — ${status}`,()=>select(item));open.dataset.rowKey=rowKey(item);row.append(open);
       const date = document.createElement('small'); date.textContent = item.observedAt ? `Collected ${item.observedAt}${item.aiDraft ? ' · AI draft available (unverified)' : ''}` : item.seed ? 'Starter entry: confirm every term before approval.' : `Catalog revision ${item.offer?.revision || 0}`; row.append(date);
       if (item.offer?.status === 'published') row.append(button(`Withdraw ${item.offer.name}`,()=>withdraw(item.offer)));
+      if (item.offer?.status === 'published') {const p=document.createElement('small');p.textContent=`Verification: ${offerStatus(item.offer).replaceAll('_',' ')}. Recheck the provider before republishing; a fetch is not verification.`;row.append(p);}
       if(item.seed&&starterAudit[item.seed.id]){const p=document.createElement('small');p.textContent=`Audit: ${starterAudit[item.seed.id].status.replaceAll('_',' ')}`;row.append(p);}
       if(group.history.length){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=`${group.history.length} older / related version(s)`;details.append(summary);details.open=expanded.has(group.key);details.addEventListener('toggle',()=>{if(!details.isConnected)return;if(details.open)expanded.add(group.key);else expanded.delete(group.key);});for(const prior of group.history){const open=button(`History: ${prior.item.title} · ${prior.review?.status||'unreviewed evidence'} · ${prior.item.observedAt||''}`,()=>select({...prior.item,historical:true}));open.dataset.rowKey=rowKey(prior.item);details.append(open);}row.append(details);}
       el('queue').append(row);
@@ -343,7 +345,7 @@ try {
       allowed=admin;
       el('identity').textContent=admin ? `Admin: ${user.email}` : 'This account is not authorized to review or publish offers.';
       el('workspace').hidden=!admin;
-      if(admin){stopCatalog=client.catalog.watchCatalog(items=>{if(session!==generation||!allowed)return;catalog=items;showCoverage();showRevisionNotice();if(selected)showDuplicates();if(el('queueType').value==='published')void loadQueue();else renderQueue();},()=>{if(session===generation)message('Catalog unavailable. Refresh when online; your edits are kept.',true);});void loadQueue();}
+      if(admin){stopCatalog=client.catalog.watchCatalog(items=>{if(session!==generation||!allowed)return;catalog=items;showCoverage();showRevisionNotice();if(selected)showDuplicates();if(['published','recheck'].includes(el('queueType').value))void loadQueue();else renderQueue();},()=>{if(session===generation)message('Catalog unavailable. Refresh when online; your edits are kept.',true);});void loadQueue();}
     }catch{if(session===generation)message('Could not verify admin access. Check your connection and reload.',true);}
   });
 } catch { el('identity').textContent='Connection unavailable. Check your connection and reload.'; }
