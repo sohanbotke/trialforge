@@ -1301,6 +1301,23 @@
     </main>
   </div>
 
+  <dialog class="onboarding" id="decisionDateDialog" aria-labelledby="decisionDateTitle" aria-describedby="decisionDateDescription">
+    <form class="onboarding-card" id="decisionDateForm">
+      <h2 id="decisionDateTitle">Change decision date</h2>
+      <p class="small muted" id="decisionDateDescription">This only changes your TryWise review date. It does not extend a provider trial, delay a renewal, or cancel a subscription. Confirm your renewal date with the provider first.</p>
+      <p class="small" id="decisionDateOption"></p>
+      <div class="field">
+        <label for="newDecisionDate">New decision date</label>
+        <input id="newDecisionDate" type="date" required aria-describedby="decisionDateError" autofocus>
+        <p class="small field-error" id="decisionDateError" role="alert" hidden></p>
+      </div>
+      <div class="actions">
+        <button class="btn primary" type="submit">Confirm new date</button>
+        <button class="btn" type="button" id="cancelDecisionDate">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog class="onboarding comparison-dialog" id="comparisonDialog" aria-labelledby="comparisonTitle" aria-describedby="comparisonDescription">
     <div class="onboarding-card">
       <div class="onboarding-head"><h2 id="comparisonTitle">Compare your shortlist</h2><button class="btn" type="button" id="closeComparisonBtn" autofocus>Close</button></div>
@@ -1401,6 +1418,7 @@
     import { offerStatus, retiredOffers } from './catalog-policy.mjs';
     let accountManager = null;
     let canReviewCatalog = false;
+    let pendingDecisionDate = null;
 
     const STATE_KEY = 'trywise-state-v2';
     const LEGACY_STATE_KEYS = ['trialforge-state-v2'];
@@ -1998,7 +2016,7 @@
             </div>
             <div class="decision-grid">
               <button class="btn primary" type="button" data-decide="keep" data-trial="${trial.id}">Keep</button>
-              <button class="btn" type="button" data-decide="extend" data-trial="${trial.id}">Extend test</button>
+              <button class="btn" type="button" data-decide="extend" data-trial="${trial.id}">Change decision date</button>
               <button class="btn danger" type="button" data-decide="cancel" data-trial="${trial.id}">Mark cancel planned</button>
             </div>
           </article>
@@ -2204,30 +2222,75 @@
     function decideTrial(id, choice) {
       const trial = state.trials.find((item) => item.id === id);
       if (!trial) return;
+      if (choice === 'extend') {
+        const dialog = document.getElementById('decisionDateDialog');
+        if (dialog.open || trial.status !== 'active') return;
+        pendingDecisionDate = { id, snapshot: JSON.stringify(trial) };
+        const input = document.getElementById('newDecisionDate');
+        input.value = trial.endDate;
+        input.min = trial.startDate;
+        input.setCustomValidity('');
+        input.removeAttribute('aria-invalid');
+        document.getElementById('decisionDateError').hidden = true;
+        document.getElementById('decisionDateOption').textContent = `${trial.service} — current decision date: ${formatDate(trial.endDate)}`;
+        dialog.showModal();
+        return;
+      }
+      if (!['keep', 'cancel'].includes(choice)) return;
       const reason = choice === 'keep'
         ? 'Kept because it passed the review checklist.'
-        : choice === 'cancel'
-          ? 'Marked as cancellation planned; user still needs external confirmation.'
-          : 'Extended because more evidence is needed.';
+        : 'Marked as cancellation planned; user still needs external confirmation.';
 
-      if (choice === 'extend') {
-        trial.endDate = addDays(trial.endDate, 7);
-        trial.checks = {};
-      } else {
-        trial.status = choice;
-        state.decisions.push({
-          id: crypto.randomUUID(),
-          service: trial.service,
-          choice,
-          reason,
-          monthlyValue: trial.monthlyValue,
-          decidedAt: new Date().toISOString()
-        });
-      }
+      trial.status = choice;
+      state.decisions.push({
+        id: crypto.randomUUID(),
+        service: trial.service,
+        choice,
+        reason,
+        monthlyValue: trial.monthlyValue,
+        decidedAt: new Date().toISOString()
+      });
       saveState();
       render();
       (document.querySelector('#reviewQueue button') || document.getElementById('reviewTab')).focus({ preventScroll: true });
       showToast(`${trial.service}: ${choice === 'cancel' ? 'cancel planned' : choice}`);
+    }
+
+    function closeDecisionDate() {
+      pendingDecisionDate = null;
+      document.getElementById('decisionDateDialog').close();
+      document.getElementById('decisionDateForm').reset();
+      document.getElementById('decisionDateOption').textContent = '';
+    }
+
+    function confirmDecisionDate(event) {
+      event.preventDefault();
+      const trial = state.trials.find(item => item.id === pendingDecisionDate?.id);
+      if (!trial || JSON.stringify(trial) !== pendingDecisionDate.snapshot) {
+        closeDecisionDate();
+        showToast('Your plan changed. Reopen the option before changing its date.');
+        return;
+      }
+      const input = document.getElementById('newDecisionDate');
+      if (!input.value || input.value < trial.startDate || !input.checkValidity()) {
+        input.reportValidity();
+        return;
+      }
+      if (input.value === trial.endDate) {
+        const error = document.getElementById('decisionDateError');
+        error.textContent = 'Choose a different date, or Cancel to keep the current date.';
+        error.hidden = false;
+        input.setAttribute('aria-invalid', 'true');
+        input.focus();
+        return;
+      }
+      trial.endDate = input.value;
+      trial.updatedAt = new Date().toISOString();
+      closeDecisionDate();
+      saveState();
+      render();
+      (document.querySelector('#reviewQueue button') || document.getElementById('reviewTab')).focus({ preventScroll: true });
+      showToast(`${trial.service}: decision date updated. Provider renewal is unchanged.`);
     }
 
     function focusReviewTrial(id) {
@@ -2525,12 +2588,29 @@
       document.getElementById('activeTab').focus();
     });
     ['startDate', 'endDate'].forEach((id) => document.getElementById(id).addEventListener('input', validateTrialDates));
+    // Accepting a native date selection must not implicitly save/start a plan.
+    // Keyboard users can Tab to the explicit submit button and press Enter.
+    ['startDate', 'endDate', 'newDecisionDate'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', event => {
+        if (event.key === 'Enter') event.preventDefault();
+      });
+    });
     document.getElementById('requirementForm').addEventListener('submit', submitRequirement);
     document.getElementById('plannerToggle').addEventListener('click', () => {
       const panel = document.querySelector('.hero-panel');
       setPlannerCollapsed(!panel.classList.contains('collapsed'));
     });
     document.getElementById('trialForm').addEventListener('submit', addManualTrial);
+    document.getElementById('decisionDateForm').addEventListener('submit', confirmDecisionDate);
+    document.getElementById('cancelDecisionDate').addEventListener('click', closeDecisionDate);
+    document.getElementById('decisionDateDialog').addEventListener('cancel', event => {
+      event.preventDefault();
+      closeDecisionDate();
+    });
+    document.getElementById('newDecisionDate').addEventListener('input', event => {
+      event.target.removeAttribute('aria-invalid');
+      document.getElementById('decisionDateError').hidden = true;
+    });
     document.getElementById('cancelEditBtn').addEventListener('click', () => {
       document.getElementById('trialForm').reset();
       clearEditMode();
@@ -2553,6 +2633,7 @@
       replaceState(next, options = {}) {
         state = next;
         if (options.sessionChanged || options.reload) {
+          closeDecisionDate();
           requirementFilterActive = false;
           comparisonIds = [];
           document.getElementById('comparisonDialog').close();
