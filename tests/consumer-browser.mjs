@@ -84,6 +84,12 @@ try {
   await page.locator('#startDate').fill('2026-09-12');
   await page.locator('#endDate').fill('2026-09-20');
   await page.locator('#monthlyCost').fill('12.50');
+  // Native date edits / Enter must not submit or discard the loaded option.
+  await page.locator('#startDate').press('Enter');
+  await page.locator('#endDate').press('Enter');
+  assert.match(await page.locator('#trialSubmitLabel').textContent(), /Confirm dates/);
+  assert.equal((await page.evaluate(() => window.__tryWiseSmoke.getState())).trials[0].status, 'saved');
+  assert.equal(await page.locator('#serviceName').inputValue(), 'HelloFresh');
   await page.locator('#trialForm button[type="submit"]').click();
   state = await page.evaluate(() => window.__tryWiseSmoke.getState());
   assert.equal(state.trials[0].status, 'active');
@@ -91,6 +97,55 @@ try {
   assert.equal(state.trials[0].monthlyValue, 12.5);
   await page.locator('#reviewTab').click();
   assert.equal(await page.locator('#reviewQueue article').count(), 1);
+  await page.locator('[data-check-trial]').first().check();
+  const beforeDateEdit = await page.evaluate(() => window.__tryWiseSmoke.getState());
+  const beforeStored = await page.evaluate(() => localStorage.getItem('trywise-state-v2'));
+  for (const cancel of ['button', 'escape']) {
+    await page.locator('[data-decide="extend"]').click();
+    assert(await page.locator('#decisionDateDialog').isVisible());
+    assert.equal(await page.locator('#newDecisionDate').inputValue(), '2026-09-20');
+    await page.locator('#newDecisionDate').fill('2026-10-05');
+    await page.locator('#newDecisionDate').press('Enter');
+    assert(await page.locator('#decisionDateDialog').isVisible(), 'Date Enter must not confirm');
+    assert.deepEqual(await page.evaluate(() => window.__tryWiseSmoke.getState()), beforeDateEdit);
+    if (cancel === 'button') await page.locator('#cancelDecisionDate').click();
+    else await page.keyboard.press('Escape');
+    assert.deepEqual(await page.evaluate(() => window.__tryWiseSmoke.getState()), beforeDateEdit);
+    assert.equal(await page.evaluate(() => localStorage.getItem('trywise-state-v2')), beforeStored);
+    assert(await page.locator('[data-decide="extend"]').evaluate(el => el === document.activeElement));
+  }
+  await page.locator('[data-decide="extend"]').click();
+  await page.locator('#decisionDateForm button[type="submit"]').click();
+  assert.match(await page.locator('#decisionDateError').textContent(), /different date/);
+  await page.locator('#newDecisionDate').fill('2026-09-01');
+  await page.locator('#decisionDateForm button[type="submit"]').click();
+  assert.deepEqual(await page.evaluate(() => window.__tryWiseSmoke.getState()), beforeDateEdit);
+  await page.locator('#newDecisionDate').fill('2026-10-05');
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({width, height:900});
+    const box = await page.locator('#decisionDateDialog').boundingBox();
+    assert(box.x >= 0 && box.x + box.width <= width, `Date dialog overflow at ${width}`);
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:`${screenshotDir}/trywise-decision-date-mobile.png`});
+  await page.setViewportSize({width:1440,height:900});
+  await page.screenshot({path:`${screenshotDir}/trywise-decision-date-desktop.png`});
+  await page.locator('#decisionDateForm button[type="submit"]').click();
+  state = await page.evaluate(() => window.__tryWiseSmoke.getState());
+  assert.equal(state.trials[0].endDate, '2026-10-05');
+  assert.equal(state.trials[0].startDate, beforeDateEdit.trials[0].startDate);
+  assert.deepEqual(state.trials[0].checks, beforeDateEdit.trials[0].checks);
+  assert.deepEqual(state.decisions, beforeDateEdit.decisions);
+  await page.reload();
+  await page.locator('#reviewTab').click();
+  assert.equal((await page.evaluate(() => window.__tryWiseSmoke.getState())).trials[0].endDate, '2026-10-05');
+  // A pending dialog cannot overwrite a plan updated while it was open.
+  await page.locator('[data-decide="extend"]').click();
+  await page.locator('#newDecisionDate').fill('2026-10-06');
+  await page.evaluate(() => { window.__tryWiseSmoke.getState().trials[0].endDate = '2026-10-07'; });
+  await page.locator('#decisionDateForm button[type="submit"]').click();
+  assert.equal((await page.evaluate(() => window.__tryWiseSmoke.getState())).trials[0].endDate, '2026-10-07');
+  assert.match(await page.locator('#toast').textContent(), /plan changed/);
   await page.locator('[data-decide="cancel"]').click();
   assert.equal((await page.evaluate(() => window.__tryWiseSmoke.getState())).trials[0].status, 'cancel');
   await page.locator('#insightsTab').click();
