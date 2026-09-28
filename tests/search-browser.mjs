@@ -61,7 +61,10 @@ try {
     await check(test,false);
   }
   await page.locator('#clearFiltersBtn').click();
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#sidebarToggle').click();
   await page.locator('[data-interest="cloudinfra"]').click();
+  await page.locator('#sidebarToggle').click();
   await page.locator('#searchInput').fill('hulu');
   assert.equal(await page.locator('#trialFeed article .card-title').first().textContent(),'Hulu');
   await page.locator('#clearFiltersBtn').click();
