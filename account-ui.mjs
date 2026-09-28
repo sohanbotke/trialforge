@@ -3,7 +3,7 @@ import { createFirebaseClient, isFirebaseConfigured } from './firebase-client.mj
 import { validateState, mergePlans, hasPersonalData } from './plan-state.mjs';
 import { createPlanStore } from './plan-store.mjs';
 
-export function initializeAccounts({ getState, replaceState, readGuest, writeGuest, notify, exportPlan, onCatalog = () => {} }) {
+export function initializeAccounts({ getState, replaceState, readGuest, writeGuest, notify, exportPlan, onCatalog = () => {}, onAdminAccess = () => {} }) {
   const el = (id) => document.getElementById(id);
   let client = null;
   let starting = false;
@@ -26,9 +26,21 @@ export function initializeAccounts({ getState, replaceState, readGuest, writeGue
     onUser(user) {
       const generation = ++authGeneration;
       el('adminLink').hidden = true;
+      el('adminReviewLink').hidden = true;
+      onAdminAccess(false);
+      el('adminAccessStatus').textContent = user ? 'Checking admin access…' : '';
       if (user && client) void client.catalog.checkAdmin().then(allowed => {
-        if (generation === authGeneration) el('adminLink').hidden = !allowed;
-      }).catch(() => {});
+        if (generation !== authGeneration) return;
+        el('adminLink').hidden = !allowed;
+        el('adminReviewLink').hidden = !allowed;
+        const destination = `/admin.html?queue=seeds${emulator ? '&emulator=1' : ''}`;
+        el('adminLink').href = destination;
+        el('adminReviewLink').href = destination;
+        el('adminAccessStatus').textContent = allowed ? 'Admin access confirmed. You can review and publish catalog offers.' : '';
+        onAdminAccess(allowed === true);
+      }).catch(() => {
+        if (generation === authGeneration) el('adminAccessStatus').textContent = 'Admin access could not be checked. Reload when connected to try again.';
+      });
       el('accountIdentity').textContent = user ? `Signed in as ${user.email || user.displayName || 'your account'}` : 'You are using a guest plan.';
       el('signInBtn').hidden = Boolean(user);
       el('signOutBtn').hidden = !user;

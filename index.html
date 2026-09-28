@@ -958,6 +958,7 @@
           </div>
         </details>
         <button class="btn" id="accountBtn" type="button" aria-haspopup="dialog" aria-controls="accountDialog" aria-live="polite">Sign in</button>
+        <a class="btn" id="adminReviewLink" href="/admin.html?queue=seeds" hidden>Review catalog · Admin</a>
       </div>
     </header>
 
@@ -1381,7 +1382,8 @@
       <div class="card-actions">
         <button class="btn" id="importGuestBtn" type="button" hidden>Import guest plan</button>
         <button class="btn" id="accountExportBtn" type="button">Export a backup</button>
-        <a class="btn" id="adminLink" href="/admin.html" hidden>Review &amp; publish offers</a>
+        <a class="btn" id="adminLink" href="/admin.html?queue=seeds" hidden>Review &amp; publish offers</a>
+        <p class="small muted" id="adminAccessStatus" role="status"></p>
       </div>
       <div class="field">
         <label for="importFile">Import a TryWise JSON backup (adds missing records)</label>
@@ -1398,6 +1400,7 @@
     import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar, offerConfidence, reviewLabel, searchIntent, searchTextScore, matchesCatalogSearch, emptySearchMessage } from './consumer-model.mjs';
     import { offerStatus, retiredOffers } from './catalog-policy.mjs';
     let accountManager = null;
+    let canReviewCatalog = false;
 
     const STATE_KEY = 'trywise-state-v2';
     const LEGACY_STATE_KEYS = ['trialforge-state-v2'];
@@ -1870,6 +1873,7 @@
               ${alreadyTracked ? 'Saved in plan' : 'Save option'}
             </button>
             <a class="btn" href="${trial.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.name)} offer (opens in a new tab)">Visit offer ↗</a>
+            ${canReviewCatalog && !isReviewed(trial) ? `<a class="btn" data-review-offer="${trial.id}" href="/admin.html?offer=${encodeURIComponent(trial.id)}${['localhost','127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('emulator') === '1' ? '&amp;emulator=1' : ''}">Review this entry</a>` : ''}
           </div>
         </article>
       `;
@@ -2587,6 +2591,10 @@
         render();
       },
       notify: showToast,
+      onAdminAccess(allowed) {
+        canReviewCatalog = allowed;
+        render();
+      },
       onCatalog(records, status) {
         catalogLoadStatus = status;
         if (records) { latestCatalogRecords = records; trialCatalog = mergedCatalog(seedCatalog, records); }

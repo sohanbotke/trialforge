@@ -19,7 +19,7 @@ const mock=`export async function createFirebaseClient(){
 function offer(id,name){const result={id,name,status:'published',revision:1,sourceCandidate:'shared',description:'Published description',category:'devtools',url:'https://example.com/'+id,offerType:'free_tier',trialDays:0,reviewDays:30,monthlyValue:0,upfrontCost:0,currency:'USD',priceDetails:'Limited free use',eligibility:'New users',region:'United States',cancellation:'Cancel in settings',goal:'Try one project',expiresAt:null,identity:{provider:'example',product:id,plan:'free',region:'us',scope:'general'}};result.identityKey=identityKey(result);return result;}
 const candidate=(id,title)=>({id,title,url:'https://example.com/'+id,observedAt:'2026-09-09T00:00:00Z'});
 const aiCandidate={...candidate('one','Candidate one'),sourceId:'github-copilot-plans',evidenceUrl:'https://example.com/one',aiDraft:{schemaVersion:1,status:'unverified',provider:'ollama-local',model:'fixture-local',sourceUrl:'https://example.com/one',fields:{name:{value:'AI offer',quote:'Free offer <img src=x onerror=alert(1)>'},description:{value:'Suggested description',quote:'Free offer'},offerType:{value:'free_tier',quote:'Free offer'}}}};
-async function pageFor(extra={}){
+async function pageFor(extra={},query=''){
  const page=await browser.newPage();const decisions=[],dialogs=[];
  page.on('pageerror',e=>errors.push(e.message));
  page.on('dialog',dialog=>{dialogs.push(dialog.message());const accept=decisions.length?decisions.shift():true;return accept?dialog.accept():dialog.dismiss();});
@@ -30,12 +30,29 @@ async function pageFor(extra={}){
   if(!/^\/[a-zA-Z0-9._-]+$/.test(url.pathname))return route.fulfill({status:404,body:''});
   try{await route.fulfill({contentType:url.pathname.endsWith('.html')?'text/html':url.pathname.endsWith('.css')?'text/css':'application/javascript',body:await readFile(root+url.pathname.slice(1))});}catch{await route.fulfill({status:404,body:''});}
  });
- await page.goto('http://audit.local/admin.html');await page.locator('#workspace').waitFor({state:'visible'});
+ await page.goto('http://audit.local/admin.html'+query);await page.locator('#workspace').waitFor({state:'visible'});
  return {page,decisions,dialogs};
 }
 async function ready(page){await page.waitForFunction(()=>!document.getElementById('reviewForm').hidden&&!document.getElementById('fields').disabled);}
 async function resolveNext(page){await page.evaluate(()=>window.fixture.pending.shift().resolve());}
 try{
+ // Deep links open the intended review, never auto-approve or use URL terms.
+ const linked=await pageFor({},'?offer=hellofresh&monthlyValue=0&confirmed=true');
+ await ready(linked.page);
+ assert.equal(await linked.page.locator('#offerId').inputValue(),'hellofresh');
+ assert.equal(await linked.page.locator('#monthlyValue').inputValue(),'');
+ assert.equal(await linked.page.locator('#confirmed').isChecked(),false);
+ assert.equal(await linked.page.evaluate(()=>window.fixture.writes.length),0);
+ await linked.page.close();
+ const publishedLink=await pageFor({catalog:[offer('alpha','Exact published fixture')]},'?offer=alpha');
+ await ready(publishedLink.page);
+ assert.equal(await publishedLink.page.locator('#name').inputValue(),'Exact published fixture');
+ assert.equal(await publishedLink.page.locator('#confirmed').isChecked(),false);
+ assert.equal(await publishedLink.page.evaluate(()=>window.fixture.writes.length),0);
+ await publishedLink.page.close();
+ const invalidLink=await pageFor({},'?offer=../../users');
+ await invalidLink.page.waitForFunction(()=>document.getElementById('message').textContent.includes('Invalid review link'));
+ assert.equal(await invalidLink.page.locator('#reviewForm').isVisible(),false);await invalidLink.page.close();
  // Recheck queue excludes current records and updates after a catalog snapshot.
  const recheck=await pageFor({catalog:[offer('undated','Undated fixture'),
   {...offer('current','Current fixture'),verifiedAt:new Date().toISOString()},
