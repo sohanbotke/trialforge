@@ -10,7 +10,7 @@ const fixture = {
   id: 'reviewed-fixture', name: 'Reviewed streaming fixture', description: 'A test-only streaming option.',
   source: 'official', categories: ['shows'], facets: [], verificationStatus: 'reviewed',
   offerType: 'free_tier', monthlyValue: 0, upfrontCost: 0, trialDays: 14, providerTrialDays: 0,
-  verified: new Date().toISOString().slice(0,10), verifiedAt:new Date().toISOString(), url: 'https://example.test/', region: 'Test region',
+  verified: new Date().toISOString().slice(0,10), verifiedAt:new Date().toISOString(), url: 'https://example.test/?q=" data-url-injected="yes&next=<value>', region: 'Test region',
   priceDetails: 'Usage limits apply. <script>window.injected=true</script>',
   cancellation: 'Manage through provider account.', eligibility: 'Test users only', goal: 'Watch a show'
 };
@@ -39,6 +39,8 @@ try {
   assert.match(await preview.textContent(), /Not confirmed/);
   assert.doesNotMatch(await preview.textContent(), /\$|Risk:|Cancel: Low|day window/);
   const free = page.locator('#trialFeed article').first();
+  assert.equal(await free.locator('a[target="_blank"]').getAttribute('href'), fixture.url);
+  assert.equal(await page.locator('[data-url-injected]').count(), 0);
   assert.doesNotMatch(await free.textContent(), /after trial|day trial|planning review/);
   await free.locator('summary').click();
   assert.match(await free.textContent(), /Usage limits apply/);
@@ -118,12 +120,16 @@ try {
   await page.locator('[data-add-catalog]:not(:disabled)').first().click();
   await page.locator('#activeTab').click();
   assert((await page.locator('#activeTrials').boundingBox()).y < (await page.locator('#trialForm').boundingBox()).y, 'Shortlist should precede the tracking form');
+  assert.equal(await page.locator('#activeTrials a[target="_blank"]').first().getAttribute('href'), fixture.url);
+  assert.equal(await page.locator('[data-url-injected]').count(), 0);
   for (let i = 0; i < 4; i++) await page.locator('[data-compare-trial]').nth(i).click();
   assert.equal(await page.locator('[data-compare-trial][aria-pressed="true"]').count(), 3);
   assert.match(await page.locator('#toast').textContent(), /up to 3/);
   await page.locator('#compareSavedBtn').click();
   assert(await page.locator('#comparisonDialog').isVisible());
   assert.equal(await page.locator('#comparisonTable thead th').count(), 4);
+  assert.equal(await page.locator('#comparisonTable a').first().getAttribute('href'), fixture.url);
+  assert.equal(await page.locator('[data-url-injected]').count(), 0);
   assert.match(await page.locator('#comparisonTable').textContent(), /\$12.50\/mo after trial/);
   assert.match(await page.locator('#comparisonTable').textContent(), /Not confirmed/);
   assert.match(await page.locator('#comparisonTable').textContent(), /<script>window.injected=true<\/script>/);
