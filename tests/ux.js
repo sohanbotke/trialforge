@@ -62,7 +62,12 @@ async function run() {
     await page.locator('#requirementText').fill('Meal delivery services for busy weekdays');
     await page.locator('#requirementForm button[type="submit"]').click();
     assert.equal(await page.locator('#plannerToggle').evaluate((el) => el === document.activeElement), true);
+    // The active summary is exposed once; Clear filters removes it entirely.
+    const explanation = 'Provider-name and topic matches lead.';
+    const snapshot = await page.locator('#requirementPlan').ariaSnapshot();
+    assert.equal(snapshot.split(explanation).length - 1, 1);
     await page.locator('#clearFiltersBtn').click();
+    assert.equal(await page.locator('#requirementPlan').textContent(), '');
     assert.equal(await page.locator('#trialFeed article').count(), total, 'Clear filters must include offers outside the latest requirement');
     const cloud = page.locator('#interestList button').filter({ hasText: 'Free Cloud' });
     await cloud.click();
@@ -74,11 +79,6 @@ async function run() {
     assert.match(await page.locator('#resultsCount').textContent(), /^0 of /);
     await page.locator('#clearFiltersBtn').click();
     assert.equal(await page.locator('#trialFeed article').count(), total);
-
-    // A single paragraph is exposed once to screen-reader traversal.
-    const explanation = 'Reviewed matches first, then unreviewed previews.';
-    const snapshot = await page.locator('#requirementPlan').ariaSnapshot();
-    assert.equal(snapshot.split(explanation).length - 1, 1);
 
     await page.locator('[data-add-catalog="hellofresh"]').click();
     await page.locator('#activeTab').click();
