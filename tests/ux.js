@@ -26,6 +26,23 @@ async function run() {
     const content = await page.locator('#mainContent').boundingBox();
     assert(content.x > sidebar.x + sidebar.width, 'Desktop content must stay beside the sidebar');
     assert((await page.locator('#requirementText').boundingBox()).y < 700);
+    const headerWeights = await page.evaluate(() => [document.querySelector('#accountBtn'), document.querySelector('#planTools summary')].map(el => getComputedStyle(el).backgroundColor));
+    assert.notEqual(headerWeights[0], headerWeights[1], 'Sign in must have primary visual weight');
+    const dateTheme = await page.evaluate(() => ['serviceName', 'startDate', 'endDate'].map(id => {
+      const style = getComputedStyle(document.getElementById(id));
+      return [style.border, style.borderRadius, style.backgroundColor, style.fontFamily, style.fontSize, style.padding, style.minHeight];
+    }));
+    assert.deepEqual(dateTheme[1], dateTheme[0], 'Native date fields must share text field styling');
+    assert.deepEqual(dateTheme[2], dateTheme[0]);
+    const tags = await page.locator('#trialFeed .badge-row .badge').evaluateAll(els => els.map(el => {
+      const style = getComputedStyle(el); return `${style.backgroundColor}/${style.color}`;
+    }));
+    assert.equal(new Set(tags).size, 1, 'Category/domain tags share a neutral style; color is reserved for status');
+    for (const card of await page.locator('#trialFeed article').all()) {
+      assert.doesNotMatch(await card.locator('.card-title').textContent(), /\$/);
+      assert.equal(await card.locator('.offer-facts').count(), 1);
+      for (const cost of await card.locator('.offer-facts dd').all()) assert((await cost.textContent()).trim(), 'No blank cost values');
+    }
     await page.keyboard.press('Tab');
     assert.equal(await page.locator('.skip-link').evaluate((el) => el === document.activeElement), true);
     await page.keyboard.press('Enter');
@@ -57,6 +74,11 @@ async function run() {
     assert.match(await page.locator('#resultsCount').textContent(), /^0 of /);
     await page.locator('#clearFiltersBtn').click();
     assert.equal(await page.locator('#trialFeed article').count(), total);
+
+    // A single paragraph is exposed once to screen-reader traversal.
+    const explanation = 'Reviewed matches first, then unreviewed previews.';
+    const snapshot = await page.locator('#requirementPlan').ariaSnapshot();
+    assert.equal(snapshot.split(explanation).length - 1, 1);
 
     await page.locator('[data-add-catalog="hellofresh"]').click();
     await page.locator('#activeTab').click();
@@ -97,6 +119,17 @@ async function run() {
 
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
+      assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundImage), 'none', 'No clipped watermark or viewport-filling gradient');
+      await page.locator('#discoverTab').click();
+      if (await page.locator('.hero-panel').evaluate(el => el.classList.contains('collapsed'))) await page.locator('#plannerToggle').click();
+      const clippedChips = await page.locator('.quick-starts').evaluate(container => {
+        const bounds = container.getBoundingClientRect();
+        return [...container.children].filter(el => {
+          const b = el.getBoundingClientRect();
+          return b.left < bounds.left - 1 || b.right > bounds.right + 1 || b.top < bounds.top - 1 || b.bottom > bounds.bottom + 1;
+        }).map(el => el.textContent);
+      });
+      assert.deepEqual(clippedChips, [], `Every example chip must be fully visible at ${width}px`);
       for (const view of ['discover', 'active', 'review', 'radar', 'insights']) {
         await page.locator(`#${view}Tab`).click();
         const dimensions = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
@@ -160,6 +193,17 @@ async function run() {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: `${process.env.TMPDIR || '/tmp'}/trywise-after-desktop.png` });
+    if (process.env.TRYWISE_SCREENSHOT_DIR) {
+      for (const width of [390,1440]) {
+        await page.setViewportSize({width,height:1000});
+        await page.locator('#discoverTab').click();
+        await page.evaluate(() => scrollTo(0,0));
+        await page.screenshot({path:`${process.env.TRYWISE_SCREENSHOT_DIR}/catalog-polish-${width}.png`});
+        await page.locator('#reviewTab').click();
+        await page.evaluate(() => scrollTo(0,0));
+        await page.screenshot({path:`${process.env.TRYWISE_SCREENSHOT_DIR}/decisions-empty-${width}.png`});
+      }
+    }
     await page.emulateMedia({ reducedMotion: 'reduce' });
     assert.equal(await page.locator('.hero-panel').evaluate((el) => getComputedStyle(el, '::before').animationName), 'none');
     assert.deepEqual(errors, []);
