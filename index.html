@@ -48,12 +48,7 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background:
-        linear-gradient(115deg, rgba(255, 191, 61, 0.24) 0 18%, transparent 18% 100%),
-        linear-gradient(155deg, transparent 0 55%, rgba(0, 124, 137, 0.16) 55% 72%, transparent 72% 100%),
-        linear-gradient(135deg, rgba(255, 90, 61, 0.11), rgba(255, 248, 240, 0.96) 34%, rgba(227, 248, 232, 0.9) 72%),
-        url("assets/trywise-mark.svg") top 18px right 20px / 220px auto no-repeat,
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.45;
@@ -480,12 +475,12 @@
     input, select, textarea {
       min-width: 0;
       width: 100%;
-      border: 1px solid #97899c;
+      border: 1px solid #a08a76;
       border-radius: 7px;
       background: #fff;
       color: var(--text);
       padding: 9px 10px;
-      min-height: 38px;
+      min-height: 44px;
       transition: border-color 0.16s ease, box-shadow 0.16s ease;
     }
 
@@ -822,12 +817,6 @@
     }
 
     @media (max-width: 920px) {
-      body {
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 248, 251, 0.98)),
-          var(--bg);
-      }
-
       .layout {
         grid-template-columns: 1fr;
       }
@@ -900,8 +889,8 @@
     .offer-facts dt { color: var(--muted); font-size: .8rem; }
     .offer-facts dd { margin: 4px 0 0; font-weight: 700; overflow-wrap: anywhere; }
     .hero-copy p { margin-bottom: 0; }
-    .quick-starts { max-height: 48px; overflow-x: auto; flex-wrap: nowrap; }
-    .quick-start { white-space: nowrap; flex-shrink: 0; }
+    .quick-starts { flex-wrap: wrap; }
+    .quick-start { white-space: normal; max-width: 100%; }
     .toolbar { display: flex; align-items: flex-start; flex-wrap: wrap; }
     .comparison-dialog { max-height: calc(100dvh - 24px); }
     .comparison-dialog .onboarding-card { min-width: 0; }
@@ -917,6 +906,8 @@
       .toolbar .btn { width: auto; }
       .hero-panel .panel-body { padding: 12px; }
       .hero-copy p { font-size: .85rem; }
+      .quick-starts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+      .quick-start { font-size: .875rem; padding-inline: 6px; }
       .offer-facts { grid-template-columns: 1fr 1fr; }
       .tabs { display: flex; overflow-x: auto; }
       .tabs .tab { flex: 0 0 auto; white-space: nowrap; }
@@ -957,7 +948,7 @@
         </button>
           </div>
         </details>
-        <button class="btn" id="accountBtn" type="button" aria-haspopup="dialog" aria-controls="accountDialog" aria-live="polite">Sign in</button>
+        <button class="btn primary" id="accountBtn" type="button" aria-haspopup="dialog" aria-controls="accountDialog" aria-live="polite">Sign in</button>
         <a class="btn" id="adminReviewLink" href="/admin.html?queue=seeds" hidden>Review catalog · Admin</a>
       </div>
     </header>
@@ -1086,7 +1077,7 @@
                 </form>
                 <div class="quick-starts" aria-label="Quick requirement examples">
                 <button class="quick-start" type="button" data-quick-requirement="Cheapest way to watch live sports and shows">Live sports</button>
-                <button class="quick-start" type="button" data-quick-requirement="Audiobooks and books I can try before paying">Books and audiobooks</button>
+                <button class="quick-start" type="button" data-quick-requirement="Audiobooks and books I can try before paying">Books &amp; audio</button>
                 <button class="quick-start" type="button" data-quick-requirement="Meal delivery services for busy weekdays">Meal delivery</button>
                 <button class="quick-start" type="button" data-quick-requirement="AI coding tools with useful free trials">AI coding tools</button>
                 <button class="quick-start" type="button" data-quick-requirement="Free cloud infrastructure to host my apps">Free cloud hosting</button>
@@ -1890,7 +1881,7 @@
             <button class="btn primary" type="button" data-add-catalog="${trial.id}" ${alreadyTracked ? 'disabled' : ''}>
               ${alreadyTracked ? 'Saved in plan' : 'Save option'}
             </button>
-            <a class="btn" href="${trial.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.name)} offer (opens in a new tab)">Visit offer ↗</a>
+            <a class="btn" href="${escapeHTML(trial.url)}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.name)} offer (opens in a new tab)">Visit offer ↗</a>
             ${canReviewCatalog && !isReviewed(trial) ? `<a class="btn" data-review-offer="${trial.id}" href="/admin.html?offer=${encodeURIComponent(trial.id)}${['localhost','127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('emulator') === '1' ? '&amp;emulator=1' : ''}">Review this entry</a>` : ''}
           </div>
         </article>
@@ -1945,7 +1936,7 @@
             <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'Not set yet')}</p>
             ${availability ? `<p class="small availability-notice" role="status">${escapeHTML(availability)}</p>` : ''}
             <p class="small muted">${offer ? `${escapeHTML(comparisonFacts(offer).review)} · Monthly base: ${escapeHTML(comparisonFacts(offer).monthly)}` : 'Current offer details unavailable. Confirm terms before starting.'}</p>
-            <div class="card-actions"><button class="btn" type="button" data-compare-trial="${trial.id}" aria-pressed="${comparisonIds.includes(trial.id)}">${comparisonIds.includes(trial.id) ? 'Selected for comparison' : 'Select to compare'}</button>${offer ? `<a class="btn" href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.service)} offer (opens in a new tab)">Visit offer ↗</a>` : ''}<button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
+            <div class="card-actions"><button class="btn" type="button" data-compare-trial="${trial.id}" aria-pressed="${comparisonIds.includes(trial.id)}">${comparisonIds.includes(trial.id) ? 'Selected for comparison' : 'Select to compare'}</button>${offer ? `<a class="btn" href="${escapeHTML(offer.url)}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.service)} offer (opens in a new tab)">Visit offer ↗</a>` : ''}<button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
           </article>`;
         const days = daysUntil(trial.endDate);
         const total = Math.max(1, daysBetween(trial.startDate, trial.endDate));
@@ -1990,7 +1981,7 @@
       const offers = trials.map(trial => trialCatalog.find(offer => offer.id === trial.catalogId));
       const facts = offers.map(comparisonFacts);
       const fields = {review:'Evidence status', upfront:'Listed upfront cost', monthly:'Monthly base cost', duration:'Trial duration', pricing:'Extra costs & limits', eligibility:'Who qualifies', region:'Region', cancellation:'Cancellation'};
-      document.getElementById('comparisonTable').innerHTML = `<table class="comparison-table"><caption class="small">Terms for ${trials.length} saved options — no quality or savings score</caption><thead><tr><th scope="col">Compare</th>${trials.map(trial => `<th scope="col">${escapeHTML(trial.service)}</th>`).join('')}</tr></thead><tbody>${Object.entries(fields).map(([key,label]) => `<tr><th scope="row">${label}</th>${facts.map(fact => `<td>${escapeHTML(fact[key])}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Provider</th>${offers.map((offer, index) => `<td>${offer ? `<a href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trials[index].service)} (opens in a new tab)">Visit offer ↗</a>` : 'Unavailable'}</td>`).join('')}</tr></tbody></table>`;
+      document.getElementById('comparisonTable').innerHTML = `<table class="comparison-table"><caption class="small">Terms for ${trials.length} saved options — no quality or savings score</caption><thead><tr><th scope="col">Compare</th>${trials.map(trial => `<th scope="col">${escapeHTML(trial.service)}</th>`).join('')}</tr></thead><tbody>${Object.entries(fields).map(([key,label]) => `<tr><th scope="row">${label}</th>${facts.map(fact => `<td>${escapeHTML(fact[key])}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Provider</th>${offers.map((offer, index) => `<td>${offer ? `<a href="${escapeHTML(offer.url)}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trials[index].service)} (opens in a new tab)">Visit offer ↗</a>` : 'Unavailable'}</td>`).join('')}</tr></tbody></table>`;
     }
 
     function exportDecision(id) {
