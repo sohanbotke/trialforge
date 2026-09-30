@@ -6,6 +6,8 @@
   <title>TryWise - Private Trial Planner</title>
   <meta name="description" content="Compare useful trials, save a personal plan, and decide before you pay. TryWise helps you track goals, costs, and decision dates.">
   <link rel="icon" type="image/svg+xml" href="/assets/trywise-mark.svg">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
   <style>
     :root {
       --bg: #fff8f0;
@@ -225,7 +227,7 @@
       height: 4px;
       background: linear-gradient(90deg, var(--accent), var(--sun), var(--brand), var(--green));
       background-size: 200% 100%;
-      animation: sweep 8s ease-in-out infinite;
+      /* Static decoration avoids continuous repainting on mobile devices. */
     }
 
     .planner-shell {
@@ -1890,7 +1892,7 @@
             <button class="btn primary" type="button" data-add-catalog="${trial.id}" ${alreadyTracked ? 'disabled' : ''}>
               ${alreadyTracked ? 'Saved in plan' : 'Save option'}
             </button>
-            <a class="btn" href="${trial.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.name)} offer (opens in a new tab)">Visit offer ↗</a>
+            <a class="btn" href="${trial.url}" target="_blank" rel="noopener" aria-label="Visit offer for ${escapeHTML(trial.name)} (opens in a new tab)">Visit offer <span aria-hidden="true">↗</span></a>
             ${canReviewCatalog && !isReviewed(trial) ? `<a class="btn" data-review-offer="${trial.id}" href="/admin.html?offer=${encodeURIComponent(trial.id)}${['localhost','127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('emulator') === '1' ? '&amp;emulator=1' : ''}">Review this entry</a>` : ''}
           </div>
         </article>
@@ -1945,7 +1947,7 @@
             <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'Not set yet')}</p>
             ${availability ? `<p class="small availability-notice" role="status">${escapeHTML(availability)}</p>` : ''}
             <p class="small muted">${offer ? `${escapeHTML(comparisonFacts(offer).review)} · Monthly base: ${escapeHTML(comparisonFacts(offer).monthly)}` : 'Current offer details unavailable. Confirm terms before starting.'}</p>
-            <div class="card-actions"><button class="btn" type="button" data-compare-trial="${trial.id}" aria-pressed="${comparisonIds.includes(trial.id)}">${comparisonIds.includes(trial.id) ? 'Selected for comparison' : 'Select to compare'}</button>${offer ? `<a class="btn" href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.service)} offer (opens in a new tab)">Visit offer ↗</a>` : ''}<button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
+            <div class="card-actions"><button class="btn" type="button" data-compare-trial="${trial.id}" aria-pressed="${comparisonIds.includes(trial.id)}">${comparisonIds.includes(trial.id) ? 'Selected for comparison' : 'Select to compare'}</button>${offer ? `<a class="btn" href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit offer for ${escapeHTML(trial.service)} (opens in a new tab)">Visit offer <span aria-hidden="true">↗</span></a>` : ''}<button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
           </article>`;
         const days = daysUntil(trial.endDate);
         const total = Math.max(1, daysBetween(trial.startDate, trial.endDate));
@@ -1990,7 +1992,7 @@
       const offers = trials.map(trial => trialCatalog.find(offer => offer.id === trial.catalogId));
       const facts = offers.map(comparisonFacts);
       const fields = {review:'Evidence status', upfront:'Listed upfront cost', monthly:'Monthly base cost', duration:'Trial duration', pricing:'Extra costs & limits', eligibility:'Who qualifies', region:'Region', cancellation:'Cancellation'};
-      document.getElementById('comparisonTable').innerHTML = `<table class="comparison-table"><caption class="small">Terms for ${trials.length} saved options — no quality or savings score</caption><thead><tr><th scope="col">Compare</th>${trials.map(trial => `<th scope="col">${escapeHTML(trial.service)}</th>`).join('')}</tr></thead><tbody>${Object.entries(fields).map(([key,label]) => `<tr><th scope="row">${label}</th>${facts.map(fact => `<td>${escapeHTML(fact[key])}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Provider</th>${offers.map((offer, index) => `<td>${offer ? `<a href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trials[index].service)} (opens in a new tab)">Visit offer ↗</a>` : 'Unavailable'}</td>`).join('')}</tr></tbody></table>`;
+      document.getElementById('comparisonTable').innerHTML = `<table class="comparison-table"><caption class="small">Terms for ${trials.length} saved options — no quality or savings score</caption><thead><tr><th scope="col">Compare</th>${trials.map(trial => `<th scope="col">${escapeHTML(trial.service)}</th>`).join('')}</tr></thead><tbody>${Object.entries(fields).map(([key,label]) => `<tr><th scope="row">${label}</th>${facts.map(fact => `<td>${escapeHTML(fact[key])}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Provider</th>${offers.map((offer, index) => `<td>${offer ? `<a href="${offer.url}" target="_blank" rel="noopener" aria-label="Visit offer for ${escapeHTML(trials[index].service)} (opens in a new tab)">Visit offer <span aria-hidden="true">↗</span></a>` : 'Unavailable'}</td>`).join('')}</tr></tbody></table>`;
     }
 
     function exportDecision(id) {

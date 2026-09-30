@@ -3,6 +3,9 @@ import { identityKey, duplicateMatches } from './offer-identity.mjs';
 import { seedCatalog } from './seed-catalog.mjs';
 import { retiredOffers } from './catalog-policy.mjs';
 
+export const CATALOG_DOCUMENT_LIMIT = 500;
+export const CATALOG_PAYLOAD_LIMIT = 1024 * 1024;
+
 export function createCatalogClient(db, sdk, auth) {
   const ref = (collection, id) => sdk.doc(db, collection, id);
   const revision = snap => snap.exists() ? snap.data().revision || 0 : 0;
@@ -22,8 +25,20 @@ export function createCatalogClient(db, sdk, auth) {
     checkAdmin,
     matchingOffers,
     watchCatalog(next, error) {
-      return sdk.onSnapshot(sdk.query(sdk.collection(db, 'catalog'), sdk.limit(500)), { includeMetadataChanges: true }, snapshot => {
-        if (!snapshot.metadata.fromCache && !snapshot.metadata.hasPendingWrites) next(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      // Read one sentinel beyond the supported capacity: never silently truncate
+      // a withdrawal tombstone and resurrect its starter entry.
+      return sdk.onSnapshot(sdk.query(sdk.collection(db, 'catalog'), sdk.limit(CATALOG_DOCUMENT_LIMIT + 1)), { includeMetadataChanges: true }, snapshot => {
+        if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
+        if (snapshot.size > CATALOG_DOCUMENT_LIMIT) {
+          error(new Error('Catalog exceeds 500 documents; pagination is required before expanding.'));
+          return;
+        }
+        const records = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        if (new TextEncoder().encode(JSON.stringify(records)).length > CATALOG_PAYLOAD_LIMIT) {
+          error(new Error('Catalog exceeds the 1 MiB payload budget; pagination is required.'));
+          return;
+        }
+        next(records);
       }, error);
     },
     async candidates(cursor) {
