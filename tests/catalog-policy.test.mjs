@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { offerStatus, timestampMillis, recheckQueue, REVIEW_WINDOW_MS } from '../catalog-policy.mjs';
+import { offerStatus, timestampMillis, recheckQueue, verificationState, REVIEW_WINDOW_MS } from '../catalog-policy.mjs';
 import { mergedCatalog } from '../catalog-model.mjs';
 import { seedCatalog } from '../seed-catalog.mjs';
 import { reviewedCost, comparisonFacts, reviewLabel } from '../consumer-model.mjs';
@@ -13,6 +13,18 @@ const offer = (overrides = {}) => ({
   upfrontCost:0, currency:'USD', priceDetails:'Monthly subscription after trial.',
   eligibility:'Fixture accounts', region:'US', cancellation:'Cancel in provider account.',
   goal:'Try a show', status:'published', verifiedAt:iso(0), expiresAt:null, ...overrides
+});
+
+test('verification queue separates access problems from checked terms', () => {
+  for (const record of [{linkStatus:'ok'}, {link_status:'ok'}, {verifiedAt:iso(0)}, {verificationStatus:'verified'}, {status:'approved'}]) {
+    assert.equal(verificationState(record,{},now).key,'unverified');
+  }
+  assert.equal(verificationState({linkStatus:'needs_browser'},{},now).key,'browser');
+  assert.equal(verificationState({},{status:'source_limited'},now).key,'browser');
+  assert.equal(verificationState(offer(),{status:'source_limited'},now).key,'checked','A fresh manual review supersedes old access notes');
+  assert.equal(verificationState(offer({verifiedAt:iso(-REVIEW_WINDOW_MS)}),{},now).key,'unverified');
+  for (const record of [offer({status:'withdrawn'}),offer({expiresAt:iso(0)}),{id:'github-models'}]) assert.equal(verificationState(record,{status:'source_limited'},now).key,'inactive');
+  assert.match(verificationState({link_status:'broken'},{},now).reason,/not proof/);
 });
 
 test('freshness is current only before the exact seven-day boundary', () => {

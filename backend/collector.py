@@ -103,7 +103,7 @@ class TrialCandidate:
     confidence: str            # high | medium | candidate | community-verified
     score: int                 # 0..100, deterministic
     signals: list[str]         # matched signal phrases that caused discovery
-    link_status: str           # ok | broken | not_checked | budget_exhausted | blocked
+    link_status: str           # ok | broken | needs_browser | unreachable | not_checked | budget_exhausted | blocked
     landing_match: str         # trial-page | promo-page | reachable-no-trial-signals | not_checked | ...
     trial_days: int | None = None
     price_hint: str | None = None
@@ -221,7 +221,9 @@ def http_get(url: str, *, timeout: int = REQUEST_TIMEOUT,
     if status < 200 or status >= 300:
         if status == 304:
             return status, headers, raw
-        raise URLError(f"source returned HTTP {status}")
+        error = URLError(f"source returned HTTP {status}")
+        error.status = status
+        raise error
     return status, headers, raw
 
 
@@ -533,6 +535,7 @@ def fetch_with_304(url: str, fetcher: PoliteFetcher,
             probe.robots = "allowed"
             return probe
         probe.error = str(exc)
+        probe.status = getattr(exc, "status", 0)
         return probe
     probe.status = status
     if status == 304:
@@ -906,8 +909,16 @@ class LinkVerifier:
             return "budget_exhausted", "not_checked"
         self.used += 1
         result = fetch_with_304(url, self.fetcher, None)
+        if result.robots == "blocked" or result.status in {401, 403, 429} or result.quality == "js_required":
+            return "needs_browser", "terms-not-confirmed"
+        if result.status in {404, 410}:
+            return "broken", "not-found"
+        if re.search(r"captcha|verify you are human|just a moment\.\.\.", result.text[:4000], re.I):
+            return "needs_browser", "terms-not-confirmed"
         if not result.ok and not result.not_modified:
-            return "broken", "unreachable"
+            return "unreachable", "terms-not-confirmed"
+        if result.not_modified:
+            return "not_checked", "unchanged-without-terms-review"
         return "ok", classify_landing_page(result.text)
 
 
