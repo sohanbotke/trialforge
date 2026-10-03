@@ -13,6 +13,8 @@
     "test:unit": "node --test tests/catalog-policy.test.mjs tests/catalog-recheck.test.mjs tests/consumer-model.test.mjs tests/plan-store.test.mjs tests/offer-identity.test.mjs tests/approved-sources.test.mjs tests/nightly-upload.test.mjs tests/draft-fields.test.mjs",
     "test:emulator-suite": "node tests/firestore-rules.test.mjs && node --test tests/publishing.test.mjs && node tests/accounts.js && node tests/admin-browser.mjs && node tests/admin-regressions.mjs",
     "test:release": "node tests/release-build.mjs",
+    "test:performance": "node scripts/check-performance.mjs",
+    "test:performance-budgets": "node --test tests/performance-budgets.test.mjs tests/catalog-capacity.test.mjs",
     "test:release-live": "node tests/release-live.mjs",
     "test:rules": "node tests/firestore-rules.test.mjs",
     "test:accounts": "node tests/accounts.js",
@@ -30,7 +32,10 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
+    "chrome-launcher": "1.2.1",
     "firebase": "^12.18.0",
-    "playwright": "1.61.1"
+    "lighthouse": "13.5.0",
+    "playwright": "1.61.1",
+    "puppeteer-core": "25.12.0"
   }
 }

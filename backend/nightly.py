@@ -23,7 +23,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
 from zoneinfo import ZoneInfo
 
-from collector import validate_public_url, strip_tags, parse_robots, robots_allowed
+from collector import validate_public_url, strip_tags, parse_robots, robots_allowed, classify_fetch_quality
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'data' / 'nightly'
@@ -33,6 +33,11 @@ SIGNALS = re.compile(r'\b(?:free trial|free tier|free plan|free account|trial|in
 
 
 class BatchTimeout(RuntimeError):
+    pass
+
+
+class BrowserCheckRequired(ValueError):
+    """An approved source needs a normal manual check, never a bot bypass."""
     pass
 
 
@@ -104,24 +109,24 @@ class Fetcher:
             status, _, body = self.request(origin + '/robots.txt', hosts)
             # Redirects, authorization failures, and server failures fail closed.
             if status not in (200, 404):
-                raise ValueError(f'Robots policy unavailable: HTTP {status}')
+                raise BrowserCheckRequired(f'Robots policy unavailable: HTTP {status}')
             if status == 404:
                 body = 'User-agent: *\nAllow: /'
             if len(body) > 100_000 or '<html' in body.lower():
-                raise ValueError('Invalid robots response')
+                raise BrowserCheckRequired('Invalid robots response')
             parser = RobotFileParser()
             parser.parse(body.splitlines())
             self.robots[origin] = (parser, body)
         parser, body = self.robots[origin]
         rules, crawl_delay = parse_robots(body)
         if not robots_allowed(url, rules)[0]:
-            raise ValueError('Disallowed by robots.txt')
+            raise BrowserCheckRequired('Disallowed by robots.txt')
         delay = max(2, crawl_delay or 0)
         rate = parser.request_rate(AGENT) or parser.request_rate('*')
         if rate:
             delay = max(delay, rate.seconds / rate.requests)
         if delay > 60:
-            raise ValueError('Robots crawl delay exceeds batch limit')
+            raise BrowserCheckRequired('Robots crawl delay exceeds batch limit')
         return delay
 
     def fetch(self, url, hosts):
@@ -134,11 +139,15 @@ class Fetcher:
                 url = urljoin(url, headers['location'])
                 continue  # Recheck host, public DNS, and robots on every hop.
             if status != 200:
+                if status in (401, 403, 429):
+                    raise BrowserCheckRequired(f'HTTP {status}; automated access could not confirm terms')
                 raise ValueError(f'HTTP {status}; needs review, not proof of expiration')
             if not any(kind in headers.get('content-type', '') for kind in ('text/', 'application/json', 'application/xml')):
                 raise ValueError('Unexpected content type')
             if re.search(r'captcha|verify you are human|just a moment\.\.\.', body[:4000], re.I):
-                raise ValueError('Bot challenge; no bypass attempted')
+                raise BrowserCheckRequired('Bot challenge; no bypass attempted')
+            if 'text/html' in headers.get('content-type', '') and classify_fetch_quality(body, 'text/html') == 'js_required':
+                raise BrowserCheckRequired('Page requires JavaScript; terms not extracted')
             return body, url
         raise ValueError('Too many redirects')
 
@@ -188,6 +197,9 @@ def collect(sources, fetcher, now, drafter=None):
                 raise ValueError('Source policy review is missing, future-dated, or over 90 days old')
             if not source.get('policy_url') or not source.get('license'):
                 raise ValueError('Source needs a documented policy review')
+            for key in ('id', 'label', 'offer_url', 'url', 'categories', 'attribution'):
+                if not source.get(key):
+                    raise ValueError(f'Source configuration missing {key}')
             body, url = fetcher.fetch(source['url'], source['allowed_hosts'])
             item = candidate(source, body, url, now)
             if item:
@@ -197,9 +209,31 @@ def collect(sources, fetcher, now, drafter=None):
             results.append({'sourceId': source['id'], 'status': 'fetched' if item else 'no_signals',
                             'candidateId': item['id'] if item else None,
                             'draftStatus': item.get('draftStatus', 'disabled') if item else 'not_applicable'})
+        except BrowserCheckRequired as error:
+            item = browser_check_candidate(source, str(error), now)
+            candidates.append(item)
+            results.append({'sourceId': source['id'], 'status': 'needs_review',
+                            'error': str(error)[:300], 'candidateId': item['id']})
         except (ValueError, KeyError, OSError, URLError, http.client.HTTPException) as error:
             results.append({'sourceId': source.get('id', 'invalid'), 'status': 'needs_review', 'error': str(error)[:300]})
     return candidates, results
+
+
+def browser_check_candidate(source, reason, now):
+    # No challenge page, fabricated excerpt, AI draft, or offer terms are stored.
+    # Repeated identical failures are one immutable queue entry, not nightly spam.
+    payload = {
+        'sourceId': source['id'], 'title': source['label'],
+        'url': source['offer_url'], 'sourceUrl': source['url'],
+        'evidenceUrl': source['url'], 'evidence': [],
+        'categories': source['categories'], 'license': source['license'],
+        'attribution': source['attribution'], 'policyUrl': source['policy_url'],
+        'policyReviewedAt': source['policy_reviewed'], 'schemaVersion': 1,
+        'status': 'pending_review', 'verificationStatus': 'unverified',
+        'linkStatus': 'needs_browser', 'checkReason': reason[:300],
+    }
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    return {**payload, 'id': digest, 'contentHash': digest, 'observedAt': now}
 
 
 def is_due(state, now):
@@ -210,7 +244,10 @@ def is_due(state, now):
 def review_report(candidates, run):
     cards = []
     for item in candidates:
+        check = (f'<p>Needs browser check: {escape(item.get("checkReason", "Terms not confirmed"))}. '
+                 'No provider terms were extracted.</p>') if item.get('linkStatus') == 'needs_browser' else ''
         cards.append(f'<article><h2>{escape(item["title"])}</h2><p>Unverified · pending review</p>'
+                     + check +
                      f'<p><a href="{escape(item["url"], quote=True)}" rel="noreferrer">Official source</a></p>'
                      '<ul>' + ''.join(f'<li>{escape(v)}</li>' for v in item['evidence']) + '</ul>'
                      f'<p>{escape(item["attribution"])} · {escape(item["license"])}</p>'

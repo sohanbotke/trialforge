@@ -6,6 +6,8 @@
   <title>TryWise - Private Trial Planner</title>
   <meta name="description" content="Compare useful trials, save a personal plan, and decide before you pay. TryWise helps you track goals, costs, and decision dates.">
   <link rel="icon" type="image/svg+xml" href="/assets/trywise-mark.svg">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
   <style>
     :root {
       --bg: #fff8f0;
@@ -220,7 +222,7 @@
       height: 4px;
       background: linear-gradient(90deg, var(--accent), var(--sun), var(--brand), var(--green));
       background-size: 200% 100%;
-      animation: sweep 8s ease-in-out infinite;
+      /* Static decoration avoids continuous repainting on mobile devices. */
     }
 
     .planner-shell {
@@ -1405,7 +1407,7 @@
     import { initializeAccounts } from './account-ui.mjs';
     import { seedCatalog } from './seed-catalog.mjs';
     import { mergedCatalog, offerTypes } from './catalog-model.mjs';
-    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar, offerConfidence, reviewLabel, searchIntent, searchTextScore, matchesCatalogSearch, emptySearchMessage } from './consumer-model.mjs';
+    import { isReviewed, reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar, offerConfidence, reviewLabel, searchIntent, rankCatalogOffers, searchCoverageMessage, emptySearchMessage } from './consumer-model.mjs';
     import { offerStatus, retiredOffers } from './catalog-policy.mjs';
     let accountManager = null;
     let canReviewCatalog = false;
@@ -1540,7 +1542,6 @@
       const focusSelector = focusAttribute ? `[${focusAttribute}="${CSS.escape(focused.getAttribute(focusAttribute))}"]` : null;
       renderInterests();
       renderStats();
-      renderRequirementPlan();
       renderTrialFeed();
       renderActiveTrials();
       renderComparison();
@@ -1591,10 +1592,10 @@
       document.querySelector('.stats').hidden = document.getElementById('discoverView').classList.contains('active') || (!activeTrials.length && !state.decisions.length);
     }
 
-    function renderRequirementPlan() {
+    function renderRequirementPlan(matches = [], query = '') {
       const container = document.getElementById('requirementPlan');
       const latest = state.requirements.at(-1);
-      if (!latest) {
+      if (!latest || !requirementFilterActive) {
         container.innerHTML = '';
         return;
       }
@@ -1603,36 +1604,36 @@
         return;
       }
 
-      const matches = rankCatalogForRequirement(latest).slice(0, 4);
       container.innerHTML = `
         <article class="trial-card featured">
           <div class="card-top">
             <div>
-              <h3 class="card-title">Try plan for: ${escapeHTML(latest.text)}</h3>
+              <h3 class="card-title">Try plan for: ${escapeHTML(query || latest.text)}</h3>
               <p class="card-meta">${latest.preference === 'lowest-cost' ? 'Lower reviewed base cost' : 'Relevance to your request'} • budget ${latest.budget ? `$${latest.budget}/mo` : 'not set'}</p>
             </div>
             <div class="card-actions">
-              <span class="badge blue">${searchIntent(latest.text) === 'relationships' ? 'Dating &amp; relationships' : latest.categories.map(interestLabel).join(', ') || 'General'}</span>
-              <button class="btn icon-only" type="button" data-dismiss-requirement title="Hide this try plan summary" aria-label="Hide this try plan summary">
+              <span class="badge blue">${searchIntent(query || latest.text) === 'relationships' ? 'Dating &amp; relationships' : inferRequirementCategories(query || latest.text).map(interestLabel).join(', ') || 'General'}</span>
+              <button class="btn icon-only" type="button" data-dismiss-requirement title="Dismiss search and edit query" aria-label="Dismiss search and edit query">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
               </button>
             </div>
           </div>
-          <p class="small muted">Reviewed matches first, then unreviewed previews. Ordered by category and keyword fit, with reviewed base cost considered for your budget. This is not a quality rating or a total-cost guarantee.</p>
+          <p class="small muted">Provider-name and topic matches lead. Interests boost relevant options; review freshness breaks ties. This is not a quality rating or a total-cost guarantee.</p>
           ${matches.length ? `
+            <details><summary>${matches.length} matching options — same order as the results below</summary>
             <div class="timeline">
               ${matches.map((trial, index) => `
                 <div class="timeline-item">
                   <div class="timeline-date">Option ${index + 1}</div>
                   <div>
                     <strong>${escapeHTML(trial.name)}</strong><br>
-                    <span class="small muted">${optionSummary(trial)} • ${escapeHTML(trial.eligibility)}</span><br>
+                    <span class="small muted">${optionSummary(trial)} • ${escapeHTML(isReviewed(trial) ? trial.eligibility : 'Eligibility not confirmed')}</span><br>
                     <span class="small">${escapeHTML(trial.rankReason)}</span>
                   </div>
                 </div>
               `).join('')}
-            </div>
-          ` : `<p class="small muted">${catalogLoadStatus === 'loading' ? 'Loading catalog matches…' : escapeHTML(emptySearchMessage(latest.text))}</p>`}
+            </div></details>
+          ` : `<p class="small muted">${catalogLoadStatus === 'loading' ? 'Loading catalog matches…' : escapeHTML(searchCoverageMessage(query || latest.text,trialCatalog) || emptySearchMessage(query || latest.text))}</p>`}
         </article>
       `;
     }
@@ -1663,7 +1664,6 @@
         facets,
         createdAt: new Date().toISOString()
       });
-      state.interests = categories;
       requirementFilterActive = true;
       document.getElementById('searchInput').value = '';
       state.dismissedRequirementIds = state.dismissedRequirementIds.filter((id) => id !== state.requirements.at(-1).id);
@@ -1678,7 +1678,7 @@
 
     function inferRequirementCategories(text) {
       if (searchIntent(text) === 'relationships') return [];
-      const lowered = text.toLowerCase();
+      const lowered = text.toLowerCase().replace(/\bcooking\b/g, 'cook');
       const categories = requirementCategoryHints
         .filter((hint) => hint.terms.some((term) => termMatchesText(term, lowered)))
         .map((hint) => hint.category);
@@ -1687,7 +1687,7 @@
 
     function inferRequirementFacets(text) {
       if (searchIntent(text) === 'relationships') return [];
-      const lowered = text.toLowerCase();
+      const lowered = text.toLowerCase().replace(/\bcooking\b/g, 'cook');
       const facets = requirementFacetHints
         .filter((hint) => hint.terms.some((term) => termMatchesText(term, lowered)))
         .map((hint) => hint.facet);
@@ -1699,40 +1699,13 @@
       return new RegExp(`(^|\\W)${escaped}(\\W|$)`, 'i').test(text);
     }
 
-    function rankCatalogForRequirement(requirement, includeAll = false) {
-      const categories = new Set(requirement.categories || []);
-      const facets = new Set(requirement.facets || []);
-      const text = requirement.text.toLowerCase();
-      const budget = Number(requirement.budget || 0);
-      const preference = requirement.preference || 'lowest-cost';
-
-      return trialCatalog
-        .filter(trial => includeAll || (trial.verificationStatus === 'unreviewed' || isReviewed(trial)))
-        .filter(trial => includeAll || searchIntent(text) !== 'relationships' || matchesCatalogSearch(trial,text))
-        .map((trial) => {
-          const categoryMatches = trial.categories.filter((category) => categories.has(category)).length;
-          const facetMatches = (trial.facets || []).filter((facet) => facets.has(facet)).length;
-          const textMatch = searchTextScore(trial,text);
-          const cost = reviewedCost(trial);
-          const withinBudget = cost !== null && (!budget || cost <= budget);
-          const budgetPenalty = cost !== null && budget && cost > budget ? Math.min(25, cost - budget) : 0;
-          const preferenceBonus = preference === 'lowest-cost' && cost !== null ? Math.max(0, 24 - cost / 2) : 0;
-          const score = facetMatches * 55 + categoryMatches * 24 + textMatch * 6 + preferenceBonus + (withinBudget ? 8 : 0) - budgetPenalty;
-          const rankReason = facetMatches
-            ? `Matches ${[...(trial.facets || [])].filter((facet) => facets.has(facet)).join(', ')}. ${isReviewed(trial) ? 'Check limits and terms for your needs.' : 'Unreviewed preview; costs and terms need confirmation.'}`
-            : categoryMatches
-              ? `Matches ${trial.categories.filter((category) => categories.has(category)).map(interestLabel).join(', ')}. ${isReviewed(trial) ? 'Check limits and terms for your needs.' : 'Unreviewed preview; costs and terms need confirmation.'}`
-            : `Adjacent option from ${trial.source} sources; verify fit before adding.`;
-          return { ...trial, score, rankReason, categoryMatches, facetMatches, textMatch };
-        })
-        .filter((trial) => {
-          if (includeAll) return true;
-          if (categories.size || facets.size) {
-            return trial.categoryMatches > 0 || trial.facetMatches > 0;
-          }
-          return trial.textMatch > 0; // A low price alone is never a relevance match.
-        })
-        .sort((a, b) => reviewedFirst(a, b) || b.score - a.score || a.name.localeCompare(b.name));
+    function rankCatalogForRequirement(requirement) {
+      return rankCatalogOffers(trialCatalog, {
+        ...requirement,
+        categories: inferRequirementCategories(requirement.text),
+        facets: inferRequirementFacets(requirement.text),
+        interests: state.interests
+      });
     }
 
     function renderOnboardingOptions(profile = state) {
@@ -1810,14 +1783,17 @@
       const type = document.getElementById('offerTypeFilter').value;
       const trackedIds = new Set(state.trials.map((trial) => trial.catalogId));
 
-      const ranked = requirementFilterActive && latestRequirement ? rankCatalogForRequirement(latestRequirement) : [...trialCatalog].sort(reviewedFirst);
+      const activeQuery = query || (requirementFilterActive ? latestRequirement?.text || '' : '');
+      const ranked = activeQuery ? rankCatalogForRequirement({...latestRequirement, text:activeQuery}) : [...trialCatalog].sort(reviewedFirst);
       const matching = ranked.filter((trial) => {
-        const interestMatch = selected.size === 0 || trial.categories.some((category) => selected.has(category));
-        const queryMatch = matchesCatalogSearch(trial,query);
+        // Explicit interest browsing filters an empty search; searches use it as a boost.
+        const interestMatch = Boolean(activeQuery) || selected.size === 0 || trial.categories.some((category) => selected.has(category));
         const sourceMatch = source === 'all' || trial.source === source;
         const valueMatch = matchesConsumerFilters(trial, { maximum, review, type });
-        return interestMatch && queryMatch && sourceMatch && valueMatch;
+        return interestMatch && sourceMatch && valueMatch;
       });
+
+      renderRequirementPlan(catalogLoadStatus === 'loading' ? [] : matching, activeQuery);
 
       const feed = document.getElementById('trialFeed');
       feed.setAttribute('aria-busy', String(catalogLoadStatus === 'loading'));
@@ -1827,12 +1803,17 @@
         return;
       }
       const filtered = requirementFilterActive || selected.size > 0 || query || source !== 'all' || maximum !== '' || review !== 'all' || type !== 'all';
-      const activeQuery = query || (requirementFilterActive ? latestRequirement?.text || '' : '');
       document.getElementById('resultsCount').textContent = `${matching.length} of ${trialCatalog.length} options${searchIntent(activeQuery) === 'relationships' ? ' · Dating & relationships' : ''}${selected.size ? ` · Interests: ${[...selected].map(interestLabel).join(', ')}` : ''}${requirementFilterActive ? ' · Matching your request' : ''}`;
       document.getElementById('clearFiltersBtn').disabled = !filtered;
       if (matching.length === 0) {
-        const catalogHasIntent = trialCatalog.some(trial=>matchesCatalogSearch(trial,activeQuery));
-        feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>No matching options</strong><p>${escapeHTML(catalogHasIntent ? 'Your current search and filters have no matches. Clear filters to browse all options.' : emptySearchMessage(activeQuery))}</p><button class="btn" type="button" data-browse-all>Browse all options</button></div>`;
+        const catalogHasIntent = ranked.length > 0;
+        feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>No matching options</strong><p>${escapeHTML(searchCoverageMessage(activeQuery,trialCatalog) || (catalogHasIntent ? 'Your current search and filters have no matches. Clear filters to browse all options.' : emptySearchMessage(activeQuery)))}</p><button class="btn" type="button" data-browse-all>Browse all options</button></div>`;
+        return;
+      }
+
+      if (activeQuery) {
+        const coverage = searchCoverageMessage(activeQuery,trialCatalog);
+        feed.innerHTML = `<div class="catalog-section"><h3>Matching options</h3><p class="small muted">Ordered by relevance. Each card shows its review status; previews are research starting points, not confirmed offers.</p>${coverage ? `<p class="small" data-coverage-note>${escapeHTML(coverage)}</p>` : ''}</div>${matching.map(trial=>trialCard(trial,trackedIds.has(trial.id))).join('')}`;
         return;
       }
 
@@ -1881,7 +1862,7 @@
             <button class="btn primary" type="button" data-add-catalog="${trial.id}" ${alreadyTracked ? 'disabled' : ''}>
               ${alreadyTracked ? 'Saved in plan' : 'Save option'}
             </button>
-            <a class="btn" href="${escapeHTML(trial.url)}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.name)} offer (opens in a new tab)">Visit offer ↗</a>
+            <a class="btn" href="${escapeHTML(trial.url)}" target="_blank" rel="noopener" aria-label="Visit offer for ${escapeHTML(trial.name)} (opens in a new tab)">Visit offer <span aria-hidden="true">↗</span></a>
             ${canReviewCatalog && !isReviewed(trial) ? `<a class="btn" data-review-offer="${trial.id}" href="/admin.html?offer=${encodeURIComponent(trial.id)}${['localhost','127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('emulator') === '1' ? '&amp;emulator=1' : ''}">Review this entry</a>` : ''}
           </div>
         </article>
@@ -1936,7 +1917,7 @@
             <p class="small"><strong>Goal:</strong> ${escapeHTML(trial.goal || 'Not set yet')}</p>
             ${availability ? `<p class="small availability-notice" role="status">${escapeHTML(availability)}</p>` : ''}
             <p class="small muted">${offer ? `${escapeHTML(comparisonFacts(offer).review)} · Monthly base: ${escapeHTML(comparisonFacts(offer).monthly)}` : 'Current offer details unavailable. Confirm terms before starting.'}</p>
-            <div class="card-actions"><button class="btn" type="button" data-compare-trial="${trial.id}" aria-pressed="${comparisonIds.includes(trial.id)}">${comparisonIds.includes(trial.id) ? 'Selected for comparison' : 'Select to compare'}</button>${offer ? `<a class="btn" href="${escapeHTML(offer.url)}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trial.service)} offer (opens in a new tab)">Visit offer ↗</a>` : ''}<button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
+            <div class="card-actions"><button class="btn" type="button" data-compare-trial="${trial.id}" aria-pressed="${comparisonIds.includes(trial.id)}">${comparisonIds.includes(trial.id) ? 'Selected for comparison' : 'Select to compare'}</button>${offer ? `<a class="btn" href="${escapeHTML(offer.url)}" target="_blank" rel="noopener" aria-label="Visit offer for ${escapeHTML(trial.service)} (opens in a new tab)">Visit offer <span aria-hidden="true">↗</span></a>` : ''}<button class="btn primary" type="button" data-edit-trial="${trial.id}">Start tracking</button><button class="btn danger" type="button" data-remove-trial="${trial.id}">Remove</button></div>
           </article>`;
         const days = daysUntil(trial.endDate);
         const total = Math.max(1, daysBetween(trial.startDate, trial.endDate));
@@ -1981,7 +1962,7 @@
       const offers = trials.map(trial => trialCatalog.find(offer => offer.id === trial.catalogId));
       const facts = offers.map(comparisonFacts);
       const fields = {review:'Evidence status', upfront:'Listed upfront cost', monthly:'Monthly base cost', duration:'Trial duration', pricing:'Extra costs & limits', eligibility:'Who qualifies', region:'Region', cancellation:'Cancellation'};
-      document.getElementById('comparisonTable').innerHTML = `<table class="comparison-table"><caption class="small">Terms for ${trials.length} saved options — no quality or savings score</caption><thead><tr><th scope="col">Compare</th>${trials.map(trial => `<th scope="col">${escapeHTML(trial.service)}</th>`).join('')}</tr></thead><tbody>${Object.entries(fields).map(([key,label]) => `<tr><th scope="row">${label}</th>${facts.map(fact => `<td>${escapeHTML(fact[key])}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Provider</th>${offers.map((offer, index) => `<td>${offer ? `<a href="${escapeHTML(offer.url)}" target="_blank" rel="noopener" aria-label="Visit ${escapeHTML(trials[index].service)} (opens in a new tab)">Visit offer ↗</a>` : 'Unavailable'}</td>`).join('')}</tr></tbody></table>`;
+      document.getElementById('comparisonTable').innerHTML = `<table class="comparison-table"><caption class="small">Terms for ${trials.length} saved options — no quality or savings score</caption><thead><tr><th scope="col">Compare</th>${trials.map(trial => `<th scope="col">${escapeHTML(trial.service)}</th>`).join('')}</tr></thead><tbody>${Object.entries(fields).map(([key,label]) => `<tr><th scope="row">${label}</th>${facts.map(fact => `<td>${escapeHTML(fact[key])}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Provider</th>${offers.map((offer, index) => `<td>${offer ? `<a href="${escapeHTML(offer.url)}" target="_blank" rel="noopener" aria-label="Visit offer for ${escapeHTML(trials[index].service)} (opens in a new tab)">Visit offer <span aria-hidden="true">↗</span></a>` : 'Unavailable'}</td>`).join('')}</tr></tbody></table>`;
     }
 
     function exportDecision(id) {
@@ -2527,9 +2508,14 @@
       const latest = state.requirements.at(-1);
       if (!latest) return;
       state.dismissedRequirementIds = [...new Set([...state.dismissedRequirementIds, latest.id])];
+      requirementFilterActive = false;
+      document.getElementById('requirementText').value = latest.text;
+      document.getElementById('searchInput').value = '';
       saveState();
-      renderRequirementPlan();
-      showToast('Try plan summary hidden');
+      renderTrialFeed();
+      setPlannerCollapsed(false);
+      document.getElementById('requirementText').focus();
+      showToast('Search dismissed. Edit your query or browse options.');
     }
 
     function setPlannerCollapsed(collapsed) {

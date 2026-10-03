@@ -3,19 +3,44 @@ import assert from 'node:assert/strict';
 import { reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar } from '../consumer-model.mjs';
 import { defaultState, validateState, mergePlans } from '../plan-state.mjs';
 import { createPlanStore } from '../plan-store.mjs';
-import { searchIntent, searchTextScore, matchesCatalogSearch, emptySearchMessage } from '../consumer-model.mjs';
+import { searchIntent, searchTextScore, matchesCatalogSearch, emptySearchMessage, rankCatalogOffers, searchCoverageMessage } from '../consumer-model.mjs';
 
-test('love and dating synonyms map to relationships, not unrelated offers', () => {
+test('specific dating phrases signal relationships; love verbs and sports do not', () => {
   const dating={name:'Fixture dating service',description:'Meet singles and build relationships.'};
   const streaming={name:'Fixture streaming service',description:'Movies and live sports. Find shows you love.'};
-  for(const query of ['love','find love','dating apps','relationship services','matchmaking']) {
+  for(const query of ['find love','dating apps','relationship services','matchmaking']) {
     assert.equal(searchIntent(query),'relationships');
     assert.equal(matchesCatalogSearch(dating,query),true);
     assert.equal(matchesCatalogSearch(streaming,query),false);
   }
   assert.equal(searchIntent('I love movies'),'general');
   assert.equal(searchIntent('I love coding'),'general');
+  for(const query of ['love','I love cooking','love a good deal','tennis singles','singles']) assert.equal(searchIntent(query),'general');
   assert.match(emptySearchMessage('love'),/dating or relationship services/);
+});
+test('provider exact/prefix/typo matches outrank affinity; price never creates relevance', () => {
+  const options=[
+    {id:'hulu',name:'Hulu',categories:['shows'],description:'Stream movies'},
+    {id:'netflix',name:'Netflix',categories:['shows'],description:'Streaming research fixture; no trial claim'},
+    {id:'hosting',name:'Free Hosting',categories:['cloudinfra'],description:'Deploy apps',monthlyValue:0},
+    {id:'notes',name:'Notes',categories:['productivity'],description:'A notebook mentioning Netflix'}
+  ];
+  for(const [query,id] of [['hulu','hulu'],['hul','hulu'],['netflx','netflix'],['Netflix','netflix']]) {
+    assert.equal(rankCatalogOffers(options,{text:query,interests:['cloudinfra']})[0].id,id);
+  }
+  assert.deepEqual(rankCatalogOffers(options,{text:'zzznomatch',interests:['cloudinfra'],budget:50}),[]);
+  assert.deepEqual(rankCatalogOffers(options,{text:'tennis singles'}),[]);
+  assert.match(rankCatalogOffers(options,{text:'netflx'})[0].rankReason,/spelling match/);
+  assert.match(searchCoverageMessage('netflx',options.filter(item=>item.id!=='netflix')),/not in this catalog/);
+  assert.equal(searchCoverageMessage('netflx',options),'');
+});
+test('generic offer search returns research prospects without fabricating confirmed prices', () => {
+  const options=[{id:'free',name:'Free hosting',facets:['free cloud hosting'],verificationStatus:'unreviewed'},
+    {id:'other',name:'Paid reference',facets:[],verificationStatus:'unreviewed'}];
+  const results=rankCatalogOffers(options,{text:'free trial'});
+  assert.deepEqual(results.map(item=>item.id),['free']);
+  assert.equal(reviewedCost(results[0]),null);
+  assert.match(results[0].rankReason,/Unreviewed preview/);
 });
 test('unknown queries and generic query words cannot create relevance from price', () => {
   const free={name:'Cloud fixture',description:'A free hosting plan',monthlyValue:0};
