@@ -21,6 +21,9 @@ async function run() {
     await page.route('**/firebase-config.js', (route) => route.fulfill({ contentType: 'text/javascript', body: 'export const firebaseConfig = {};' }));
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto(`${baseUrl}/index.html`);
+    assert.equal(await page.getByText('Bank scan', { exact: true }).count(), 0);
+    assert.equal(await page.getByText('No bank connection required.', { exact: true }).count(), 0);
+    assert.equal(await page.locator('#storageTitle').textContent(), 'Guest storage');
     assert.equal(await page.locator('#sidebarToggle').isVisible(), false);
     const sidebar = await page.locator('#sidebar').boundingBox();
     const content = await page.locator('#mainContent').boundingBox();
