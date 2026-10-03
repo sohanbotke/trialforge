@@ -6,6 +6,7 @@ node_modules/
 *-debug.log
 .firebase/
 dist/
+.audit-results/
 FIRESTORE-MODEL-NOTES.md
 .agents/
 .env

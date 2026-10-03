@@ -28,9 +28,19 @@ jobs:
       - run: npm ci
       - run: python3 -m unittest discover -s backend -p 'test_*.py'
       - run: npm run test:unit
+      - run: npm run test:performance-budgets
       - run: npm run build
       - run: node tests/release-build.mjs
       - run: npx playwright install --with-deps chromium
+      - name: Compressed-release mobile performance and accessibility budgets
+        run: npm run test:performance
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-performance
+          path: .audit-results/mobile.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Browser journeys and emulator security checks
         run: |
           python3 -m http.server 4177 --bind 127.0.0.1 &

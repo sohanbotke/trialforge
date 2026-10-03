@@ -14,7 +14,9 @@ export async function createFirebaseClient(config, { emulator = false } = {}) {
     import('https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js')
   ]);
   const app = appSDK.initializeApp(config);
-  const auth = authSDK.getAuth(app);
+  // Do not pre-load the popup iframe on every guest visit. Initialize only
+  // session persistence; resolve popup dependencies when sign-in is requested.
+  const auth = authSDK.initializeAuth(app, { persistence: authSDK.browserSessionPersistence });
   const db = dbSDK.initializeFirestore(app, { localCache: dbSDK.memoryLocalCache() });
   if (emulator) {
     if (!['localhost', '127.0.0.1'].includes(location.hostname) || !config.projectId.startsWith('demo-')) throw new Error('Emulators require a local demo project.');
@@ -27,7 +29,7 @@ export async function createFirebaseClient(config, { emulator = false } = {}) {
   return {
     catalog: createCatalogClient(db, dbSDK, auth),
     onAuth: (callback) => authSDK.onAuthStateChanged(auth, callback),
-    signIn: () => authSDK.signInWithPopup(auth, new authSDK.GoogleAuthProvider()),
+    signIn: () => authSDK.signInWithPopup(auth, new authSDK.GoogleAuthProvider(), authSDK.browserPopupRedirectResolver),
     signOut: () => authSDK.signOut(auth),
     async load(uid) {
       const snapshot = await dbSDK.getDocFromServer(planRef(uid));
