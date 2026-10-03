@@ -54,6 +54,27 @@ export function createCatalogClient(db, sdk, auth) {
       }), cursor: snapshot.docs.at(-1), more: snapshot.size === 25 };
     },
     async review(id) { const doc = await sdk.getDocFromServer(ref('candidateReviews', id)); return doc.exists() ? doc.data() : null; },
+    async approvedSources(id, cursor) {
+      if (!auth.currentUser || !/^[a-z0-9][a-z0-9-]{0,79}$/.test(id)) throw new Error('Sign in and select a valid offer.');
+      // Reviews retain their common publishedId across sources; immutable
+      // candidates retain the original evidence. Neither belongs in public data.
+      const constraints=[sdk.where('publishedId','==',id),sdk.limit(25)];
+      if(cursor)constraints.push(sdk.startAfter(cursor));
+      const snapshot=await sdk.getDocsFromServer(sdk.query(sdk.collection(db,'candidateReviews'),...constraints));
+      const items=await Promise.all(snapshot.docs.filter(doc=>doc.data().status==='approved'&&doc.data().publishedId===id).map(async doc=>{
+        const candidate=await sdk.getDocFromServer(ref('candidates',doc.id));
+        let data={};
+        try{const envelope=candidate.exists()?candidate.data():{};data=envelope.payloadJson?JSON.parse(envelope.payloadJson):envelope;}catch{}
+        if(!data||typeof data!=='object'||Array.isArray(data))data={};
+        const seed=seedCatalog.find(item=>`seed-${item.id}`===doc.id);
+        const bounded=(value,max)=>typeof value==='string'?value.slice(0,max):'';
+        return {candidateId:doc.id,sourceId:bounded(data.sourceId,120),title:bounded(data.title,200)||seed?.name||doc.id,
+          url:bounded(data.evidenceUrl||data.sourceUrl||data.url,2000)||seed?.url||'',
+          evidence:(Array.isArray(data.evidence)?data.evidence:[]).filter(v=>typeof v==='string').slice(0,6).map(v=>v.slice(0,500)),
+          observedAt:bounded(data.observedAt,40),missing:!candidate.exists()&&!seed};
+      }));
+      return {items,cursor:snapshot.docs.at(-1),more:snapshot.size===25};
+    },
     async offer(id) { const doc = await sdk.getDocFromServer(ref('catalog', id)); return doc.exists() ? doc.data() : null; },
     async decide({ candidateId, expectedReview = 0, expectedCatalog = 0, offer, decision, notes = '', distinctVariant = false }) {
       const uid = auth.currentUser?.uid;

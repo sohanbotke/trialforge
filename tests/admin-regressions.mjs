@@ -13,6 +13,7 @@ const mock=`export async function createFirebaseClient(){
  watchCatalog(cb){s.emit=()=>cb(s.catalog);queueMicrotask(s.emit);return ()=>{};},
  candidates:async cursor=>{if(s.queueError)throw new Error('Simulated queue failure');const start=cursor||0;return {items:s.candidates.slice(start,start+25),cursor:start+25,more:start+25<s.candidates.length};},
  review:async id=>s.reviews[id]||null,
+ approvedSources:async(id,cursor)=>{if(s.deferSources)await new Promise(resolve=>s.resolveSources=resolve);if(s.sourcesError)throw new Error('Simulated sources failure');const items=s.sources?.[id]||[];const start=cursor||0;return {items:items.slice(start,start+25),cursor:start+25,more:start+25<items.length};},
  offer:async id=>{if(s.defer)await new Promise(resolve=>s.pending.push({id,resolve}));if(s.offerError)throw new Error('Simulated target failure');return s.catalog.find(v=>v.id===id)||null;},
  decide:async data=>{if(s.writeError)throw new Error(s.writeError);s.writes.push(data);},withdraw:async()=>{}
  }};}`;
@@ -36,6 +37,37 @@ async function pageFor(extra={},query=''){
 async function ready(page){await page.waitForFunction(()=>!document.getElementById('reviewForm').hidden&&!document.getElementById('fields').disabled);}
 async function resolveNext(page){await page.evaluate(()=>window.fixture.pending.shift().resolve());}
 try{
+ const provenance=await pageFor({catalog:[offer('shared','Shared fixture')],sources:{shared:[
+  {candidateId:'blog',sourceId:'blog',title:'Blog source',url:'https://example.com/blog',evidence:['Original blog excerpt <img src=x>']},
+  {candidateId:'provider',sourceId:'provider',title:'Provider source',url:'javascript:alert(1)',evidence:['Original provider excerpt']},
+ ]}},'?offer=shared');
+ await ready(provenance.page);
+ await provenance.page.locator('#provenancePanel summary').click();await provenance.page.locator('#loadProvenance').click();
+ await provenance.page.waitForFunction(()=>document.getElementById('provenanceStatus').textContent.startsWith('2 approved'));
+ assert.equal(await provenance.page.locator('#provenance section').count(),2);
+ assert.equal(await provenance.page.locator('#provenance a').count(),1);
+ assert.equal(await provenance.page.locator('#provenance img').count(),0);
+ assert.equal(await provenance.page.locator('#confirmed').isChecked(),false);
+ if(process.env.TRYWISE_PROVENANCE_SCREENSHOTS){
+  await mkdir(process.env.TRYWISE_PROVENANCE_SCREENSHOTS,{recursive:true});
+  for(const width of [390,1440]){await provenance.page.setViewportSize({width,height:1000});await provenance.page.screenshot({path:`${process.env.TRYWISE_PROVENANCE_SCREENSHOTS}/approved-sources-${width}.png`,fullPage:true});}
+ }
+ await provenance.page.locator('#offerId').fill('other');
+ assert.equal(await provenance.page.locator('#provenance').textContent(),'');
+ assert.equal(await provenance.page.locator('#provenancePanel').isVisible(),false);
+ await provenance.page.close();
+ const lateSources=await pageFor({catalog:[offer('shared','Shared fixture')],deferSources:true,sources:{shared:[{candidateId:'private',title:'Private old-session fixture',url:'',evidence:[]}]}},'?offer=shared');
+ await ready(lateSources.page);await lateSources.page.locator('#provenancePanel summary').click();await lateSources.page.locator('#loadProvenance').click();
+ await lateSources.page.waitForFunction(()=>typeof window.fixture.resolveSources==='function');
+ await lateSources.page.locator('#signOut').click();await lateSources.page.evaluate(()=>window.fixture.resolveSources());
+ assert.equal(await lateSources.page.locator('#provenance').textContent(),'');await lateSources.page.close();
+ const pagedSources=await pageFor({catalog:[offer('shared','Shared fixture')],sourcesError:true,sources:{shared:Array.from({length:26},(_,i)=>({candidateId:`source-${i}`,title:`Source ${i}`,url:'',evidence:[]}))}},'?offer=shared');
+ await ready(pagedSources.page);await pagedSources.page.locator('#provenancePanel summary').click();await pagedSources.page.locator('#loadProvenance').click();
+ await pagedSources.page.waitForFunction(()=>document.getElementById('provenanceStatus').textContent.includes('Retry'));
+ await pagedSources.page.evaluate(()=>window.fixture.sourcesError=false);await pagedSources.page.locator('#loadProvenance').click();
+ await pagedSources.page.waitForFunction(()=>document.getElementById('provenance').children.length===25);
+ await pagedSources.page.locator('#loadProvenance').click();await pagedSources.page.waitForFunction(()=>document.getElementById('provenance').children.length===26);
+ assert.equal(await pagedSources.page.locator('#loadProvenance').isVisible(),false);await pagedSources.page.close();
  // Browser-check queue is evidence-only; blocked pages cannot imply approval.
  const verification=await pageFor({candidates:[
   {...candidate('blocked','Blocked fixture'),linkStatus:'needs_browser',checkReason:'HTTP 403 <img src=x onerror=alert(1)>',evidence:[]},

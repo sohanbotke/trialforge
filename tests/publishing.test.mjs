@@ -113,6 +113,22 @@ test('admin publishing, atomicity, conflicts, collector isolation, and private r
     assert.equal((await sdk.getDoc(sdk.doc(guest,'catalog','legacy'))).data().identity,undefined);
     await client.decide({candidateId:'legacy-upgrade',offer:legacy,decision:'approved',expectedCatalog:1,distinctVariant:true});
     assert.equal((await sdk.getDoc(sdk.doc(admin,'catalog','legacy'))).data().identityKey,identityKey(legacy));
+    // Two different source URLs support one canonical offer, with both original
+    // immutable evidence records retrievable only in the admin workspace.
+    const shared={...valid,id:'cross-source',name:'Cross-source fixture',url:'https://example.com/shared',identity:{...valid.identity,product:'cross-source'}};
+    await env.withSecurityRulesDisabled(async ctx=>{
+      for(const id of ['blog-source','provider-source'])await sdk.setDoc(sdk.doc(ctx.firestore(),'candidates',id),{payloadJson:JSON.stringify({sourceId:id,title:id,evidenceUrl:`https://example.com/${id}`,evidence:[`Original ${id} evidence`]})});
+    });
+    await client.decide({candidateId:'blog-source',offer:shared,decision:'approved',notes:'Private first review'});
+    await assert.rejects(client.decide({candidateId:'provider-source',offer:{...shared,id:'duplicate-cross-source'},decision:'approved'}),/Duplicate identity/);
+    await client.decide({candidateId:'provider-source',offer:shared,decision:'approved',expectedCatalog:1,notes:'Private second review'});
+    const sources=await client.approvedSources(shared.id);
+    assert.deepEqual(sources.items.map(v=>v.candidateId).sort(),['blog-source','provider-source']);
+    assert.equal(new Set(sources.items.map(v=>v.url)).size,2);
+    assert(!JSON.stringify(sources.items).includes('Private'));
+    const sharedRecords=await sdk.getDocs(sdk.query(sdk.collection(guest,'catalog'),sdk.where('identityKey','==',identityKey(shared))));
+    assert.equal(sharedRecords.size,1);
+    for(const db of [guest,tester,collector])await deny(sdk.getDocs(sdk.query(sdk.collection(db,'candidateReviews'),sdk.where('publishedId','==',shared.id))));
     console.log(`Publishing security checks passed; ${denied} forbidden operations denied.`);
   }finally{await env.cleanup();}
 });

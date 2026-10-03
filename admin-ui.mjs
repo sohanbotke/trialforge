@@ -16,6 +16,30 @@ let queueGeneration=0, loadedRows=new Map();
 const editor={loading:false,targetLoading:false,published:null,locked:false};
 const parked=new Map(), expanded=new Set();
 let loadedType='', visibleItems=[];
+let provenanceGeneration=0, provenanceCursor=null;
+function resetProvenance(available=false){
+  provenanceGeneration++;provenanceCursor=null;el('provenance').replaceChildren();el('provenanceStatus').textContent='';
+  el('provenancePanel').hidden=!available;el('provenancePanel').open=false;
+  el('loadProvenance').hidden=false;el('loadProvenance').disabled=false;el('loadProvenance').textContent='Load approved sources';
+}
+async function loadProvenance(){
+  if(!allowed||!targetId||el('loadProvenance').disabled)return;
+  const session=generation,ticket=++provenanceGeneration,id=targetId;
+  el('loadProvenance').disabled=true;el('provenanceStatus').textContent='Loading approved sources…';
+  try{
+    const page=await readWithDeadline(client.catalog.approvedSources(id,provenanceCursor));
+    if(session!==generation||ticket!==provenanceGeneration||!allowed||id!==targetId)return;
+    for(const source of page.items){
+      const section=document.createElement('section'),heading=document.createElement('h3');heading.textContent=source.title;section.append(heading);
+      const note=document.createElement('p');note.textContent=`Source: ${source.sourceId||source.candidateId}${source.observedAt?' · collected '+source.observedAt:''}${source.missing?' · Original candidate unavailable':''}`;section.append(note);
+      try{const url=new URL(source.url);if(url.protocol==='https:'&&!url.username&&!url.password){const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open original source ↗';section.append(link);}}catch{}
+      const list=document.createElement('ul');for(const text of source.evidence){const li=document.createElement('li');li.textContent=text;list.append(li);}section.append(list);el('provenance').append(section);
+    }
+    provenanceCursor=page.cursor;el('loadProvenance').hidden=!page.more;el('loadProvenance').textContent='Load more approved sources';
+    const count=el('provenance').children.length;el('provenanceStatus').textContent=`${count} approved source record(s) loaded.${page.more?' More records available.':''}${!count?' No approved source records found.':''}`;
+  }catch{if(session===generation&&ticket===provenanceGeneration)el('provenanceStatus').textContent='Could not load approved sources. Retry; existing evidence and edits are kept.';}
+  finally{if(session===generation&&ticket===provenanceGeneration)el('loadProvenance').disabled=false;}
+}
 const rowKey=item=>item.offer ? `offer:${item.offer.id}` : `candidate:${item.candidateId}`;
 function verificationFor(item){
   const record=item.offer || (item.seed && catalog.find(v=>v.id===item.seed.id)) || item.seed || item;
@@ -68,6 +92,7 @@ function message(text, error = false) {
 }
 function button(text, handler) { const node = document.createElement('button'); node.type = 'button'; node.className = 'entry'; node.textContent = text; node.onclick = handler; return node; }
 function resetEditor() {
+  resetProvenance();
   selected=null;dirty=false;selectionGeneration++;targetId='';expectedCatalog=0;expectedReview=0;
   Object.assign(editor,{loading:false,targetLoading:false,published:null,locked:false});
   el('reviewForm').reset();el('reviewForm').hidden=true;lockIdentity(false);clearValidation();
@@ -146,12 +171,14 @@ async function loadTarget(preserve = false) {
   if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(id)) throw new Error('Choose a valid offer ID first.');
   if(editor.targetLoading)return false;
   editor.targetLoading=true;syncEditor();
+  resetProvenance();
   try{
   const offer = await readWithDeadline(client.catalog.offer(id));
   if (ticket !== selectionGeneration || session !== generation || !allowed || el('offerId').value.trim() !== id) return false;
   if (offer?.status === 'published' && !preserve && dirty && !confirm('Replace the current form fields with this published offer?')) return false;
   const savedIdentity=offer?.identityKey?decodeIdentityKey(offer.identityKey):null;
   expectedCatalog = offer?.revision || 0; targetId = id;
+  resetProvenance(!!offer);
   if (offer?.status === 'published' && !preserve) fill(offer);
   editor.published=offer?.status==='published'?offer:null;lockIdentity(!!offer?.identityKey);
   const identity=offer?.identity||savedIdentity?.identity;
@@ -351,9 +378,10 @@ for (const [key,label] of Object.entries(offerTypes)) el('offerType').add(new Op
 for (const seed of seedCatalog) { const option=document.createElement('option'); option.value=seed.id; option.label=seed.name; el('offerIds').append(option); }
 el('offerType').onchange=()=>{ if(el('offerType').value!=='trial') el('trialDays').value='0'; };
 el('reviewForm').oninput=event=>{dirty=true;if(event.target.id!=='confirmed'&&event.target.id!=='distinctVariant'){setDirty();showDuplicates();}syncEditor();const input=event.target;if(input.validity?.valid){input.removeAttribute('aria-invalid');input.removeAttribute('aria-errormessage');el(`error-${input.id}`)?.remove();}};
-el('offerId').oninput=()=>{targetId='';lockIdentity(false);el('targetStatus').textContent='Check / load this ID before publishing.';};
+el('offerId').oninput=()=>{targetId='';resetProvenance();lockIdentity(false);el('targetStatus').textContent='Check / load this ID before publishing.';};
+el('loadProvenance').onclick=loadProvenance;
 el('loadTarget').onclick=async()=>{if(busy||editor.loading||editor.targetLoading)return;try{if(await loadTarget()){setDirty();message('Target loaded. Recheck its details before approving.');}}catch(error){message(error.message,true);}};
-el('newVariant').onclick=()=>{if(busy||editor.loading||editor.targetLoading)return;el('offerId').value='';targetId='';expectedCatalog=0;editor.published=null;lockIdentity(false);setDirty();el('targetStatus').textContent='Choose a new offer ID and change the identity for this distinct variant, then check the ID.';showDuplicates();el('offerId').focus();};
+el('newVariant').onclick=()=>{if(busy||editor.loading||editor.targetLoading)return;el('offerId').value='';targetId='';resetProvenance();expectedCatalog=0;editor.published=null;lockIdentity(false);setDirty();el('targetStatus').textContent='Choose a new offer ID and change the identity for this distinct variant, then check the ID.';showDuplicates();el('offerId').focus();};
 el('reviewForm').onsubmit=event=>{event.preventDefault();void decide('approved');};
 el('reject').onclick=()=>decide('rejected');
 el('cancel').onclick=()=>{if(mayLeave()){resetEditor();showView('queue');}};
