@@ -4,7 +4,7 @@ import { seedCatalog } from './seed-catalog.mjs';
 import { categories, offerTypes, draftSuggestions } from './catalog-model.mjs';
 import { identityFields, identityHint, identityKey, decodeIdentityKey, sourceOffers, duplicateMatches, groupCandidates } from './offer-identity.mjs';
 import { starterAudit, auditDate } from './starter-audit.mjs';
-import { offerStatus, recheckQueue, REVIEW_WINDOW_DAYS } from './catalog-policy.mjs';
+import { offerStatus, recheckQueue, verificationState, REVIEW_WINDOW_DAYS } from './catalog-policy.mjs';
 const el = id => document.getElementById(id);
 const emulator = ['localhost','127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('emulator') === '1';
 const entryParams = new URLSearchParams(location.search);
@@ -17,6 +17,10 @@ const editor={loading:false,targetLoading:false,published:null,locked:false};
 const parked=new Map(), expanded=new Set();
 let loadedType='', visibleItems=[];
 const rowKey=item=>item.offer ? `offer:${item.offer.id}` : `candidate:${item.candidateId}`;
+function verificationFor(item){
+  const record=item.offer || (item.seed && catalog.find(v=>v.id===item.seed.id)) || item.seed || item;
+  return verificationState(record,starterAudit[record.id] || {});
+}
 async function readWithDeadline(operation){
   let timer;try{return await Promise.race([operation,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('The server did not respond in time. Check your connection and retry')),15000);})]);}finally{clearTimeout(timer);}
 }
@@ -176,6 +180,9 @@ async function select(item) {
     el('notes').value = review?.notes || '';
     el('selection').textContent = `${item.title} · ${review?.status || 'unreviewed'}`;
     const evidence = el('evidence');
+    const verification=verificationFor(item), verificationNote=document.createElement('p');
+    verificationNote.textContent=`${verification.label}: ${verification.reason}`;evidence.append(verificationNote);
+    if(item.checkReason){const note=document.createElement('p');note.textContent=`Collection check: ${String(item.checkReason).slice(0,300)}. No provider terms were extracted from this response.`;evidence.append(note);}
     const link = document.createElement('a');
     try { const url = new URL(item.url); if (url.protocol === 'https:' && !url.username && !url.password) { link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Open source evidence ↗'; evidence.append(link); } } catch {}
     const list = document.createElement('ul');
@@ -264,6 +271,8 @@ function renderQueue(){
     for (const group of groups) {
       if(pendingOnly&&!group.pending&&type!=='recheck')continue;
       const {item,review}=group.current;
+      const verification=verificationFor(item);
+      if(el('verificationFilter').value!=='all'&&el('verificationFilter').value!==verification.key)continue;
       if(search&&![group.current,...group.history].some(({item:v})=>[v.title,v.candidateId,v.url,v.offer?.id,v.seed?.id,v.sourceId,v.offer?.identity?.provider].filter(Boolean).join(' ').toLowerCase().includes(search)))continue;
       visibleItems.push(item);
       const row = document.createElement('div');
@@ -272,6 +281,7 @@ function renderQueue(){
       const status=item.offer?item.offer.status:review?.status || (published?'published':'needs review');
       const open=button(`${item.title} — ${status}`,()=>select(item));open.dataset.rowKey=rowKey(item);row.append(open);
       const date = document.createElement('small'); date.textContent = item.observedAt ? `Collected ${item.observedAt}${item.aiDraft ? ' · AI draft available (unverified)' : ''}` : item.seed ? 'Starter entry: confirm every term before approval.' : `Catalog revision ${item.offer?.revision || 0}`; row.append(date);
+      const verificationNote=document.createElement('small');verificationNote.dataset.verification=verification.key;verificationNote.textContent=`${verification.label}: ${verification.reason}`;row.append(verificationNote);
       if (item.offer?.status === 'published') row.append(button(`Withdraw ${item.offer.name}`,()=>withdraw(item.offer)));
       if (item.offer?.status === 'published') {const p=document.createElement('small');p.textContent=`Verification: ${offerStatus(item.offer).replaceAll('_',' ')}. Recheck the provider before republishing; a fetch is not verification.`;row.append(p);}
       if(item.seed&&starterAudit[item.seed.id]){const p=document.createElement('small');p.textContent=`Audit: ${starterAudit[item.seed.id].status.replaceAll('_',' ')}`;row.append(p);}
@@ -279,7 +289,7 @@ function renderQueue(){
       el('queue').append(row);
     }
     el('queueStatus').textContent = `${visibleItems.length} offer groups from ${rows.length} loaded records.${type==='collected'?' Load older versions to search more evidence.':''}`;
-    if(!visibleItems.length){const empty=document.createElement('p');empty.className='empty-state';empty.textContent=search?'No matches in loaded entries. Change the search or load more.':pendingOnly?'No pending entries in this view. Choose All offer groups or load more.':'No entries loaded. Try another source or Refresh.';el('queue').append(empty);}
+    if(!visibleItems.length){const empty=document.createElement('p');empty.className='empty-state';empty.textContent=search||el('verificationFilter').value!=='all'?'No matches in loaded entries. Change the search or verification filter, or load more.':pendingOnly?'No pending entries in this view. Choose All offer groups or load more.':'No entries loaded. Try another source or Refresh.';el('queue').append(empty);}
     updateSelection();el('queue').scrollTop=scroll;
     if(focused){const next=[...el('queue').querySelectorAll('[data-row-key]')].find(v=>v.dataset.rowKey===focused);next?.focus({preventScroll:true});}
 }
@@ -353,6 +363,7 @@ el('parkDraft').onclick=parkDraft;
 el('refresh').onclick=()=>loadQueue(); el('more').onclick=()=>loadQueue(true);
 el('queueType').onchange=()=>loadQueue();
 el('reviewFilter').onchange=()=>renderQueue();
+el('verificationFilter').onchange=()=>renderQueue();
 el('queueSearch').oninput=()=>renderQueue();
 window.addEventListener('offline',connectionStatus);window.addEventListener('online',connectionStatus);connectionStatus();
 window.addEventListener('beforeunload',event=>{if(dirty||busy||parked.size){event.preventDefault();event.returnValue='';}});
@@ -362,6 +373,7 @@ try {
   client=await createFirebaseClient(config,{emulator});
   el('signIn').disabled=false;
   client.onAuth(async user=>{
+    el('verificationFilter').value='all';
     const session=++generation; allowed=false; queueGeneration++;loadedRows.clear();loadedType='';parked.clear();expanded.clear();renderParked(); stopCatalog?.(); stopCatalog=null; catalog=[]; resetEditor(); el('queue').replaceChildren();el('queueSearch').value='';el('queueError').hidden=true;el('workspace').dataset.view='queue'; el('workspace').hidden=true; message('');
     el('identity').textContent=user ? `Signed in as ${user.email || 'your account'}. Checking admin access…` : 'Sign in with the project owner’s Google account.';
     el('signIn').hidden=!!user;el('signOut').hidden=!user;

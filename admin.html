@@ -11,6 +11,7 @@
     <label>Source<select id="queueType"><option value="collected">Nightly discoveries</option><option value="recheck">Published offers needing recheck</option><option value="seeds">Starter catalog</option><option value="published">Published / withdrawn</option></select></label>
     <label>Search loaded entries<input id="queueSearch" type="search" placeholder="Name, provider, or offer ID"></label>
     <label>Review status<select id="reviewFilter"><option value="all">All offer groups</option><option value="pending">Needs review</option></select></label>
+    <label>Verification<select id="verificationFilter"><option value="all">All verification states</option><option value="browser">Needs browser check</option><option value="unverified">Unverified / needs recheck</option><option value="checked">Checked terms</option><option value="inactive">Not current / withdrawn</option></select></label>
     <p id="coverage" class="muted"></p><p id="queueStatus" role="status"></p><p id="queueError" role="alert" hidden></p>
     <button id="resumeCurrent" hidden>Return to current review</button>
     <details id="parkedPanel" hidden><summary>Drafts kept in this tab</summary><p class="muted">Private, in memory only. Refreshing or signing out clears these drafts.</p><div id="parkedDrafts"></div></details>

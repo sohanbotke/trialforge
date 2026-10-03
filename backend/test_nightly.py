@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 from unittest.mock import patch
-from nightly import Fetcher, candidate, checked_url, collect, is_due, review_report
+from nightly import Fetcher, BrowserCheckRequired, candidate, checked_url, collect, is_due, review_report
 
 SOURCE = {
     'id': 'demo', 'label': 'Demo', 'url': 'https://example.com/pricing',
@@ -50,6 +50,40 @@ class NightlyTest(unittest.TestCase):
             items, results = collect([SOURCE], fetcher, NOW)
             self.assertEqual(items, [])
             self.assertEqual(results[0]['status'], 'needs_review')
+
+    def test_blocked_source_enters_queue_without_terms_or_ai(self):
+        from unittest.mock import Mock
+        fetcher, drafter = Fetcher(), Mock()
+        with patch.object(fetcher, 'fetch', side_effect=BrowserCheckRequired('HTTP 403')):
+            items, results = collect([SOURCE], fetcher, NOW, drafter)
+            again, _ = collect([SOURCE], fetcher, '2026-09-09T12:00:00+00:00', drafter)
+        item = items[0]
+        self.assertEqual(item['id'], again[0]['id'])
+        self.assertEqual(item['status'], 'pending_review')
+        self.assertEqual(item['verificationStatus'], 'unverified')
+        self.assertEqual(item['linkStatus'], 'needs_browser')
+        self.assertEqual(item['evidence'], [])
+        self.assertNotIn('trialDays', item)
+        self.assertNotIn('verifiedAt', item)
+        drafter.enrich.assert_not_called()
+        self.assertEqual(results[0]['status'], 'needs_review')
+        self.assertEqual(results[0]['candidateId'], item['id'])
+        self.assertIn('Needs browser check', review_report(items, {'id':'fixture','status':'partial_failure','sourceResults':results}))
+
+    def test_fetch_distinguishes_bot_restrictions_from_server_failure(self):
+        for code in (401, 403, 429, 500, 404):
+            fetcher = Fetcher()
+            with patch.object(fetcher, 'policy', return_value=2), patch.object(fetcher, 'request', return_value=(code, {}, 'No terms')):
+                with self.assertRaises(ValueError) as raised:
+                    fetcher.fetch(SOURCE['url'], SOURCE['allowed_hosts'])
+                self.assertEqual(isinstance(raised.exception, BrowserCheckRequired), code in (401, 403, 429))
+        fetcher = Fetcher()
+        with patch.object(fetcher, 'policy', return_value=2), patch.object(fetcher, 'request', return_value=(200, {'content-type':'text/html'}, 'Verify you are human')):
+            with self.assertRaises(BrowserCheckRequired):
+                fetcher.fetch(SOURCE['url'], SOURCE['allowed_hosts'])
+        with patch.object(fetcher, 'policy', return_value=2), patch.object(fetcher, 'request', return_value=(200, {'content-type':'text/html'}, '<div id="root">Please enable JavaScript</div>')):
+            with self.assertRaises(BrowserCheckRequired):
+                fetcher.fetch(SOURCE['url'], SOURCE['allowed_hosts'])
 
     @patch('nightly.checked_url')
     def test_robots_failure_closed(self, checked):

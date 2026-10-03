@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {identityKey} from '../offer-identity.mjs';
@@ -36,6 +36,39 @@ async function pageFor(extra={},query=''){
 async function ready(page){await page.waitForFunction(()=>!document.getElementById('reviewForm').hidden&&!document.getElementById('fields').disabled);}
 async function resolveNext(page){await page.evaluate(()=>window.fixture.pending.shift().resolve());}
 try{
+ // Browser-check queue is evidence-only; blocked pages cannot imply approval.
+ const verification=await pageFor({candidates:[
+  {...candidate('blocked','Blocked fixture'),linkStatus:'needs_browser',checkReason:'HTTP 403 <img src=x onerror=alert(1)>',evidence:[]},
+  {...candidate('reachable','Reachable fixture'),linkStatus:'ok'},
+ ],catalog:[{...offer('checked','Checked fixture'),verifiedAt:new Date().toISOString()}]});
+ await verification.page.waitForFunction(()=>document.querySelectorAll('#queue>.offer-group').length===2);
+ assert.equal(await verification.page.locator('#queue [data-verification]').count(),2);
+ await verification.page.locator('#verificationFilter').selectOption('browser');
+ assert.equal(await verification.page.locator('#queue>.offer-group').count(),1);
+ assert.match(await verification.page.locator('#queue').textContent(),/Blocked fixture/);
+ await verification.page.getByRole('button',{name:'Blocked fixture — needs review',exact:true}).click();await ready(verification.page);
+ assert.match(await verification.page.locator('#evidence').textContent(),/No provider terms were extracted/);
+ assert.equal(await verification.page.locator('#evidence img').count(),0);
+ assert.equal(await verification.page.locator('#confirmed').isChecked(),false);
+ assert.equal(await verification.page.evaluate(()=>window.fixture.writes.length),0);
+ await verification.page.locator('#cancel').click();
+ await verification.page.locator('#queueType').selectOption('seeds');
+ await verification.page.waitForFunction(()=>document.getElementById('queue').textContent.includes('Kindle Unlimited'));
+ assert.equal(await verification.page.locator('#queue [data-verification=browser]').count(),4);
+ if(process.env.TRYWISE_SCREENSHOTS){
+  await mkdir(process.env.TRYWISE_SCREENSHOTS,{recursive:true});
+  for(const width of [390,1440]){await verification.page.setViewportSize({width,height:1000});await verification.page.screenshot({path:`${process.env.TRYWISE_SCREENSHOTS}/verification-queue-${width}.png`,fullPage:true});}
+ }
+ await verification.page.locator('#verificationFilter').selectOption('all');
+ assert.equal(await verification.page.locator('#queue [data-verification]').count(),35);
+ await verification.page.locator('#verificationFilter').selectOption('checked');
+ assert.match(await verification.page.locator('#queue').textContent(),/Change the search or verification filter/);
+ await verification.page.locator('#queueType').selectOption('published');
+ await verification.page.waitForFunction(()=>document.querySelectorAll('#queue [data-verification=checked]').length===1);
+ assert.match(await verification.page.locator('#queue').textContent(),/Checked fixture/);
+ await verification.page.locator('#signOut').click();
+ assert.equal(await verification.page.locator('#verificationFilter').inputValue(),'all');
+ await verification.page.close();
  // Deep links open the intended review, never auto-approve or use URL terms.
  const linked=await pageFor({},'?offer=hellofresh&monthlyValue=0&confirmed=true');
  await ready(linked.page);

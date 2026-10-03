@@ -15,6 +15,32 @@ from collector import (
 
 
 class CollectorSafetyTest(unittest.TestCase):
+    def test_link_checks_never_equate_blocking_or_failure_with_dead_offers(self):
+        from collector import LinkVerifier, FetchResult
+        cases = [
+            ({'status':403}, 'needs_browser'), ({'status':429}, 'needs_browser'),
+            ({'robots':'blocked'}, 'needs_browser'), ({'quality':'js_required'}, 'needs_browser'),
+            ({'status':404}, 'broken'), ({'status':410}, 'broken'),
+            ({'status':500}, 'unreachable'), ({'error':'timeout'}, 'unreachable'),
+            ({'not_modified':True}, 'not_checked'),
+            ({'ok':True,'text':'Verify you are human'}, 'needs_browser'),
+            ({'quality':'empty','text':'Verify you are human'}, 'needs_browser'),
+            ({'ok':True,'text':'Free trial'}, 'ok'),
+        ]
+        for fields, expected in cases:
+            with self.subTest(fields=fields), patch('collector.validate_public_url'), patch('collector.fetch_with_304', return_value=FetchResult(url='https://example.com', **{'ok':False, **fields})):
+                self.assertEqual(LinkVerifier(None).check('https://example.com')[0], expected)
+
+    def test_http_status_survives_fetch_errors(self):
+        from collector import fetch_with_304, PoliteFetcher
+        for code in (403,404,429,500):
+            error=URLError(f'source returned HTTP {code}')
+            error.status=code
+            with patch('collector.validate_public_url'), patch('collector.RobotsChecker.check', return_value=(True,None,'allowed')), patch('collector.http_get', side_effect=error):
+                result=fetch_with_304('https://example.com',PoliteFetcher(),None)
+            self.assertFalse(result.ok)
+            self.assertEqual(result.status,code)
+
     def test_robots_errors_fail_closed_and_missing_policy_is_allowed(self):
         from collector import RobotsChecker
         for code in [403, 429, 500]:

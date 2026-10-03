@@ -48,3 +48,16 @@ export function recheckQueue(records, now = Date.now()) {
       dueAt:new Date(dueAt).toISOString()};
   }).filter(record => record.status !== 'current').sort((a,b) => a.dueAt.localeCompare(b.dueAt) || a.id.localeCompare(b.id));
 }
+
+// Reachability and source audits are evidence for a reviewer, never approval.
+export function verificationState(record = {}, audit = {}, now = Date.now()) {
+  const status = offerStatus(record, now);
+  if (['retired','withdrawn','expired'].includes(status)) return {key:'inactive', label:'Not current', reason:status.replaceAll('_',' ')};
+  if (status === 'current') return {key:'checked', label:'Checked terms', reason:`Reviewed ${new Date(timestampMillis(record.verifiedAt)).toISOString()}; recheck within ${REVIEW_WINDOW_DAYS} days.`};
+  if (record.linkStatus === 'needs_browser' || record.link_status === 'needs_browser' || audit.status === 'source_limited') {
+    return {key:'browser', label:'Needs browser check', reason:'Automated access could not confirm terms. Open the provider normally; do not bypass access controls.'};
+  }
+  if (record.linkStatus === 'broken' || record.link_status === 'broken') return {key:'unverified', label:'Unverified', reason:'The link returned not found. Review the provider before withdrawing; this is not proof the offer ended.'};
+  if (status === 'stale' || status === 'needs_verification') return {key:'unverified', label:'Needs recheck', reason:'Previous terms are not current. A successful fetch does not renew verification.'};
+  return {key:'unverified', label:'Unverified', reason:'No current terms review. Reachability, extracted text and AI drafts are not verification.'};
+}
