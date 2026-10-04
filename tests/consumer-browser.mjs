@@ -236,6 +236,7 @@ try {
   `}));
   await page.reload();
   await page.waitForFunction(() => window.deliverCatalog && window.__tryWiseSmoke && !document.querySelector('main').inert);
+  await page.locator('#discoverTab').click();
   assert.match(await page.locator('#resultsCount').textContent(), /Loading/);
   assert.doesNotMatch(await page.locator('#trialFeed').textContent(), /No matching options/);
   await page.evaluate(() => window.failCatalog());
