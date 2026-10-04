@@ -70,7 +70,7 @@ export function rankCatalogOffers(offers, {text='', categories=[], facets=[], in
     const affordable=cost!==null && budget>0 && cost<=budget;
     const score=relevance+affinity+Number(affordable)*2;
     const why=provider.reason || (facetMatches.length?`Matches ${facetMatches.join(', ')}`:categoryMatches.length?`Matches ${categoryMatches.join(', ')}`:genericMatch?'Trial/free-option research match':'Keyword match');
-    return {...offer,score,relevance,rankReason:`${why}. ${isReviewed(offer)?'Check limits and terms for your needs.':'Unreviewed preview; costs and terms need confirmation.'}`};
+    return {...offer,score,relevance,rankReason:`${why}. ${isReviewed(offer)?'Check limits and terms for your needs.':'Research option; costs and terms need confirmation.'}`};
   }).filter(offer=>!text.trim() || offer.relevance>0)
     .sort((a,b)=>b.score-a.score || reviewedFirst(a,b)
       || (isReviewed(a) && isReviewed(b) ? timestampMillis(b.verifiedAt)-timestampMillis(a.verifiedAt):0)
@@ -102,16 +102,18 @@ export function isReviewed(offer) {
 
 export function reviewLabel(offer) {
   if (!offer) return 'Not currently in the catalog';
-  if (isReviewed(offer)) return `Reviewed ${offer.verified || '(date unavailable)'}`;
-  if (offer.verificationStatus === 'stale' || (offer.verificationStatus === 'reviewed' && offer.verifiedAt)) return `Needs recheck — last reviewed ${offer.verified || 'date unknown'}`;
-  if (offer.verificationStatus === 'needs_verification' || offer.verificationStatus === 'reviewed') return 'Needs verification — review date missing or invalid';
-  return 'Unreviewed preview';
+  const checked=timestampMillis(offer.verifiedAt);
+  const date=checked===null?'date unknown':new Date(checked).toISOString().slice(0,10);
+  if (isReviewed(offer)) return `Terms checked ${date}`;
+  if (checked !== null && ['stale','reviewed'].includes(offer.verificationStatus)) return `Needs recheck — last checked ${date}`;
+  if (['needs_verification','reviewed','stale'].includes(offer.verificationStatus)) return 'Needs verification — check date missing or invalid';
+  return 'Terms not confirmed';
 }
 
 export function offerConfidence(offer) {
-  if (isReviewed(offer)) return {label:'Admin reviewed', detail:`${reviewLabel(offer)}. ${offer.priceDetails} Region: ${offer.region}. Cancellation: ${offer.cancellation}`};
+  if (isReviewed(offer)) return {label:'Terms checked', detail:`${reviewLabel(offer)}. Offers can change; this is not a provider endorsement. ${offer.priceDetails} Region: ${offer.region}. Cancellation: ${offer.cancellation}`};
   if (['stale','needs_verification','reviewed'].includes(offer.verificationStatus)) return {label:'Needs recheck', detail:`${reviewLabel(offer)}. Reviews are current for less than ${REVIEW_WINDOW_DAYS} days. Previous costs and terms are not current; verify with the provider.`};
-  return {label:'Review needed', detail:'Research starting point only. Current price, availability, eligibility and terms have not been approved. Confirm with the provider.'};
+  return {label:'Terms not confirmed', detail:'Research starting point only. Current price, availability, eligibility and terms have not been checked. Confirm with the provider.'};
 }
 
 export function reviewedCost(offer, field = 'monthlyValue') {
@@ -155,7 +157,7 @@ export function comparisonFacts(offer) {
   };
   const money = value => value === null ? unknown : `$${value.toFixed(2)}`;
   return {
-    review: `Reviewed ${offer.verified || '(date unavailable)'}`,
+    review: reviewLabel(offer),
     upfront: money(reviewedCost(offer, 'upfrontCost')),
     monthly: reviewedCost(offer) === null ? unknown : `${money(reviewedCost(offer))}/mo${offer.offerType === 'trial' ? ' after trial' : ' base'}`,
     duration: offer.offerType === 'trial' && Number.isInteger(offer.providerTrialDays) && offer.providerTrialDays > 0

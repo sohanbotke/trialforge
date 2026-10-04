@@ -109,7 +109,7 @@ async function run() {
     const beforeSetup = await page.evaluate(() => JSON.stringify(window.__tryWiseSmoke.getState()));
     await page.locator('#planTools summary').click();
     await page.locator('#setupBtn').click();
-    assert.equal(await page.getByRole('dialog', { name: 'Choose your preferences' }).isVisible(), true);
+    assert.equal(await page.getByRole('dialog', { name: 'Choose your interests' }).isVisible(), true);
     await page.locator('#seedParentBtn').click();
     await page.keyboard.press('Escape');
     assert.equal(await page.evaluate(() => JSON.stringify(window.__tryWiseSmoke.getState())), beforeSetup, 'Cancel must discard suggested defaults');

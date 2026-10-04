@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar } from '../consumer-model.mjs';
+import { reviewedCost, reviewedFirst, matchesConsumerFilters, shortlistRecord, comparisonFacts, decisionCalendar, reviewLabel, offerConfidence } from '../consumer-model.mjs';
 import { defaultState, validateState, mergePlans } from '../plan-state.mjs';
 import { createPlanStore } from '../plan-store.mjs';
 import { searchIntent, searchTextScore, matchesCatalogSearch, emptySearchMessage, rankCatalogOffers, searchCoverageMessage } from '../consumer-model.mjs';
@@ -40,7 +40,7 @@ test('generic offer search returns research prospects without fabricating confir
   const results=rankCatalogOffers(options,{text:'free trial'});
   assert.deepEqual(results.map(item=>item.id),['free']);
   assert.equal(reviewedCost(results[0]),null);
-  assert.match(results[0].rankReason,/Unreviewed preview/);
+  assert.match(results[0].rankReason,/Research option/);
 });
 test('unknown queries and generic query words cannot create relevance from price', () => {
   const free={name:'Cloud fixture',description:'A free hosting plan',monthlyValue:0};
@@ -54,6 +54,19 @@ const preview = { id: 'preview', name: 'Preview', monthlyValue: 0, upfrontCost: 
 const reviewed = { ...preview, id: 'reviewed', name: 'Reviewed', verificationStatus: 'reviewed', verifiedAt:new Date().toISOString(), offerType: 'free_tier' };
 const saved = () => shortlistRecord(preview, { id: 'saved-1', createdAt: '2026-09-12T12:00:00Z' });
 const stateWith = record => ({ ...structuredClone(defaultState), trials: [record] });
+
+test('consumer check labels use evidence timestamps, not legacy display dates', () => {
+  const offer = {...reviewed, verified:'2000-01-01'};
+  assert.equal(reviewLabel(offer), `Terms checked ${offer.verifiedAt.slice(0,10)}`);
+  assert.equal(comparisonFacts(offer).review, reviewLabel(offer));
+  assert.match(offerConfidence(offer).detail, /Offers can change; this is not a provider endorsement/);
+  assert.equal(reviewLabel({...offer, verifiedAt:'2020-01-01T00:00:00Z'}), 'Needs recheck — last checked 2020-01-01');
+  for (const verifiedAt of [null, 'invalid']) {
+    assert.match(reviewLabel({...offer, verifiedAt}), /missing or invalid/);
+    assert.equal(reviewedCost({...offer, verifiedAt}), null);
+  }
+  assert.equal(reviewLabel(preview), 'Terms not confirmed');
+});
 
 test('comparison distinguishes reviewed zero from unreviewed and unavailable facts', () => {
   assert.equal(comparisonFacts(preview).monthly, 'Not confirmed');
