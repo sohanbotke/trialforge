@@ -36,7 +36,7 @@ async function run() {
   await page.locator('[data-check-trial]').first().check();
   await page.locator('button[data-view="radar"]').click();
   await page.locator('#sourceRadar').getByText('Official pages').waitFor();
-  await page.locator('#alertPlan').getByText('Weekly trial digest').waitFor();
+  await page.locator('#trackingHelp').getByText('Your calendar, your reminders').waitFor();
   await page.locator('button[data-view="insights"]').click();
   await page.locator('#optimizationPlan').getByText('Current plan summary').waitFor();
 

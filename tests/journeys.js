@@ -71,7 +71,7 @@ async function run() {
       const overlap = actualTop.filter(name => journey.expectedTop.includes(name));
       if (overlap.length < Math.min(2, journey.expectedTop.length)) throw new Error(`Missing relevant options for "${journey.query}": ${actualTop.join(', ')}`);
       const summary = await page.locator('#requirementPlan').textContent();
-      if (!summary.includes('Unreviewed preview') || /Highest value|Easiest to cancel|Low exposure/.test(summary)) throw new Error('Unreviewed matches must not imply verified cost, value or cancellation ease.');
+      if (!summary.includes('Research option') || /Highest value|Easiest to cancel|Low exposure/.test(summary)) throw new Error('Unreviewed matches must not imply verified cost, value or cancellation ease.');
     }
 
     if (errors.length) {
