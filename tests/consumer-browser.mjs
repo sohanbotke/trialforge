@@ -226,6 +226,40 @@ try {
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({path:`${screenshotDir}/trywise-mvp-plan-mobile.png`});
 
+  // Removing inactive controls must preserve old preferences and every plan record.
+  const legacy = {...await page.evaluate(() => window.__tryWiseSmoke.getState()),
+    keywords:'test-only legacy preference', alertCadence:'daily', minimumTrialValue:17,
+    sources:['official','newsletters'], interests:['shows']};
+  await page.evaluate(state => localStorage.setItem('trywise-state-v2', JSON.stringify(state)), legacy);
+  await page.reload();
+  await page.locator('#trialFeed article').first().waitFor();
+  assert.match(await page.locator('#storageTitle').textContent(), /Guest storage/);
+  assert.doesNotMatch(await page.locator('body').textContent(), /Email forwarding|Bank scan|Weekly trial digest|Chrome extension/);
+  await page.locator('#planTools summary').click();
+  await page.locator('#setupBtn').click();
+  assert.equal(await page.locator('#keywordInput, #alertCadence, #minimumTrialValue, #onboardingSources').count(), 0);
+  assert.match(await page.locator('#setupDescription').textContent(), /leave them all unchecked/);
+  for (const checkbox of await page.locator('[name="setup-interest"]:checked').all()) await checkbox.uncheck();
+  for (const width of [390,1440]) {
+    await page.setViewportSize({width,height:900});
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.screenshot({path:`${screenshotDir}/consumer-interests-${width}.png`});
+  }
+  await page.locator('#onboardingForm button[type="submit"]').click();
+  await page.reload();
+  await page.locator('#trialFeed article').first().waitFor();
+  assert.deepEqual(await page.evaluate(() => window.__tryWiseSmoke.getState()), {...legacy, interests:[], onboardingComplete:true});
+  await page.locator('#radarTab').click();
+  assert.match(await page.locator('#sourceRadar').textContent(), /not that TryWise endorses/);
+  assert.match(await page.locator('#trackingHelp').textContent(), /TryWise does not send alerts/);
+  assert.match(await page.locator('#trackingHelp').textContent(), /cancel directly with the provider/);
+  for (const width of [390,1440]) {
+    await page.setViewportSize({width,height:1000});
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.locator('#sourceRadar').scrollIntoViewIfNeeded();
+    await page.screenshot({path:`${screenshotDir}/consumer-guidance-${width}.png`});
+  }
+
   // Hold the catalog callback so loading is deterministic, not a timed guess.
   await page.route('**/firebase-client.mjs', route => route.fulfill({contentType:'text/javascript', body:`
     export const isFirebaseConfigured = () => true;

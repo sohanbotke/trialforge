@@ -940,9 +940,9 @@
           <svg class="icon" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>
           Copy plan
         </button>
-        <button class="btn" id="setupBtn" type="button" title="Set interests, sources, and alerts">
+        <button class="btn" id="setupBtn" type="button" title="Choose your interests">
           <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
-          Setup
+          Interests
         </button>
         <button class="btn" id="exportBtn" type="button" title="Download your local data as JSON">
           <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>
@@ -985,14 +985,6 @@
                 <div class="small muted" id="storageDetail">Saved in this browser. Sign in to save across devices.</div>
               </div>
               <span class="badge green">On</span>
-            </div>
-            <div class="privacy-row">
-              <div class="privacy-icon">2</div>
-              <div>
-                <strong>Email forwarding</strong>
-                <div class="small muted">Optional import path for later.</div>
-              </div>
-              <span class="badge">Later</span>
             </div>
           </div>
         </section>
@@ -1093,7 +1085,7 @@
                   </div>
                   <div class="explore-tile">
                     <strong>Decide</strong>
-                    <span class="small muted">Keep, extend, or mark cancel planned.</span>
+                    <span class="small muted">Keep, change your decision date, or mark cancel planned.</span>
                   </div>
                 </div>
               </div>
@@ -1125,7 +1117,7 @@
                   </select>
                 </div>
                 <div class="field">
-                  <label for="valueFilter">Maximum reviewed base cost</label>
+                  <label for="valueFilter">Maximum confirmed base cost</label>
                   <select id="valueFilter">
                     <option value="">Any cost, including unknown</option>
                     <option value="0">$0 base cost</option>
@@ -1136,7 +1128,7 @@
                 </div>
                 <div class="field">
                   <label for="reviewFilter">Review status</label>
-                  <select id="reviewFilter"><option value="all">Reviewed first, then previews</option><option value="reviewed">Reviewed only</option></select>
+                  <select id="reviewFilter"><option value="all">Checked terms first, then research options</option><option value="reviewed">Checked terms only</option></select>
                 </div>
                 <div class="field">
                   <label for="offerTypeFilter">Offer type</label>
@@ -1250,11 +1242,11 @@
             <section class="panel">
               <div class="panel-header">
                 <h2 class="panel-title">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
-                  Alerts
+                  <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>
+                  Tracking &amp; calendar
                 </h2>
               </div>
-              <div class="panel-body stack" id="alertPlan"></div>
+              <div class="panel-body stack" id="trackingHelp"></div>
             </section>
           </div>
         </section>
@@ -1306,7 +1298,7 @@
   <dialog class="onboarding comparison-dialog" id="comparisonDialog" aria-labelledby="comparisonTitle" aria-describedby="comparisonDescription">
     <div class="onboarding-card">
       <div class="onboarding-head"><h2 id="comparisonTitle">Compare your shortlist</h2><button class="btn" type="button" id="closeComparisonBtn" autofocus>Close</button></div>
-      <p class="small muted" id="comparisonDescription">Reviewed facts only. Unknown does not mean free. Base prices exclude possible extra charges; confirm terms with the provider. Swipe the table sideways on smaller screens.</p>
+      <p class="small muted" id="comparisonDescription">Checked terms only. Unknown does not mean free. Base prices exclude possible extra charges; confirm terms with the provider. Swipe the table sideways on smaller screens.</p>
       <div id="comparisonTable" class="comparison-scroll" tabindex="0" role="region" aria-label="Option comparison table"></div>
     </div>
   </dialog>
@@ -1315,50 +1307,21 @@
     <form method="dialog" class="onboarding-card" id="onboardingForm">
       <div class="onboarding-head">
         <div>
-          <h2 id="setupTitle">Choose your preferences</h2>
-          <p class="muted" id="setupDescription">Choose interests and preferences for your plan. Signed-in preferences sync to your account. Automatic monitoring and alerts are not available yet; check decision dates in your plan.</p>
+          <h2 id="setupTitle">Choose your interests</h2>
+          <p class="muted" id="setupDescription">Choose topics to help you browse. You can leave them all unchecked. Signed-in preferences sync to your account.</p>
         </div>
         <button class="btn" value="cancel" type="button" id="closeOnboardingBtn">Cancel</button>
       </div>
 
-      <div class="onboarding-grid">
+      <div class="stack">
         <section>
           <h3>Interests</h3>
           <div class="setup-grid" id="onboardingInterests"></div>
         </section>
-        <section>
-          <h3>Sources</h3>
-          <div class="setup-grid" id="onboardingSources"></div>
-        </section>
-      </div>
-
-      <div class="trial-form">
-        <div class="field wide">
-          <label for="keywordInput">Keywords to watch</label>
-          <input id="keywordInput" type="text" placeholder="Meal kits, live sports, AI tools, kids activities">
-        </div>
-        <div class="field">
-          <label for="alertCadence">Future alert preference (not active)</label>
-          <select id="alertCadence">
-            <option value="daily">Daily digest</option>
-            <option value="weekly">Weekly digest</option>
-            <option value="instant">Instant high-value matches</option>
-            <option value="off">No alerts</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="minimumTrialValue">Minimum regular value</label>
-          <select id="minimumTrialValue">
-            <option value="0">Any value</option>
-            <option value="10">$10+/mo</option>
-            <option value="20">$20+/mo</option>
-            <option value="40">$40+/mo</option>
-          </select>
-        </div>
       </div>
 
       <div class="card-actions">
-        <button class="btn primary" type="submit">Save radar</button>
+        <button class="btn primary" type="submit">Save interests</button>
         <button class="btn" type="button" id="seedParentBtn">Use parent-focused defaults</button>
       </div>
     </form>
@@ -1462,39 +1425,6 @@
       { id: 'home', label: 'Home Projects', short: 'Home' }
     ];
 
-    const sourceTypes = [
-      {
-        id: 'official',
-        label: 'Official pages',
-        description: 'Pricing, trial, and promo pages from product websites.',
-        status: 'Manually curated offers available; automatic monitoring is not active'
-      },
-      {
-        id: 'deal-sites',
-        label: 'Deal sites',
-        description: 'Public SaaS/deal pages such as AppSumo-like sources.',
-        status: 'Planned source; automatic monitoring is not active'
-      },
-      {
-        id: 'forums',
-        label: 'Forums',
-        description: 'Public communities where users share limited trial links.',
-        status: 'Planned source; automatic monitoring is not active'
-      },
-      {
-        id: 'newsletters',
-        label: 'Newsletters/RSS',
-        description: 'RSS feeds or forwarded newsletters converted into trial candidates.',
-        status: 'Planned source; automatic monitoring is not active'
-      },
-      {
-        id: 'extension',
-        label: 'Chrome extension',
-        description: 'Save a trial candidate from the current page while browsing.',
-        status: 'In development; not connected to your plan'
-      }
-    ];
-
     let trialCatalog = [];
     let latestCatalogRecords = null;
     let catalogLoadStatus = 'loading';
@@ -1539,7 +1469,7 @@
       renderComparison();
       renderReviewQueue();
       renderSourceRadar();
-      renderAlertPlan();
+      renderTrackingHelp();
       renderOptimizationPlan();
       renderDecisionHistory();
       renderOnboardingOptions();
@@ -1708,59 +1638,26 @@
         </label>
       `).join('');
 
-      document.getElementById('onboardingSources').innerHTML = sourceTypes.map((source) => `
-        <label class="setup-option">
-          <input type="checkbox" name="setup-source" value="${source.id}" ${profile.sources.includes(source.id) ? 'checked' : ''}>
-          <span>${escapeHTML(source.label)}</span>
-        </label>
-      `).join('');
-
-      document.getElementById('keywordInput').value = profile.keywords;
-      document.getElementById('alertCadence').value = profile.alertCadence;
-      document.getElementById('minimumTrialValue').value = String(profile.minimumTrialValue);
     }
 
     function renderSourceRadar() {
-      const selected = new Set(state.sources);
-      document.getElementById('sourceRadar').innerHTML = sourceTypes.map((source) => `
-        <article class="trial-card ${selected.has(source.id) ? 'featured' : ''}">
-          <div class="card-top">
-            <div>
-              <h3 class="card-title">${escapeHTML(source.label)}</h3>
-              <p class="card-meta">${selected.has(source.id) ? 'Selected in your preferences' : 'Not selected'}</p>
-            </div>
-            <span class="badge ${selected.has(source.id) ? 'blue' : ''}">${selected.has(source.id) ? 'Selected' : 'Not selected'}</span>
-          </div>
-          <p class="small muted">${escapeHTML(source.description)}</p>
-          <p class="small"><strong>Status:</strong> ${escapeHTML(source.status)}</p>
+      document.getElementById('sourceRadar').innerHTML = `
+        <article class="trial-card">
+          <h3 class="card-title">Official pages</h3>
+          <p class="small muted">Use each option's provider link to check pricing, eligibility and cancellation before signing up.</p>
+          <p class="small">A “Terms checked” label means the terms were reviewed on the date shown, not that TryWise endorses the provider. Offers can change after a check.</p>
+          <p class="small">Research options have unconfirmed terms. Visiting a page or finding an offer does not count as checking its terms.</p>
         </article>
-      `).join('');
+      `;
     }
 
-    function renderAlertPlan() {
-      const keywords = state.keywords || 'No keywords configured';
-      const enabledSources = sourceTypes
-        .filter((source) => state.sources.includes(source.id))
-        .map((source) => source.label)
-        .join(', ') || 'No sources enabled';
-      document.getElementById('alertPlan').innerHTML = `
-        <article class="trial-card featured">
-          <h3 class="card-title">${state.alertCadence === 'off' ? 'Alerts are off' : `${capitalize(state.alertCadence)} trial digest`}</h3>
-          <p class="small muted">Preference saved only. TryWise does not send alerts or monitor sources automatically yet. Check your plan for upcoming decision dates.</p>
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-date">Watch</div>
-              <div>${escapeHTML(keywords)}</div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-date">Sources</div>
-              <div>${escapeHTML(enabledSources)}</div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-date">Filter</div>
-              <div>$${Number(state.minimumTrialValue || 0).toFixed(0)}+/mo trial value</div>
-            </div>
-          </div>
+    function renderTrackingHelp() {
+      document.getElementById('trackingHelp').innerHTML = `
+        <article class="trial-card">
+          <h3 class="card-title">Your calendar, your reminders</h3>
+          <p class="small muted">Save an option to consider it. Only start tracking after you have signed up with the provider and confirmed your dates.</p>
+          <p class="small">In My Try Plan, export your decision date to your calendar and set a reminder there. Your calendar settings control notifications; TryWise does not send alerts.</p>
+          <p class="small">Changing a decision date does not move a renewal. Marking “cancel planned” records your intention only; cancel directly with the provider.</p>
         </article>
       `;
     }
@@ -1811,9 +1708,9 @@
 
       const reviewed = matching.filter(isReviewed);
       const previews = matching.filter(trial => !isReviewed(trial));
-      feed.innerHTML = `${reviewed.length ? '<div class="catalog-section"><h3>Reviewed options</h3><p class="small muted">Checked by an admin on the date shown. Provider terms can change.</p></div>' : '<div class="catalog-section"><h3>No reviewed matches yet</h3><p class="small muted">We’re building verified coverage. Previews below are research starting points, not recommendations.</p></div>'}
+      feed.innerHTML = `${reviewed.length ? '<div class="catalog-section"><h3>Options with checked terms</h3><p class="small muted">Terms checked on the date shown, not a provider endorsement. Offers can change; confirm before signing up.</p></div>' : '<div class="catalog-section"><h3>No matches with checked terms yet</h3><p class="small muted">The options below are research starting points. Confirm their terms with the provider before signing up.</p></div>'}
         ${reviewed.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}
-        ${previews.length ? '<div class="catalog-section"><h3>Needs review or recheck</h3><p class="small muted">Prices, availability, and eligibility are not confirmed. Check the provider before committing.</p></div>' : ''}
+        ${previews.length ? '<div class="catalog-section"><h3>Research options — terms not confirmed</h3><p class="small muted">Prices, availability, and eligibility are not confirmed. Check the provider before committing.</p></div>' : ''}
         ${previews.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}`;
     }
 
@@ -1843,7 +1740,7 @@
             ${trial.categories.map((category) => `<span class="badge">${interestLabel(category)}</span>`).join('')}
             <span class="badge">${escapeHTML(destinationDomain(trial.url))}</span>
           </div>
-          <p class="small confidence-line">${isReviewed(trial) ? `${escapeHTML(reviewLabel(trial))}. Base prices are not necessarily the total bill.` : `${escapeHTML(reviewLabel(trial))}: confirm the offer and all costs with the provider.`}</p>
+          <p class="small confidence-line">${isReviewed(trial) ? `${escapeHTML(reviewLabel(trial))}. Offers can change; confirm the total bill with the provider.` : `${escapeHTML(reviewLabel(trial))}: confirm the offer and all costs with the provider.`}</p>
           <details class="offer-details">
             <summary>Terms &amp; evidence</summary>
             <p class="small"><strong>Eligibility${isReviewed(trial) ? '' : ' (unconfirmed)'}:</strong> ${escapeHTML(isReviewed(trial) ? trial.eligibility : 'Not confirmed')}</p>
@@ -2056,7 +1953,7 @@
     function renderDecisionHistory() {
       const container = document.getElementById('decisionHistory');
       if (state.decisions.length === 0) {
-        container.innerHTML = `<div class="empty">No decisions yet. Keep, extend, and cancel-plan decisions will show up here.</div>`;
+        container.innerHTML = `<div class="empty">No decisions yet. Review a tracked option and choose Keep or Mark cancel planned to record your decision here.</div>`;
         return;
       }
 
@@ -2065,7 +1962,7 @@
           <div class="card-top">
             <div>
               <h3 class="card-title">${escapeHTML(decision.service)}</h3>
-              <p class="card-meta">${formatDate(decision.decidedAt)} • ${escapeHTML(decision.choice)}</p>
+              <p class="card-meta">${formatDate(decision.decidedAt)} • ${escapeHTML(decision.choice === 'cancel' ? 'cancel planned' : decision.choice)}</p>
             </div>
             <span class="badge ${decision.choice === 'cancel' ? 'red' : decision.choice === 'keep' ? 'green' : 'amber'}">
               ${escapeHTML(decision.choice === 'cancel' ? 'cancel planned' : decision.choice)}
@@ -2320,24 +2217,18 @@
     function saveOnboarding(event) {
       event.preventDefault();
       state.interests = checkedValues('setup-interest');
-      state.sources = checkedValues('setup-source');
-      state.keywords = value('keywordInput');
-      state.alertCadence = value('alertCadence');
-      state.minimumTrialValue = Number(value('minimumTrialValue') || 0);
+      // Retain legacy source/alert fields in backups and account sync. They do
+      // not enable integrations or notifications and are no longer UI controls.
       state.onboardingComplete = true;
       saveState();
       closeOnboarding();
       render();
-      showToast('Try radar saved');
+      showToast('Interests saved');
     }
 
     function applyParentDefaults() {
       renderOnboardingOptions({
-        interests: ['family', 'design', 'productivity', 'learning', 'home'],
-        sources: ['official', 'deal-sites', 'newsletters', 'forums'],
-        keywords: 'kids activities, design tools, learning, family productivity, meal planning',
-        alertCadence: 'weekly',
-        minimumTrialValue: 10
+        interests: ['family', 'design', 'productivity', 'learning', 'home']
       });
     }
 
@@ -2650,8 +2541,8 @@
         if (records) { latestCatalogRecords = records; trialCatalog = mergedCatalog(seedCatalog, records); }
         document.getElementById('catalogStatus').textContent = status === 'error'
           ? 'Catalog connection unavailable. Reload when online; your saved plan is unchanged.'
-          : status === 'local' ? 'Local starter catalog — entries need review.'
-          : 'Live catalog updates are active. Starter entries remain unreviewed until approved.';
+          : status === 'local' ? 'Research catalog loaded. Confirm offer terms with each provider.'
+          : 'Live catalog updates are active. Each option shows whether its terms have been checked.';
         render();
       },
       exportPlan: exportData

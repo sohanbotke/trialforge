@@ -30,7 +30,10 @@ try {
   await page.waitForFunction(()=>window.deliverCatalog && window.__tryWiseSmoke && !document.querySelector('main').inert);
   const card=id=>page.locator(`#trialFeed [data-offer-id="${id}"]`);
   async function verifyIdentity() {
-    for(const id of ['fresh','free']) assert.equal(await card(id).locator('.card-top .badge').textContent(),'Admin reviewed');
+    for(const id of ['fresh','free']) {
+      assert.equal(await card(id).locator('.card-top .badge').textContent(),'Terms checked');
+      assert.match(await card(id).textContent(), /Terms checked 2026-09-27/);
+    }
     for(const id of ['stale','undated']) {
       assert.equal(await card(id).locator('.card-top .badge').textContent(),'Needs recheck');
       assert.deepEqual(await card(id).locator('dd').allTextContents(),['Not confirmed','Not confirmed']);
