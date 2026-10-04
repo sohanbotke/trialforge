@@ -2002,6 +2002,10 @@
       };
 
       if (existing) {
+        if (existing.status !== 'saved' && nextValues.endDate !== existing.endDate) {
+          openDecisionDate(existing, nextValues);
+          return;
+        }
         Object.assign(existing, nextValues, { status: existing.status === 'saved' ? 'active' : existing.status, updatedAt: new Date().toISOString() });
       } else {
         state.trials.push({
@@ -2101,21 +2105,26 @@
       renderStats();
     }
 
+    function openDecisionDate(trial, edits = null) {
+      const dialog = document.getElementById('decisionDateDialog');
+      if (dialog.open) return;
+      pendingDecisionDate = { id:trial.id, snapshot:JSON.stringify(trial), edits };
+      const input = document.getElementById('newDecisionDate');
+      input.value = edits?.endDate ?? trial.endDate;
+      input.min = edits?.startDate ?? trial.startDate;
+      input.setCustomValidity('');
+      input.removeAttribute('aria-invalid');
+      document.getElementById('decisionDateError').hidden = true;
+      document.getElementById('decisionDateDescription').textContent = `${edits ? 'This saves your form edits and changes your TryWise review date.' : 'This only changes your TryWise review date.'} It does not extend a provider trial, delay a renewal, or cancel a subscription. Confirm your renewal date with the provider first.`;
+      document.getElementById('decisionDateOption').textContent = `${trial.service} — current decision date: ${formatDate(trial.endDate)}${edits ? '. Confirming also saves your other form edits. Cancel leaves all edits unsaved.' : ''}`;
+      dialog.showModal();
+    }
+
     function decideTrial(id, choice) {
       const trial = state.trials.find((item) => item.id === id);
       if (!trial) return;
       if (choice === 'extend') {
-        const dialog = document.getElementById('decisionDateDialog');
-        if (dialog.open || trial.status !== 'active') return;
-        pendingDecisionDate = { id, snapshot: JSON.stringify(trial) };
-        const input = document.getElementById('newDecisionDate');
-        input.value = trial.endDate;
-        input.min = trial.startDate;
-        input.setCustomValidity('');
-        input.removeAttribute('aria-invalid');
-        document.getElementById('decisionDateError').hidden = true;
-        document.getElementById('decisionDateOption').textContent = `${trial.service} — current decision date: ${formatDate(trial.endDate)}`;
-        dialog.showModal();
+        if (trial.status === 'active') openDecisionDate(trial);
         return;
       }
       if (!['keep', 'cancel'].includes(choice)) return;
@@ -2154,7 +2163,8 @@
         return;
       }
       const input = document.getElementById('newDecisionDate');
-      if (!input.value || input.value < trial.startDate || !input.checkValidity()) {
+      const edits = pendingDecisionDate.edits;
+      if (!input.value || input.value < (edits?.startDate ?? trial.startDate) || !input.checkValidity()) {
         input.reportValidity();
         return;
       }
@@ -2166,12 +2176,21 @@
         input.focus();
         return;
       }
+      if (edits) Object.assign(trial, edits);
       trial.endDate = input.value;
       trial.updatedAt = new Date().toISOString();
       closeDecisionDate();
       saveState();
+      if (edits) {
+        document.getElementById('trialForm').reset();
+        clearEditMode();
+        setDefaultDates();
+      }
       render();
-      (document.querySelector('#reviewQueue button') || document.getElementById('reviewTab')).focus({ preventScroll: true });
+      const focusTarget = edits
+        ? document.querySelector(`[data-edit-trial="${CSS.escape(trial.id)}"]`) || document.getElementById('activeTab')
+        : document.querySelector('#reviewQueue button') || document.getElementById('reviewTab');
+      focusTarget.focus({ preventScroll: true });
       showToast(`${trial.service}: decision date updated. Provider renewal is unchanged.`);
     }
 
