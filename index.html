@@ -2207,7 +2207,16 @@
       });
     }
 
-    function switchView(view) {
+    const viewNames = new Set([...document.querySelectorAll('.tab')].map(tab => tab.dataset.view));
+
+    function switchView(view, {recordHistory = true, focus = true} = {}) {
+      if (!viewNames.has(view)) return;
+      // Store navigation only: never put plans, search text or account IDs in URLs/history.
+      if (recordHistory && location.hash !== `#${view}`) {
+        const url = new URL(location.href);
+        url.hash = view;
+        history.pushState(null, '', url);
+      }
       document.querySelectorAll('.tab').forEach((tab) => {
         const selected = tab.dataset.view === view;
         tab.classList.toggle('active', selected);
@@ -2218,8 +2227,27 @@
         panel.classList.toggle('active', panel.id === `${view}View`);
       });
       renderStats();
-      document.querySelector(`.tab[data-view="${view}"]`)?.focus({ preventScroll: true });
+      if (focus) document.querySelector(`.tab[data-view="${view}"]`)?.focus({ preventScroll: true });
     }
+
+    function restoreView({focus = true} = {}) {
+      const requested = location.hash.slice(1);
+      const view = viewNames.has(requested) ? requested : 'discover';
+      if (requested !== view) {
+        const url = new URL(location.href);
+        url.hash = view;
+        history.replaceState(null, '', url);
+      }
+      switchView(view, {recordHistory:false, focus});
+    }
+
+    window.addEventListener('popstate', () => restoreView());
+    window.addEventListener('hashchange', () => restoreView());
+    // The skip link moves focus within the current view; it is not a tab route.
+    document.querySelector('.skip-link').addEventListener('click', event => {
+      event.preventDefault();
+      document.getElementById('mainContent').focus();
+    });
 
     function openOnboarding() {
       renderOnboardingOptions();
@@ -2521,6 +2549,7 @@
 
     setDefaultDates();
     render();
+    restoreView({focus:false});
     accountManager = initializeAccounts({
       getState: () => state,
       readGuest: loadState,
