@@ -232,6 +232,7 @@ try {
     sources:['official','newsletters'], interests:['shows']};
   await page.evaluate(state => localStorage.setItem('trywise-state-v2', JSON.stringify(state)), legacy);
   await page.reload();
+  await page.locator('#discoverTab').click();
   await page.locator('#trialFeed article').first().waitFor();
   assert.match(await page.locator('#storageTitle').textContent(), /Guest storage/);
   assert.doesNotMatch(await page.locator('body').textContent(), /Email forwarding|Bank scan|Weekly trial digest|Chrome extension/);
@@ -270,6 +271,7 @@ try {
   `}));
   await page.reload();
   await page.waitForFunction(() => window.deliverCatalog && window.__tryWiseSmoke && !document.querySelector('main').inert);
+  await page.locator('#discoverTab').click();
   assert.match(await page.locator('#resultsCount').textContent(), /Loading/);
   assert.doesNotMatch(await page.locator('#trialFeed').textContent(), /No matching options/);
   await page.evaluate(() => window.failCatalog());

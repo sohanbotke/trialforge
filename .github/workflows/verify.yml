@@ -50,6 +50,7 @@ jobs:
           node tests/catalog-browser.mjs
           node tests/admin-entry-browser.mjs
           node tests/search-browser.mjs
+          node tests/navigation-browser.mjs
           npm run test:smoke
           npm run test:journeys
           npm run test:ux
