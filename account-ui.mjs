@@ -2,6 +2,7 @@ import { firebaseConfig } from './firebase-config.js';
 import { createFirebaseClient, isFirebaseConfigured } from './firebase-client.mjs';
 import { validateState, mergePlans, hasPersonalData } from './plan-state.mjs';
 import { createPlanStore } from './plan-store.mjs';
+import { startPublicCatalog } from './public-catalog.mjs';
 
 export function initializeAccounts({ getState, replaceState, readGuest, writeGuest, notify, exportPlan, onCatalog = () => {}, onAdminAccess = () => {} }) {
   const el = (id) => document.getElementById(id);
@@ -75,11 +76,18 @@ export function initializeAccounts({ getState, replaceState, readGuest, writeGue
     if (!configured) { onCatalog([], 'local'); await store.setUser(null); return; }
     starting = true;
     el('signInBtn').disabled = true;
+    // Emulator sessions must never read production. The public bootstrap has no
+    // auth token, cache or plan data, and cannot overwrite a live listener result.
+    const bootstrap = !emulator ? startPublicCatalog(config.projectId, records => onCatalog(records, 'snapshot')) : null;
     try {
+      // Give the small public read priority over the much larger SDK transfer.
+      // It starts in <head> and aborts after 1.2s; failure never blocks fallback.
+      await bootstrap?.done;
       client = await createFirebaseClient(config, { emulator });
-      client.catalog.watchCatalog(records => onCatalog(records, 'ready'), () => onCatalog(null, 'error'));
+      client.catalog.watchCatalog(records => { bootstrap?.stop(); onCatalog(records, 'ready'); }, () => { bootstrap?.stop(); onCatalog(null, 'error'); });
       client.onAuth((user) => { void store.setUser(user); });
     } catch {
+      bootstrap?.stop();
       client = null;
       onCatalog(null, 'error');
       await store.setUser(null);

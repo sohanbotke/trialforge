@@ -7,6 +7,7 @@ const browser = await chromium.launch();
 try {
   const page = await browser.newPage({viewport:{width:390,height:844}});
   const errors=[];
+  await page.route('https://firestore.googleapis.com/v1/**', route=>route.abort());
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/firebase-client.mjs', route => route.fulfill({contentType:'text/javascript',body:`
     export const isFirebaseConfigured=()=>true;

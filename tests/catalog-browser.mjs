@@ -19,6 +19,7 @@ try {
   const page = await browser.newPage({viewport:{width:390,height:844}});
   page.setDefaultTimeout(8000);
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.route('https://firestore.googleapis.com/v1/**', route=>route.abort());
   await page.clock.install({time:now});
   await page.route('**/firebase-client.mjs',route=>route.fulfill({contentType:'text/javascript',body:`
     export const isFirebaseConfigured=()=>true;

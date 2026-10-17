@@ -8,6 +8,14 @@
   <link rel="icon" type="image/svg+xml" href="/assets/trywise-mark.svg">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <script type="module">
+    import {firebaseConfig} from './firebase-config.js';
+    import {primePublicCatalog} from './public-catalog.mjs';
+    // Start one public read independently of the heavier planner/account graph.
+    const emulator = ['localhost','127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('emulator') === '1';
+    const configured = ['apiKey','projectId','authDomain','appId'].every(key => typeof firebaseConfig[key] === 'string' && firebaseConfig[key] && !firebaseConfig[key].startsWith('YOUR_'));
+    if (!emulator && configured) primePublicCatalog(firebaseConfig.projectId);
+  </script>
   <style>
     :root {
       --bg: #fff8f0;
@@ -1416,6 +1424,7 @@
     let state = loadState();
     let requirementFilterActive = false;
     let searchQuery = '';
+    let renderedFeedHTML = null;
     let editingTrialId = null;
     let focusedReviewTrialId = null;
     const removedTrials = [];
@@ -1645,6 +1654,14 @@
       `;
     }
 
+    function updateTrialFeed(html) {
+      // Catalog/account callbacks often repeat identical content. Keep those
+      // nodes, expanded evidence and keyboard focus instead of repainting them.
+      if (html === renderedFeedHTML) return;
+      document.getElementById('trialFeed').innerHTML = html;
+      renderedFeedHTML = html;
+    }
+
     function renderTrialFeed() {
       const selected = new Set(state.interests);
       const query = searchQuery.trim().toLowerCase();
@@ -1670,7 +1687,7 @@
       feed.setAttribute('aria-busy', String(catalogLoadStatus === 'loading'));
       if (catalogLoadStatus === 'loading' || (catalogLoadStatus === 'error' && latestCatalogRecords === null)) {
         document.getElementById('resultsCount').textContent = catalogLoadStatus === 'loading' ? 'Loading options…' : 'Catalog unavailable';
-        feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>${catalogLoadStatus === 'loading' ? 'Finding your options…' : 'Could not load the catalog'}</strong><p>${catalogLoadStatus === 'loading' ? 'You can enter a search while the catalog connects.' : 'Your saved plan is still available. Reload to try the catalog again.'}</p>${catalogLoadStatus === 'error' ? '<button class="btn" type="button" data-reload-catalog>Retry catalog</button>' : ''}</div>`;
+        updateTrialFeed(`<div class="empty" style="grid-column: 1 / -1"><strong>${catalogLoadStatus === 'loading' ? 'Finding your options…' : 'Could not load the catalog'}</strong><p>${catalogLoadStatus === 'loading' ? 'You can enter a search while the catalog connects.' : 'Your saved plan is still available. Reload to try the catalog again.'}</p>${catalogLoadStatus === 'error' ? '<button class="btn" type="button" data-reload-catalog>Retry catalog</button>' : ''}</div>`);
         return;
       }
       const filtered = requirementFilterActive || selected.size > 0 || query || source !== 'all' || maximum !== '' || review !== 'all' || type !== 'all';
@@ -1678,22 +1695,22 @@
       document.getElementById('clearFiltersBtn').disabled = !filtered;
       if (matching.length === 0) {
         const catalogHasIntent = ranked.length > 0;
-        feed.innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>No matching options</strong><p>${escapeHTML(searchCoverageMessage(activeQuery,trialCatalog) || (catalogHasIntent ? 'Your current search and filters have no matches. Clear filters to browse all options.' : emptySearchMessage(activeQuery)))}</p><button class="btn" type="button" data-browse-all>Browse all options</button></div>`;
+        updateTrialFeed(`<div class="empty" style="grid-column: 1 / -1"><strong>No matching options</strong><p>${escapeHTML(searchCoverageMessage(activeQuery,trialCatalog) || (catalogHasIntent ? 'Your current search and filters have no matches. Clear filters to browse all options.' : emptySearchMessage(activeQuery)))}</p><button class="btn" type="button" data-browse-all>Browse all options</button></div>`);
         return;
       }
 
       if (activeQuery) {
         const coverage = searchCoverageMessage(activeQuery,trialCatalog);
-        feed.innerHTML = `<div class="catalog-section"><h3>Matching options</h3><p class="small muted">Ordered by relevance. Each card shows its review status; previews are research starting points, not confirmed offers.</p>${coverage ? `<p class="small" data-coverage-note>${escapeHTML(coverage)}</p>` : ''}</div>${matching.map(trial=>trialCard(trial,trackedIds.has(trial.id))).join('')}`;
+        updateTrialFeed(`<div class="catalog-section"><h3>Matching options</h3><p class="small muted">Ordered by relevance. Each card shows its review status; previews are research starting points, not confirmed offers.</p>${coverage ? `<p class="small" data-coverage-note>${escapeHTML(coverage)}</p>` : ''}</div>${matching.map(trial=>trialCard(trial,trackedIds.has(trial.id))).join('')}`);
         return;
       }
 
       const reviewed = matching.filter(isReviewed);
       const previews = matching.filter(trial => !isReviewed(trial));
-      feed.innerHTML = `${reviewed.length ? '<div class="catalog-section"><h3>Options with checked terms</h3><p class="small muted">Terms checked on the date shown, not a provider endorsement. Offers can change; confirm before signing up.</p></div>' : ''}
+      updateTrialFeed(`${reviewed.length ? '<div class="catalog-section"><h3>Options with checked terms</h3><p class="small muted">Terms checked on the date shown, not a provider endorsement. Offers can change; confirm before signing up.</p></div>' : ''}
         ${reviewed.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}
         ${previews.length ? '<div class="catalog-section"><h3>Research options — terms not confirmed</h3><p class="small muted">Prices, availability, and eligibility are not confirmed. Check the provider before committing.</p></div>' : ''}
-        ${previews.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}`;
+        ${previews.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}`);
     }
 
     function trialCard(trial, alreadyTracked, index = null) {
@@ -2565,6 +2582,7 @@
         document.getElementById('catalogStatus').textContent = status === 'error'
           ? 'Catalog connection unavailable. Reload when online; your saved plan is unchanged.'
           : status === 'local' ? 'Research catalog loaded. Confirm offer terms with each provider.'
+          : status === 'snapshot' ? 'Catalog loaded. Connecting for live updates; confirm terms with each provider.'
           : 'Live catalog updates are active. Each option shows whether its terms have been checked.';
         render();
       },
