@@ -57,7 +57,12 @@ try {
     for (const fontSize of ['100%','200%']) {
       await page.setViewportSize({width,height:900});
       await page.evaluate(fontSize=>document.documentElement.style.fontSize=fontSize,fontSize);
-      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Page overflow at ${width}/${fontSize}`);
+      const layout=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth,
+        overflowing:[...document.querySelectorAll('body *')].filter(el=>{
+          if(!el.getClientRects().length || el.closest('.tabs'))return false;
+          const box=el.getBoundingClientRect();return box.right>innerWidth+1;
+        }).slice(0,12).map(el=>({tag:el.tagName,id:el.id,classes:el.className,width:el.getBoundingClientRect().width,right:el.getBoundingClientRect().right}))}));
+      assert(layout.width<=layout.viewport,`Page overflow at ${width}/${fontSize}: ${JSON.stringify(layout)}`);
       for (const selector of ['#requirementText','#requirementForm button[type="submit"]']) {
         const box=await page.locator(selector).boundingBox();
         // Transforms can report 43.999984px for a 44px control; allow float rounding only.
