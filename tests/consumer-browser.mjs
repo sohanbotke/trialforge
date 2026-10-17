@@ -33,6 +33,8 @@ try {
   const feedY = (await page.locator('#trialFeed').boundingBox()).y;
   assert(inputY < 600, `Search too low: ${inputY}`);
   assert(feedY < 1100, `Feed too low: ${feedY}`);
+  const firstTitle = await page.locator('#trialFeed article .card-title').first().boundingBox();
+  assert(firstTitle.y + firstTitle.height <= 844, `First checked offer title below the initial mobile screen: ${firstTitle.y}`);
   assert.match(await page.locator('#trialFeed article').first().textContent(), /Reviewed streaming fixture/);
   assert.equal(await page.locator('.rank-pill').count(), 0);
   const preview = page.locator('#trialFeed article').filter({ has: page.locator('[data-add-catalog="hellofresh"]') });
@@ -56,13 +58,13 @@ try {
   await page.locator('#clearFiltersBtn').click();
   await page.locator('#reviewFilter').selectOption('reviewed');
   assert.equal(await page.locator('#trialFeed article').count(), 2);
-  await page.locator('#searchInput').fill('nothing-matches-xyz');
+  await page.locator('#requirementText').fill('nothing-matches-xyz');
   assert.match(await page.locator('#trialFeed').textContent(), /No matching options/);
   await page.locator('#clearFiltersBtn').click();
-  await page.locator('#searchInput').fill('streaming fixture');
+  await page.locator('#requirementText').fill('streaming fixture');
   await page.locator('#catalogFilters summary').click();
   await page.locator('#clearFiltersBtn').click();
-  assert.equal(await page.locator('#catalogFilters summary').evaluate(el => el === document.activeElement), true, 'Clearing collapsed filters must focus a visible control');
+  assert.equal(await page.locator('#requirementText').evaluate(el => el === document.activeElement), true, 'Clearing filters must focus the always-visible search');
   await page.locator('[data-add-catalog="hellofresh"]').click();
   assert.equal(await page.locator('[data-add-catalog="hellofresh"]').isDisabled(), true);
   await page.reload();
@@ -163,9 +165,9 @@ try {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.locator('#trialFeed article').first().waitFor();
+  await page.locator('#searchExamples summary').click();
   await page.locator('[data-quick-requirement]').filter({hasText:'AI coding tools'}).click();
   assert.equal((await page.evaluate(() => window.__tryWiseSmoke.getState())).requirements.at(-1).budget, 0);
-  await page.locator('#plannerToggle').click();
   await page.locator('.discovery-options').first().locator('summary').click();
   await page.locator('#requirementBudget').fill('17');
   await page.locator('[data-quick-requirement]').filter({hasText:'Live sports'}).click();

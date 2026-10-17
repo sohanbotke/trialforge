@@ -54,9 +54,6 @@ async function run() {
 
     const results = [];
     for (const [index, journey] of journeys.entries()) {
-      if (index > 0) {
-        await page.locator('#plannerToggle').click();
-      }
       await page.locator('#requirementText').fill(journey.query);
       if (index === 0) await page.locator('#requirementForm summary').click();
       await page.locator('#requirementBudget').fill('30');

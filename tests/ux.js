@@ -64,7 +64,7 @@ async function run() {
     await page.locator('#catalogFilters summary').click();
     await page.locator('#requirementText').fill('Meal delivery services for busy weekdays');
     await page.locator('#requirementForm button[type="submit"]').click();
-    assert.equal(await page.locator('#plannerToggle').evaluate((el) => el === document.activeElement), true);
+    assert.equal(await page.locator('#resultsCount').evaluate((el) => el === document.activeElement), true);
     // The active summary is exposed once; Clear filters removes it entirely.
     const explanation = 'Provider-name and topic matches lead.';
     const snapshot = await page.locator('#requirementPlan').ariaSnapshot();
@@ -78,7 +78,7 @@ async function run() {
     assert.equal(await cloud.evaluate((el) => el === document.activeElement), true);
     assert(await page.locator('#trialFeed').getByRole('heading', { name: 'Vercel Hobby' }).isVisible());
     assert.equal(await page.locator('#trialFeed').getByRole('heading', { name: 'HelloFresh' }).count(), 0);
-    await page.locator('#searchInput').fill('no-such-offer-xyz');
+    await page.locator('#requirementText').fill('no-such-offer-xyz');
     assert.match(await page.locator('#resultsCount').textContent(), /^0 of /);
     await page.locator('#clearFiltersBtn').click();
     assert.equal(await page.locator('#trialFeed article').count(), total);
@@ -124,7 +124,7 @@ async function run() {
       await page.setViewportSize({ width, height: 900 });
       assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundImage), 'none', 'No clipped watermark or viewport-filling gradient');
       await page.locator('#discoverTab').click();
-      if (await page.locator('.hero-panel').evaluate(el => el.classList.contains('collapsed'))) await page.locator('#plannerToggle').click();
+      if (!(await page.locator('#searchExamples').evaluate(el => el.open))) await page.locator('#searchExamples summary').click();
       const clippedChips = await page.locator('.quick-starts').evaluate(container => {
         const bounds = container.getBoundingClientRect();
         return [...container.children].filter(el => {

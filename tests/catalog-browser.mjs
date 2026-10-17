@@ -19,6 +19,7 @@ try {
   const page = await browser.newPage({viewport:{width:390,height:844}});
   page.setDefaultTimeout(8000);
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.route('https://firestore.googleapis.com/v1/**', route=>route.abort());
   await page.clock.install({time:now});
   await page.route('**/firebase-client.mjs',route=>route.fulfill({contentType:'text/javascript',body:`
     export const isFirebaseConfigured=()=>true;
@@ -52,7 +53,7 @@ try {
   await page.locator('#reviewFilter').selectOption('reviewed');
   assert.equal(await page.locator('#trialFeed article').count(),2);
   await page.locator('#clearFiltersBtn').click();
-  await page.locator('#searchInput').fill('Fixture');
+  await page.locator('#requirementText').fill('Fixture');
   await verifyIdentity();
   await card('fresh').locator('[data-add-catalog]').click();
   await page.evaluate(records=>window.deliverCatalog(records),records.map(item=>item.id==='fresh'?{...item,status:'withdrawn',revision:2}:item));

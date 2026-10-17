@@ -10,15 +10,16 @@ or browser-extension access to be useful.
 ## What It Does
 
 - Select interest areas such as family life, meals, shows, design, productivity, dev tools, learning, health, finance, and home projects.
-- Optionally configure interests and preferences through Plan tools → Setup. Alert settings are future preferences, not active delivery.
+- Optionally choose interests through Plan tools → Interests; no questionnaire is required to browse.
+- Use one always-visible search for providers or topics, with optional example searches and budget/sorting controls.
 - Browse reviewed offers first, with research previews clearly separated and unverified costs shown as unknown.
 - Filter by reviewed monthly base cost, offer type, and review status; inspect terms and evidence on demand.
 - As the verified Google owner, review evidence, approve/publish, reject, or withdraw offers at `/admin.html`.
 - Build a requirement-first try plan, such as "cheapest way to watch live sports" or "meal kits for busy weekdays."
 - Save an option without starting it. In My Try Plan, choose Start tracking and confirm actual dates and cost before a countdown begins.
 - Review active trials before they convert using a practical checklist.
-- Inspect the source radar and alert plan that a backend collector can use later.
-- Inspect a cost/deadline summary based on started options and decisions. Side-by-side product comparison is planned, not implemented yet.
+- Inspect source guidance and calendar instructions. TryWise does not send automatic alerts.
+- Compare up to three saved options and inspect a cost/deadline summary based on started options and decisions.
 - Export or copy your try plan through Plan tools without creating an account.
 - Sign in with Google to save plans, interests, preferences, and decision history across devices.
 - Import a guest plan or JSON backup into your account without replacing existing records.
@@ -141,12 +142,21 @@ plan-store.mjs              Account isolation, save queue, and conflict handling
 plan-state.mjs              State validation and import merging
 consumer-model.mjs          Reviewed pricing/filter rules and shortlist records
 account-ui.mjs              Account controls and save feedback
+public-catalog.mjs          Bounded, read-only public catalog startup snapshot
 assets/trywise-mark.svg  Local visual asset
 backend/                    Nightly collector and discovery scaffolds
 extension/                  Chrome extension clipper scaffold
 ```
 
 ## Consumer improvement checkpoints
+
+Catalog startup starts one anonymous, uncached public collection read while the
+account SDK loads. This adds a public catalog read per page load (up to the
+existing 500-record limit); it never reads private plans or writes verification
+dates. Partial/paginated, oversized, malformed, or failed snapshots fall back to
+the SDK listener. A live listener response always supersedes startup data, and
+emulator sessions never use this production bootstrap. The read starts before
+the account module graph and has a 1.2-second timeout before SDK fallback.
 
 See [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md) for the phased plan, including later
 interest-driven delivery and streaming comparisons, and
