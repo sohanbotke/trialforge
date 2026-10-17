@@ -62,10 +62,16 @@ try {
         await page.evaluate(fontSize=>document.documentElement.style.fontSize=fontSize,fontSize);
         const layout=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth,
           overflowing:[...document.querySelectorAll('body *')].filter(el=>{
-            if(!el.getClientRects().length || el.closest('.tabs'))return false;
+            if(!el.getClientRects().length)return false;
+            const tabs=el.closest('.tabs');
+            if(tabs && getComputedStyle(tabs).overflowX==='auto')return false;
             const box=el.getBoundingClientRect();return box.right>innerWidth+1;
           }).slice(0,12).map(el=>({tag:el.tagName,id:el.id,classes:el.className,width:el.getBoundingClientRect().width,right:el.getBoundingClientRect().right}))}));
         assert(layout.width<=layout.viewport,`Page overflow at ${width}/${fontSize}/${font||'system'}: ${JSON.stringify(layout)}`);
+        if(width>680) {
+          const clippedTabs=await page.locator('.tab').evaluateAll(tabs=>tabs.filter(tab=>tab.scrollWidth>tab.clientWidth+1).map(tab=>tab.textContent));
+          assert.deepEqual(clippedTabs,[],`Tab labels exceed their cells at ${width}/${fontSize}/${font||'system'}`);
+        }
         for (const selector of ['#requirementText','#requirementForm button[type="submit"]']) {
           const box=await page.locator(selector).boundingBox();
           // Transforms can report 43.999984px for a 44px control; allow float rounding only.
