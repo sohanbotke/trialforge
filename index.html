@@ -42,7 +42,10 @@
     .skip-link { position: fixed; top: 8px; left: 12px; z-index: 30; padding: 12px; background: #fff; transform: translateY(-150%); }
     .skip-link:focus { transform: translateY(0); }
     .btn.mobile-only { display: none; }
-    .results-summary { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .results-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 12px; }
+    #catalogStatus { grid-column: 1 / -1; grid-row: 2; }
+    #clearFiltersBtn { grid-column: 2; grid-row: 1; }
+    #requirementPlan:empty { display: none; }
     .results-summary p { margin: 0; }
     .undo-notice { padding: 12px; border: 1px solid var(--brand); border-radius: 7px; background: var(--blue-soft); margin-bottom: 12px; }
     .field-error { color: var(--red); margin: 0; }
@@ -230,9 +233,11 @@
       gap: 12px;
     }
 
-    .hero-panel.collapsed #plannerBody {
-      display: none;
-    }
+    .search-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    .search-row input { min-width: 0; }
+    .search-row .btn { justify-content: center; }
+    .search-heading { margin: 0; font-size: inherit; }
+    #searchExamples summary { min-height: 44px; padding: 10px 0; font-weight: 700; }
 
     @keyframes sweep {
       0%, 100% { background-position: 0% 50%; }
@@ -242,7 +247,7 @@
     .hero-copy {
       display: grid;
       gap: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 0;
     }
 
     .hero-copy h2 {
@@ -862,8 +867,6 @@
       .toolbar .btn { padding-inline: 8px; font-size: 0.85rem; }
       .hero-copy h2 { font-size: 1.15rem; }
       .hero-panel .panel-header .card-top { display: flex; align-items: center; }
-      #plannerToggle { font-size: 0.8rem; padding-inline: 8px; }
-      #plannerToggle .icon { display: none; }
 
       .card-top {
         display: grid;
@@ -929,7 +932,7 @@
         </div>
         <div>
           <h1>TryWise</h1>
-          <p class="subhead">Find useful options. Compare the real cost. Decide before you pay.</p>
+          <p class="subhead">Compare, track, decide.</p>
         </div>
       </div>
       <div class="toolbar">
@@ -951,12 +954,12 @@
           </div>
         </details>
         <button class="btn primary" id="accountBtn" type="button" aria-haspopup="dialog" aria-controls="accountDialog" aria-live="polite">Sign in</button>
+        <button class="btn mobile-only" id="sidebarToggle" type="button" aria-expanded="false" aria-controls="sidebar">Interests &amp; privacy</button>
         <a class="btn" id="adminReviewLink" href="/admin.html?queue=seeds" hidden>Review catalog · Admin</a>
       </div>
     </header>
 
     <main class="layout">
-      <button class="btn mobile-only" id="sidebarToggle" type="button" aria-expanded="false" aria-controls="sidebar">Interests &amp; privacy</button>
       <aside class="sidebar" id="sidebar" aria-label="Interests and privacy">
         <section class="panel">
           <div class="panel-header">
@@ -1020,18 +1023,6 @@
 
         <section class="view active" id="discoverView" role="tabpanel" aria-labelledby="discoverTab" tabindex="0">
           <div class="panel hero-panel">
-            <div class="panel-header">
-              <div class="card-top">
-                <h2 class="panel-title">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V5a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
-                  Find your next option
-                </h2>
-                <button class="btn" id="plannerToggle" type="button" aria-expanded="true" aria-controls="plannerBody">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
-                  Hide Planner
-                </button>
-              </div>
-            </div>
             <div class="panel-body stack">
               <div class="planner-shell" id="plannerBody">
                 <div class="hero-copy">
@@ -1039,8 +1030,11 @@
                 </div>
                 <form class="trial-form" id="requirementForm">
                   <div class="field wide">
-                    <label for="requirementText">What do you want to try or save on?</label>
-                    <input id="requirementText" type="text" placeholder="e.g. Meal kits for busy weekdays" required>
+                    <h2 class="search-heading"><label for="requirementText">Search providers or what you need</label></h2>
+                    <div class="search-row">
+                      <input id="requirementText" type="search" placeholder="e.g. Hulu or meal delivery" required>
+                      <button class="btn primary" type="submit">Search</button>
+                    </div>
                   </div>
                   <details class="discovery-options wide">
                     <summary>Budget &amp; sorting (optional)</summary>
@@ -1056,11 +1050,9 @@
                     </select>
                   </div>
                   </details>
-                  <button class="btn primary wide" type="submit">
-                    <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M13 5l7 7-7 7"></path></svg>
-                    Find options
-                  </button>
                 </form>
+                <details id="searchExamples">
+                <summary>Try a search example</summary>
                 <div class="quick-starts" aria-label="Quick requirement examples">
                 <button class="quick-start" type="button" data-quick-requirement="Cheapest way to watch live sports and shows">Live sports</button>
                 <button class="quick-start" type="button" data-quick-requirement="Audiobooks and books I can try before paying">Books &amp; audio</button>
@@ -1070,6 +1062,7 @@
                 <button class="quick-start" type="button" data-quick-requirement="Free AI APIs with daily access to models">Free AI APIs</button>
                 <button class="quick-start" type="button" data-quick-requirement="Free AI agent harnesses I can run locally">Agent harnesses</button>
                 </div>
+                </details>
                 <div class="explore-strip" aria-label="How TryWise explores options" hidden>
                   <div class="explore-tile">
                     <strong>Find</strong>
@@ -1094,20 +1087,10 @@
           </div>
 
           <div class="panel">
-            <div class="panel-header">
-              <h2 class="panel-title">
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
-                Explore options
-              </h2>
-            </div>
             <div class="panel-body">
               <details class="discovery-options" id="catalogFilters">
                 <summary>Filter options</summary>
               <div class="filters">
-                <div class="field">
-                  <label for="searchInput">Search</label>
-                  <input id="searchInput" type="search" placeholder="Search tools, categories, goals">
-                </div>
                 <div class="field">
                   <label for="sourceFilter">Source</label>
                   <select id="sourceFilter">
@@ -1138,7 +1121,7 @@
               <p class="small muted">Cost filters use reviewed monthly base prices, not total bills. Usage, delivery, annual commitments, and other charges may apply; see terms.</p>
               </details>
               <div class="results-summary">
-                <p class="small muted" id="resultsCount" role="status" aria-live="polite" aria-atomic="true"></p>
+                <p class="small muted" id="resultsCount" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></p>
                 <p class="small muted" id="catalogStatus" role="status">Loading catalog…</p>
                 <button class="btn" id="clearFiltersBtn" type="button">Clear filters</button>
               </div>
@@ -1432,6 +1415,7 @@
 
     let state = loadState();
     let requirementFilterActive = false;
+    let searchQuery = '';
     let editingTrialId = null;
     let focusedReviewTrialId = null;
     const removedTrials = [];
@@ -1587,14 +1571,13 @@
         createdAt: new Date().toISOString()
       });
       requirementFilterActive = true;
-      document.getElementById('searchInput').value = '';
+      searchQuery = text;
       state.dismissedRequirementIds = state.dismissedRequirementIds.filter((id) => id !== state.requirements.at(-1).id);
       state.keywords = [...new Set([state.keywords, ...keywords].filter(Boolean))].join(', ');
       state.onboardingComplete = true;
       saveState();
       render();
-      setPlannerCollapsed(true);
-      document.getElementById('plannerToggle').focus();
+      document.getElementById('resultsCount').focus({preventScroll:true});
       showToast(catalogLoadStatus === 'loading' ? 'Searching the catalog…' : rankCatalogForRequirement(state.requirements.at(-1)).length ? 'Matching options found' : 'No matching options in this catalog yet');
     }
 
@@ -1663,17 +1646,16 @@
     }
 
     function renderTrialFeed() {
-      const latestRequirement = state.requirements.at(-1);
       const selected = new Set(state.interests);
-      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const query = searchQuery.trim().toLowerCase();
       const source = document.getElementById('sourceFilter').value;
       const maximum = document.getElementById('valueFilter').value;
       const review = document.getElementById('reviewFilter').value;
       const type = document.getElementById('offerTypeFilter').value;
       const trackedIds = new Set(state.trials.map((trial) => trial.catalogId));
 
-      const activeQuery = query || (requirementFilterActive ? latestRequirement?.text || '' : '');
-      const ranked = activeQuery ? rankCatalogForRequirement({...latestRequirement, text:activeQuery}) : [...trialCatalog].sort(reviewedFirst);
+      const activeQuery = query;
+      const ranked = activeQuery ? rankCatalogForRequirement({text:activeQuery, budget:Number(value('requirementBudget') || 0), preference:value('requirementRisk')}) : [...trialCatalog].sort(reviewedFirst);
       const matching = ranked.filter((trial) => {
         // Explicit interest browsing filters an empty search; searches use it as a boost.
         const interestMatch = Boolean(activeQuery) || selected.size === 0 || trial.categories.some((category) => selected.has(category));
@@ -1708,7 +1690,7 @@
 
       const reviewed = matching.filter(isReviewed);
       const previews = matching.filter(trial => !isReviewed(trial));
-      feed.innerHTML = `${reviewed.length ? '<div class="catalog-section"><h3>Options with checked terms</h3><p class="small muted">Terms checked on the date shown, not a provider endorsement. Offers can change; confirm before signing up.</p></div>' : '<div class="catalog-section"><h3>No matches with checked terms yet</h3><p class="small muted">The options below are research starting points. Confirm their terms with the provider before signing up.</p></div>'}
+      feed.innerHTML = `${reviewed.length ? '<div class="catalog-section"><h3>Options with checked terms</h3><p class="small muted">Terms checked on the date shown, not a provider endorsement. Offers can change; confirm before signing up.</p></div>' : ''}
         ${reviewed.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}
         ${previews.length ? '<div class="catalog-section"><h3>Research options — terms not confirmed</h3><p class="small muted">Prices, availability, and eligibility are not confirmed. Check the provider before committing.</p></div>' : ''}
         ${previews.map(trial => trialCard(trial, trackedIds.has(trial.id))).join('')}`;
@@ -2429,7 +2411,6 @@
     });
 
     function applyQuickRequirement(requirement) {
-      setPlannerCollapsed(false);
       document.getElementById('requirementText').value = requirement;
       document.getElementById('requirementForm').requestSubmit();
     }
@@ -2440,22 +2421,11 @@
       state.dismissedRequirementIds = [...new Set([...state.dismissedRequirementIds, latest.id])];
       requirementFilterActive = false;
       document.getElementById('requirementText').value = latest.text;
-      document.getElementById('searchInput').value = '';
+      searchQuery = '';
       saveState();
       renderTrialFeed();
-      setPlannerCollapsed(false);
       document.getElementById('requirementText').focus();
       showToast('Search dismissed. Edit your query or browse options.');
-    }
-
-    function setPlannerCollapsed(collapsed) {
-      const panel = document.querySelector('.hero-panel');
-      const toggle = document.getElementById('plannerToggle');
-      panel.classList.toggle('collapsed', collapsed);
-      toggle.setAttribute('aria-expanded', String(!collapsed));
-      toggle.innerHTML = collapsed
-        ? '<svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg> New Try Plan'
-        : '<svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"></path></svg> Hide Planner';
     }
 
     document.addEventListener('change', (event) => {
@@ -2469,7 +2439,17 @@
       if (event.target.matches('#sourceFilter, #valueFilter, #reviewFilter, #offerTypeFilter')) renderTrialFeed();
     });
 
-    document.getElementById('searchInput').addEventListener('input', renderTrialFeed);
+    document.getElementById('requirementText').addEventListener('input', () => {
+      searchQuery = value('requirementText');
+      requirementFilterActive = false;
+      renderTrialFeed();
+    });
+    for (const id of ['requirementBudget', 'requirementRisk']) {
+      document.getElementById(id).addEventListener('change', () => {
+        requirementFilterActive = false;
+        renderTrialFeed();
+      });
+    }
     document.getElementById('compareSavedBtn').addEventListener('click', () => {
       renderComparison();
       if (comparisonIds.length >= 2) document.getElementById('comparisonDialog').showModal();
@@ -2492,7 +2472,8 @@
     });
     document.getElementById('clearFiltersBtn').addEventListener('click', () => {
       requirementFilterActive = false;
-      document.getElementById('searchInput').value = '';
+      searchQuery = '';
+      document.getElementById('requirementText').value = '';
       document.getElementById('sourceFilter').value = 'all';
       document.getElementById('valueFilter').value = '';
       document.getElementById('reviewFilter').value = 'all';
@@ -2501,8 +2482,7 @@
       saveState();
       renderInterests();
       renderTrialFeed();
-      const filters = document.getElementById('catalogFilters');
-      (filters.open ? document.getElementById('searchInput') : filters.querySelector('summary')).focus();
+      document.getElementById('requirementText').focus();
     });
     document.getElementById('undoRemoveBtn').addEventListener('click', undoRemoval);
     document.getElementById('dismissUndoBtn').addEventListener('click', () => {
@@ -2519,10 +2499,6 @@
       });
     });
     document.getElementById('requirementForm').addEventListener('submit', submitRequirement);
-    document.getElementById('plannerToggle').addEventListener('click', () => {
-      const panel = document.querySelector('.hero-panel');
-      setPlannerCollapsed(!panel.classList.contains('collapsed'));
-    });
     document.getElementById('trialForm').addEventListener('submit', addManualTrial);
     document.getElementById('decisionDateForm').addEventListener('submit', confirmDecisionDate);
     document.getElementById('cancelDecisionDate').addEventListener('click', closeDecisionDate);
@@ -2559,12 +2535,12 @@
         if (options.sessionChanged || options.reload) {
           closeDecisionDate();
           requirementFilterActive = false;
+          searchQuery = '';
           comparisonIds = [];
           document.getElementById('comparisonDialog').close();
           document.getElementById('comparisonTable').replaceChildren();
           document.getElementById('trialForm').reset();
           document.getElementById('requirementForm').reset();
-          document.getElementById('searchInput').value = '';
           document.getElementById('sourceFilter').value = 'all';
           document.getElementById('valueFilter').value = '';
           document.getElementById('reviewFilter').value = 'all';
@@ -2575,7 +2551,6 @@
           removedTrials.length = 0;
           renderUndoNotice();
           focusedReviewTrialId = null;
-          setPlannerCollapsed(false);
         }
         render();
       },

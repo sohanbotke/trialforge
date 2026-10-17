@@ -89,7 +89,7 @@ try{
   await admin.locator('#publish').click();
   await admin.waitForFunction(()=>document.getElementById('message').textContent.startsWith('Published.'));
   await visitor.locator('#catalogFilters summary').click();
-  await visitor.locator('#searchInput').fill('Browser approved offer');
+  await visitor.locator('#requirementText').fill('Browser approved offer');
   await visitor.locator('[data-add-catalog="browser-approved-offer"]').waitFor();
   assert.equal(await visitor.evaluate(()=>localStorage.getItem('trywise-state-v2')),savedBefore,'Publishing must not modify a saved plan');
   await admin.locator('#reviewFilter').selectOption('pending');

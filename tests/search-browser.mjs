@@ -40,7 +40,6 @@ try {
     if(cards.length) assert.doesNotMatch(await page.locator('#trialFeed').textContent(),/No matching options/);
   }
   for(const test of cases) {
-    if(await page.locator('.hero-panel').evaluate(el=>el.classList.contains('collapsed'))) await page.locator('#plannerToggle').click();
     await page.locator('#requirementText').fill(test.query);
     await page.locator('#requirementForm button[type="submit"]').click();
     await check(test,true);
@@ -57,7 +56,7 @@ try {
   }
   await page.locator('#catalogFilters summary').click();
   for(const test of cases) {
-    await page.locator('#searchInput').fill(test.query);
+    await page.locator('#requirementText').fill(test.query);
     await check(test,false);
   }
   await page.locator('#clearFiltersBtn').click();
@@ -65,11 +64,10 @@ try {
   await page.locator('#sidebarToggle').click();
   await page.locator('[data-interest="cloudinfra"]').click();
   await page.locator('#sidebarToggle').click();
-  await page.locator('#searchInput').fill('hulu');
+  await page.locator('#requirementText').fill('hulu');
   assert.equal(await page.locator('#trialFeed article .card-title').first().textContent(),'Hulu');
   await page.locator('#clearFiltersBtn').click();
   for(const query of ['xyzabc123','meal delivery']) {
-    if(await page.locator('.hero-panel').evaluate(el=>el.classList.contains('collapsed'))) await page.locator('#plannerToggle').click();
     await page.locator('#requirementText').fill(query);
     await page.locator('#requirementForm button[type="submit"]').click();
     await page.locator('[data-dismiss-requirement]').click();

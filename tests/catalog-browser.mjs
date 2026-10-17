@@ -52,7 +52,7 @@ try {
   await page.locator('#reviewFilter').selectOption('reviewed');
   assert.equal(await page.locator('#trialFeed article').count(),2);
   await page.locator('#clearFiltersBtn').click();
-  await page.locator('#searchInput').fill('Fixture');
+  await page.locator('#requirementText').fill('Fixture');
   await verifyIdentity();
   await card('fresh').locator('[data-add-catalog]').click();
   await page.evaluate(records=>window.deliverCatalog(records),records.map(item=>item.id==='fresh'?{...item,status:'withdrawn',revision:2}:item));
