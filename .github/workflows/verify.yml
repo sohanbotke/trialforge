@@ -47,6 +47,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           node tests/consumer-browser.mjs
+          node tests/edit-date-browser.mjs
           node tests/catalog-browser.mjs
           node tests/admin-entry-browser.mjs
           node tests/search-browser.mjs
