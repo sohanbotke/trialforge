@@ -53,20 +53,24 @@ try {
   assert.equal(await page.locator('#trialFeed article .card-title').first().textContent(),'Canva Pro');
   assert.equal(await page.locator('#adminReviewLink').isVisible(),false);
   // Text-only zoom exercises wrapping, not just a larger device pixel ratio.
-  for (const width of [320,390,768,1440]) {
-    for (const fontSize of ['100%','200%']) {
-      await page.setViewportSize({width,height:900});
-      await page.evaluate(fontSize=>document.documentElement.style.fontSize=fontSize,fontSize);
-      const layout=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth,
-        overflowing:[...document.querySelectorAll('body *')].filter(el=>{
-          if(!el.getClientRects().length || el.closest('.tabs'))return false;
-          const box=el.getBoundingClientRect();return box.right>innerWidth+1;
-        }).slice(0,12).map(el=>({tag:el.tagName,id:el.id,classes:el.className,width:el.getBoundingClientRect().width,right:el.getBoundingClientRect().right}))}));
-      assert(layout.width<=layout.viewport,`Page overflow at ${width}/${fontSize}: ${JSON.stringify(layout)}`);
-      for (const selector of ['#requirementText','#requirementForm button[type="submit"]']) {
-        const box=await page.locator(selector).boundingBox();
-        // Transforms can report 43.999984px for a 44px control; allow float rounding only.
-        assert(box.width>0 && box.height>=43.99 && box.x>=0 && box.x+box.width<=width+.01,`Clipped search control ${selector} at ${width}/${fontSize}: ${JSON.stringify(box)}`);
+  // A wider fallback font reproduces the Linux header's min-content overflow on macOS.
+  for (const font of ['', 'monospace']) {
+    await page.evaluate(font=>document.body.style.fontFamily=font,font);
+    for (const width of [320,390,768,1440]) {
+      for (const fontSize of ['100%','200%']) {
+        await page.setViewportSize({width,height:900});
+        await page.evaluate(fontSize=>document.documentElement.style.fontSize=fontSize,fontSize);
+        const layout=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth,
+          overflowing:[...document.querySelectorAll('body *')].filter(el=>{
+            if(!el.getClientRects().length || el.closest('.tabs'))return false;
+            const box=el.getBoundingClientRect();return box.right>innerWidth+1;
+          }).slice(0,12).map(el=>({tag:el.tagName,id:el.id,classes:el.className,width:el.getBoundingClientRect().width,right:el.getBoundingClientRect().right}))}));
+        assert(layout.width<=layout.viewport,`Page overflow at ${width}/${fontSize}/${font||'system'}: ${JSON.stringify(layout)}`);
+        for (const selector of ['#requirementText','#requirementForm button[type="submit"]']) {
+          const box=await page.locator(selector).boundingBox();
+          // Transforms can report 43.999984px for a 44px control; allow float rounding only.
+          assert(box.width>0 && box.height>=43.99 && box.x>=0 && box.x+box.width<=width+.01,`Clipped search control ${selector} at ${width}/${fontSize}: ${JSON.stringify(box)}`);
+        }
       }
     }
   }
