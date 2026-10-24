@@ -78,6 +78,8 @@ TRACKING_PARAMS = {
 }
 
 ALLOWED_CONTENT_TYPES = (
+    "text/markdown",
+    "text/plain",
     "text/html",
     "application/xhtml+xml",
     "application/rss+xml",
@@ -112,6 +114,9 @@ class TrialCandidate:
     first_seen: str = ""
     last_seen: str = ""
     discovered_at: str = ""
+    document_hash: str = ""    # change detection for multi-plan documentation; not verification
+    attribution: str = ""
+    license_url: str = ""
 
 
 @dataclass
@@ -945,6 +950,30 @@ def extract_candidates(source: dict, text: str, *,
     Pass a LinkVerifier to enable landing-page verification.
     """
     discovered_at = now or datetime.now(UTC).isoformat()
+    if source.get("format") == "markdown":
+        # Pricing documents describe several plans. Never attach a paid plan's
+        # price/trial to the free plan, or follow arbitrary embedded links.
+        url = canonical_url(source["offer_url"])
+        validate_public_url(url)
+        if urlparse(url).hostname != urlparse(source["url"]).hostname:
+            raise ValueError("Documentation offer URL must use the source host")
+        if not all(source.get(key) for key in ("policy_url", "policy_reviewed", "attribution", "license_url")):
+            raise ValueError("Documentation sources require policy and attribution metadata")
+        signals = matched_signals(text)
+        if not signals:
+            # A blank/error document or moved section is not proof of expiry.
+            raise ValueError("Documentation has no offer signals; manual source review required")
+        return [TrialCandidate(
+            source_id=source["id"], source_label=source["label"],
+            source_type=source.get("type", "official"),
+            title=f'{source["label"]} — terms need review', url=url,
+            source_url=source["url"], categories=list(source.get("categories", [])),
+            confidence="candidate", score=score_candidate(source, url, signals, matched_negative_signals(text), "not_checked"),
+            signals=signals, link_status="not_checked", landing_match="not_checked",
+            discovered_at=discovered_at,
+            document_hash=hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            attribution=source["attribution"], license_url=source["license_url"],
+        )]
     is_feed = source.get("type") in {"rss", "newsletter"} or looks_like_feed(text)
     if is_feed:
         snippet_groups = [feed_snippets(source["url"], text)]
@@ -1162,6 +1191,8 @@ def cached_candidates(state: dict, source_id: str) -> list[TrialCandidate]:
             landing_match=entry.get("landing_match", "not_checked"),
             trial_days=entry.get("trial_days"), price_hint=entry.get("price_hint"),
             eligibility_hint=entry.get("eligibility_hint"), status="unchanged",
+            document_hash=entry.get("document_hash", ""),
+            attribution=entry.get("attribution", ""), license_url=entry.get("license_url", ""),
             first_seen=entry.get("first_seen", ""), last_seen=entry.get("last_seen", "")))
     return result
 
@@ -1185,7 +1216,7 @@ def apply_state(candidates: list[TrialCandidate], state: dict,
                                               cand.trial_days, cand.price_hint)
         if entry is None:
             status, first_seen = "new", now
-        elif entry.get("content_hash") != content_hash or entry.get("status") == "gone" or entry.get("eligibility_hint") != cand.eligibility_hint:
+        elif entry.get("content_hash") != content_hash or entry.get("status") == "gone" or entry.get("eligibility_hint") != cand.eligibility_hint or entry.get("document_hash", "") != cand.document_hash:
             status, first_seen = "updated", entry.get("first_seen", now)
         else:
             status, first_seen = "unchanged", entry.get("first_seen", now)
@@ -1201,6 +1232,9 @@ def apply_state(candidates: list[TrialCandidate], state: dict,
             "trial_days": cand.trial_days,
             "price_hint": cand.price_hint,
             "eligibility_hint": cand.eligibility_hint,
+            "document_hash": cand.document_hash,
+            "attribution": cand.attribution,
+            "license_url": cand.license_url,
             "first_seen": first_seen,
             "last_seen": now,
             "content_hash": content_hash,
@@ -1237,6 +1271,8 @@ def apply_state(candidates: list[TrialCandidate], state: dict,
                 trial_days=entry.get("trial_days"),
                 price_hint=entry.get("price_hint"),
                 eligibility_hint=entry.get("eligibility_hint"),
+                document_hash=entry.get("document_hash", ""),
+                attribution=entry.get("attribution", ""), license_url=entry.get("license_url", ""),
                 status="gone",
                 first_seen=entry.get("first_seen", ""),
                 last_seen=entry.get("last_seen", ""),
