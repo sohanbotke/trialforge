@@ -56,17 +56,40 @@
     "url": "https://www.producthunt.com/feed",
     "categories": ["productivity", "devtools", "design"],
     "verify_links": false,
-    "enabled": true
+    "enabled": false,
+    "disabled_reason": "2026-10-24: robots.txt disallows collection; do not bypass."
   },
   {
     "id": "cloudflare-workers-official",
     "type": "official",
-    "label": "Cloudflare Workers official page",
-    "url": "https://www.cloudflare.com/products/workers/",
+    "label": "Cloudflare Workers pricing",
+    "url": "https://developers.cloudflare.com/workers/platform/pricing/index.md",
+    "offer_url": "https://developers.cloudflare.com/workers/platform/pricing/",
+    "format": "markdown",
+    "policy_reviewed": "2026-10-24",
+    "policy_url": "https://developers.cloudflare.com/robots.txt",
+    "license_url": "https://github.com/cloudflare/cloudflare-docs/blob/production/LICENSE",
+    "attribution": "Cloudflare documentation contributors, CC BY 4.0; derived signal metadata, not verified offer terms.",
     "categories": ["cloudinfra", "devtools"],
-    "max_candidates": 8,
-    "verify_links": true,
-    "enabled": false
+    "max_candidates": 1,
+    "verify_links": false,
+    "enabled": true
+  },
+  {
+    "id": "github-copilot-official",
+    "type": "official",
+    "label": "GitHub Copilot plans",
+    "url": "https://docs.github.com/api/article/body?pathname=/en/copilot/get-started/plans",
+    "offer_url": "https://docs.github.com/en/copilot/get-started/plans",
+    "format": "markdown",
+    "categories": ["devtools", "productivity"],
+    "max_candidates": 1,
+    "verify_links": false,
+    "policy_reviewed": "2026-10-24",
+    "policy_url": "https://docs.github.com/en/get-started/using-github-docs/github-docs-api",
+    "license_url": "https://github.com/github/docs/blob/main/LICENSE",
+    "attribution": "GitHub Docs contributors, CC BY 4.0; derived signal metadata, not verified offer terms.",
+    "enabled": true
   },
   {
     "id": "vercel-pricing",

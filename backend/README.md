@@ -102,6 +102,22 @@ checks, and operations. Do not add credentials or private submissions to reports
 
 ## Source policy
 
+The weekly allowlist was reviewed on 2026-10-24. Product Hunt is disabled
+because its robots policy blocks this crawler. The two enabled sources are
+GitHub's [documented article API](https://docs.github.com/en/get-started/using-github-docs/github-docs-api)
+and Cloudflare's machine-readable Workers pricing document. Both passed the
+existing robots checks; their documentation is CC BY 4.0. Policy/license URLs
+and attribution are stored in `sources.json`; attribution is carried into JSON
+candidate reports. No robots, throttling, response-size or SSRF checks are bypassed.
+
+`format: "markdown"` sources emit at most one **unverified review pointer** per
+document. They do not follow document links or guess per-plan prices, trial
+lengths or eligibility from a multi-plan table. A document hash detects changes
+such as quota edits, including when generic signal phrases are unchanged. HTTP
+304 retains that hash and attribution; failed/blocked or signal-free responses
+keep prior observations rather than declaring an offer gone. This is a small
+reliable source set, not broad deal coverage or automatic provider verification.
+
 Only add sources that are:
 
 - Publicly accessible.
@@ -120,6 +136,9 @@ Per-source options in `sources.json`:
 | `max_candidates` | Cap candidates per source (default 20). |
 | `allowed_domains` | Extra domains treated as same-source for confidence. |
 | `categories` | TryWise categories the source feeds. |
+| `format` | `markdown` for explicit machine-readable pricing documents; omit for HTML/feed extraction. |
+| `offer_url` | Same-host public page for a Markdown review pointer. |
+| `policy_reviewed`, `policy_url`, `license_url`, `attribution` | Required provenance for enabled Markdown sources; not offer approval. |
 
 Forums are pointers to possible deals, not authoritative sources. Official
 product pages win when details conflict.
